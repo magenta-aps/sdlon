@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 stages:
+  - sync
   - lint
   - build
   - test
@@ -17,6 +18,7 @@ include:
       - gitlab-ci-templates/common/docker-build-meta.v2.yml
       - gitlab-ci-templates/common/config-updater-meta.v1.yml
       - gitlab-ci-templates/common/rules.v1.yml
+      - gitlab-ci-templates/common/no-interrupt.v1.yml
 
 variables:
   SD_RELEASE_REGISTRY_IMAGE: index.docker.io/magentaaps/os2mo-sd-changed-at
