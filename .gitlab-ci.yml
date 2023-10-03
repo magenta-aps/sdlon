@@ -144,7 +144,7 @@ Release SDTool release image:
 
 Release SDChangedAt to Flux dev:
   extends: .release-to-dev
-  needs: ["Release version"]
+  needs: ["Release SD release image"]
   variables:
     ENDPOINT: os2mo/flux/sdchangedat/update-dev
 
@@ -162,7 +162,7 @@ Release SDChangedAt Flux prod:
 
 Release SDChangedAt to Salt dev:
   extends: .release-to-dev
-  needs: ["Release version"]
+  needs: ["Release SD release image"]
   variables:
     ENDPOINT: os2mo/salt/sdchangedat/update-dev
 
