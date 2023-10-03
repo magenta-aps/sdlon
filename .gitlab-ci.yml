@@ -43,7 +43,6 @@ Lint SDLoen Integration:
   needs: []
   image: python:3.11
   script:
-    - cd integrations/SD_Lon/
     - pip install black~=22.0
     - python -m black --diff --check tests/*.py sdlon/*.py
 
@@ -53,22 +52,22 @@ Lint SDLoen Integration:
 Build SD image:
   extends: .build-docker
   variables:
-    CONTEXT: ${CI_PROJECT_DIR}/integrations/SD_Lon/
-    DOCKERFILE: ${CI_PROJECT_DIR}/integrations/SD_Lon/Dockerfile
+    CONTEXT: ${CI_PROJECT_DIR}/
+    DOCKERFILE: ${CI_PROJECT_DIR}/Dockerfile
     CI_IMAGE: ${SD_IMAGE_SHA}
 
 Build SD-init image:
   extends: .build-docker
   variables:
-    CONTEXT: ${CI_PROJECT_DIR}/integrations/SD_Lon/init/
-    DOCKERFILE: ${CI_PROJECT_DIR}/integrations/SD_Lon/init/Dockerfile
+    CONTEXT: ${CI_PROJECT_DIR}/init/
+    DOCKERFILE: ${CI_PROJECT_DIR}/init/Dockerfile
     CI_IMAGE: ${SD_INIT_IMAGE_SHA}
 
 Build SDTool image:
   extends: .build-docker
   variables:
-    CONTEXT: ${CI_PROJECT_DIR}/integrations/SD_Lon/
-    DOCKERFILE: ${CI_PROJECT_DIR}/integrations/SD_Lon/Dockerfile.sdtool
+    CONTEXT: ${CI_PROJECT_DIR}/
+    DOCKERFILE: ${CI_PROJECT_DIR}/Dockerfile.sdtool
     CI_IMAGE: ${SDTOOL_IMAGE_SHA}
 
 # Test
