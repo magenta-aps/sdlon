@@ -6,13 +6,16 @@ stages:
   - build
   - test
   - release
+  - deploy
 
 include:
   - project: labs/salt-automation
     file:
+      - gitlab-ci-templates/common/conventional-commits.v1.yml
       - gitlab-ci-templates/common/docker-release-meta.v1.yml
       - gitlab-ci-templates/common/docker-build-meta.v2.yml
       - gitlab-ci-templates/common/config-updater-meta.v1.yml
+      - gitlab-ci-templates/common/rules.v1.yml
 
 variables:
   SD_RELEASE_REGISTRY_IMAGE: index.docker.io/magentaaps/os2mo-sd-changed-at
@@ -22,6 +25,15 @@ variables:
   SD_INIT_IMAGE_SHA: ${CI_REGISTRY_IMAGE}/os2mo-sd-changed-at-init:${CI_COMMIT_SHA}
   SDTOOL_IMAGE_SHA: ${CI_REGISTRY_IMAGE}/os2mo-http-trigger-sdtool:${CI_COMMIT_SHA}
 
+  POETRY_VERSION: "1.3.2"
+
+.manual-rules: &manual-rules
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/
+      when: manual
+    - if: $CI_COMMIT_REF_NAME == "master"
+      when: manual
+    - when: always
 
 # Lint
 ######
