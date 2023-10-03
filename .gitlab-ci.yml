@@ -6,13 +6,17 @@ stages:
   - build
   - test
   - release
+  - deploy
 
 include:
   - project: labs/salt-automation
     file:
+      - gitlab-ci-templates/common/conventional-commits.v1.yml
+      - gitlab-ci-templates/common/docker-release.v1.yml
       - gitlab-ci-templates/common/docker-release-meta.v1.yml
       - gitlab-ci-templates/common/docker-build-meta.v2.yml
       - gitlab-ci-templates/common/config-updater-meta.v1.yml
+      - gitlab-ci-templates/common/rules.v1.yml
 
 variables:
   SD_RELEASE_REGISTRY_IMAGE: index.docker.io/magentaaps/os2mo-sd-changed-at
@@ -22,6 +26,16 @@ variables:
   SD_INIT_IMAGE_SHA: ${CI_REGISTRY_IMAGE}/os2mo-sd-changed-at-init:${CI_COMMIT_SHA}
   SDTOOL_IMAGE_SHA: ${CI_REGISTRY_IMAGE}/os2mo-http-trigger-sdtool:${CI_COMMIT_SHA}
 
+  POETRY_VERSION: "1.3.2"
+
+.manual-rules: &manual-rules
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/
+      when: manual
+    - if: $CI_COMMIT_REF_NAME == "master"
+      when: manual
+    - when: always
+
 
 # Lint
 ######
@@ -30,7 +44,6 @@ Lint SDLoen Integration:
   needs: []
   image: python:3.11
   script:
-    - cd integrations/SD_Lon/
     - pip install black~=22.0
     - python -m black --diff --check tests/*.py sdlon/*.py
 
@@ -40,22 +53,22 @@ Lint SDLoen Integration:
 Build SD image:
   extends: .build-docker
   variables:
-    CONTEXT: ${CI_PROJECT_DIR}/integrations/SD_Lon/
-    DOCKERFILE: ${CI_PROJECT_DIR}/integrations/SD_Lon/Dockerfile
+    CONTEXT: ${CI_PROJECT_DIR}/
+    DOCKERFILE: ${CI_PROJECT_DIR}/Dockerfile
     CI_IMAGE: ${SD_IMAGE_SHA}
 
 Build SD-init image:
   extends: .build-docker
   variables:
-    CONTEXT: ${CI_PROJECT_DIR}/integrations/SD_Lon/init/
-    DOCKERFILE: ${CI_PROJECT_DIR}/integrations/SD_Lon/init/Dockerfile
+    CONTEXT: ${CI_PROJECT_DIR}/init/
+    DOCKERFILE: ${CI_PROJECT_DIR}/init/Dockerfile
     CI_IMAGE: ${SD_INIT_IMAGE_SHA}
 
 Build SDTool image:
   extends: .build-docker
   variables:
-    CONTEXT: ${CI_PROJECT_DIR}/integrations/SD_Lon/
-    DOCKERFILE: ${CI_PROJECT_DIR}/integrations/SD_Lon/Dockerfile.sdtool
+    CONTEXT: ${CI_PROJECT_DIR}/
+    DOCKERFILE: ${CI_PROJECT_DIR}/Dockerfile.sdtool
     CI_IMAGE: ${SDTOOL_IMAGE_SHA}
 
 # Test
