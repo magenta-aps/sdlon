@@ -89,6 +89,10 @@ DEFAULT_CHANGED_AT_SETTINGS = {
     "sd_monthly_hourly_divide": 9000,
     "sd_password": "secret",
     "sd_user": "user",
+    "pghost": "sd-db",
+    "app_database": "sd_payload",
+    "app_dbuser": "sd_payload",
+    "app_dbpassword": "secret",
 }
 
 
@@ -107,6 +111,7 @@ def mock_env(monkeypatch):
     monkeypatch.setenv("SD_MONTHLY_HOURLY_DIVIDE", "80000")
     monkeypatch.setenv("SD_IMPORT_RUN_DB", "env_run_db")
     monkeypatch.setenv("SD_GLOBAL_FROM_DATE", "2022-01-09")
+    monkeypatch.setenv("APP_DBPASSWORD", "secret")
 
 
 @patch("sdlon.config.load_settings")
