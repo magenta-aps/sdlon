@@ -5,10 +5,13 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 
+from sdlon.config import get_changed_at_settings, ChangedAtSettings
 
-def get_db_url() -> str:
-    return f"postgresql+psycopg2://{os.environ['APP_DBUSER']}:{os.environ['APP_DBPASSWORD']}@{os.environ['PGHOST']}/{os.environ['APP_DATABASE']}"
+
+def get_db_url(settings: ChangedAtSettings) -> str:
+    return f"postgresql+psycopg2://{settings.app_dbuser}:{settings.app_dbpassword.get_secret_value()}@{settings.pghost}/{settings.app_database}"
 
 
 def get_engine() -> Engine:
-    return create_engine(get_db_url())
+    settings = get_changed_at_settings()
+    return create_engine(get_db_url(settings))

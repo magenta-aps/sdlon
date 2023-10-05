@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2019-2020 Magenta ApS
 # SPDX-License-Identifier: MPL-2.0
-version: "3.4"
+version: "3.9"
 services:
   sd_changed_at:
     build:
@@ -20,23 +20,45 @@ services:
       CLIENT_SECRET: "603f1c82-d012-4d04-9382-dbe659c533fb"
       AUTH_SERVER: "http://keycloak:8080/auth"
 
-      # Access the Postgres cluster in local dev envs and CI.
-      # The env vars below are used when creating the initial "sd_payload" DB user and database in `./docker/start.sh`.
-      PGHOST: mox-db
-      PGDATABASE: postgres
-      PGUSER: postgres
-      PGPASSWORD: mysecretpassword
-      # Name of application database, DB user, and password
-      APP_DATABASE: sd_payload
-      APP_DBUSER: sd_payload
       APP_DBPASSWORD: super_secret_sd_payload_password
-
+    depends_on:
+      sd-db-init:
+        condition: service_completed_successfully
     networks:
       - os2mo_default
     ports:
       - 8000:8000/tcp
     volumes:
       - ./:/app/
+  sd-db:
+    image: postgres:11.7  # Set image in global.sls
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+    networks:
+      os2mo_default:
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+  sd-db-init:
+    image: magentaaps/postgres-keycloak-init:12.7-11.7  # Set image in global.sls
+    command: ["/usr/bin/sleep", "600"]
+    environment:
+      POSTGRES_HOST: sd-db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+      KEYCLOAK_DB_NAME: sd_payload
+      KEYCLOAK_DB_USER: sd_payload
+      KEYCLOAK_DB_PASSWORD: super_secret_sd_payload_password
+    networks:
+      os2mo_default:
+    depends_on:
+      sd-db:
+        condition: service_healthy
+
 networks:
   os2mo_default:
     external: true

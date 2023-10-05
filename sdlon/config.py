@@ -168,6 +168,12 @@ class ChangedAtSettings(CommonSettings):
     sd_update_primary_engagement: bool = True
     sd_use_ad_integration: bool = True
 
+    # Settings for the SD payload database
+    pghost: str = "sd-db"
+    app_database: str = "sd_payload"
+    app_dbuser: str = "sd_payload"
+    app_dbpassword: SecretStr
+
     class Config:
         extra = Extra.forbid
 

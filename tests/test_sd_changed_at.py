@@ -108,6 +108,7 @@ def setup_sd_changed_at(updates=None, hours=24):
         "sd_monthly_hourly_divide": 8000,
         "mora_base": "http://dummy.url",
         "mox_base": "http://dummy.url",
+        "app_dbpassword": "secret",
     }
     if updates:
         settings_dict.update(updates)
