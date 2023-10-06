@@ -45,7 +45,6 @@ services:
       start_period: 30s
   sd-db-init:
     image: magentaaps/postgres-keycloak-init:12.7-11.7  # Set image in global.sls
-    command: ["/usr/bin/sleep", "600"]
     environment:
       POSTGRES_HOST: sd-db
       POSTGRES_USER: postgres

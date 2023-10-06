@@ -7,7 +7,7 @@ from alembic import context
 from payload_db.engine import get_db_url
 from payload_db.engine import get_engine
 from payload_db.models import Base
-
+from sdlon.config import get_changed_at_settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -37,8 +37,9 @@ def run_migrations_offline() -> None:
     script output.
 
     """
+    settings = get_changed_at_settings()
     context.configure(
-        url=get_db_url(),
+        url=get_db_url(settings),
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
