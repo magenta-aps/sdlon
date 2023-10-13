@@ -140,6 +140,9 @@ class FixDepartments:
         Returns:
             Boolean indicating whether the unit was created in MO or not.
         """
+
+        logger.debug("_create_org_unit_if_missing_in_mo called")
+
         # This is a hack which should be removed once
         # https://redmine.magenta-aps.dk/issues/56846 has been resolved
         date_at = parse_datetime(department["ActivationDate"])
@@ -147,15 +150,23 @@ class FixDepartments:
             date_at = datetime.datetime(1930, 1, 2)
         date_at_str = format_date(date_at)
 
+        logger.debug(
+            "Read OU from MO",
+            org_unit=department["DepartmentUUIDIdentifier"],
+            at=date_at_str,
+        )
         mo_response = self.helper.read_ou(
             department["DepartmentUUIDIdentifier"], at=date_at_str
         )
+        logger.debug("Response", mo_response=mo_response)
 
         ou_created = False
         if mo_response.get("status") == 404:
             # TODO: create_single_department should return the boolean value of ou_created
             self.create_single_department(department, parent_uuid)
             ou_created = True
+
+        logger.debug("OU created", ou_created=ou_created)
 
         return ou_created
 
@@ -237,6 +248,9 @@ class FixDepartments:
                 self._update_org_unit_for_single_sd_dep_registration(
                     department, parent_uuid
                 )
+        logger.info(
+            "Fixed department", unit_uuid=unit_uuid, validity_date=validity_date
+        )
 
     def get_department(
         self, validity, shortname=None, uuid=None
