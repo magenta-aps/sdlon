@@ -1,3 +1,4 @@
+import datetime
 import unittest
 import uuid
 from collections import OrderedDict
@@ -1568,7 +1569,9 @@ def test_apply_ny_logic(too_deep: list[str], expected_target_ou: str) -> None:
     "department_from_date,effective_fix_date",
     [
         # A date in the future
-        (date(2200, 1, 1), date(2200, 1, 1))
+        (date(2200, 1, 1), date(2200, 1, 1)),
+        # A date in the past
+        (date(2000, 1, 1), datetime.datetime.now().date()),
     ],
 )
 def test_apply_ny_logic_for_non_existing_future_unit(
@@ -1576,9 +1579,9 @@ def test_apply_ny_logic_for_non_existing_future_unit(
 ) -> None:
     """
     Test the scenario where "apply_NY_logic" is called on a currently
-    non-existing OU in MO, but on an SD unit which should be created with
-    a future from date in MO. We test that "read_ou" and "fix_department"
-    are called with the correct dates.
+    non-existing OU in MO, but on an SD unit which should be created
+    in MO. We test that "read_ou" and "fix_department" are called with
+    the correct dates.
     """
     # Arrange
     sd_updater = setup_sd_changed_at({"sd_import_too_deep": ["Afdelings-niveau"]})
