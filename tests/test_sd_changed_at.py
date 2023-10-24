@@ -1,4 +1,3 @@
-import datetime
 import unittest
 import uuid
 from collections import OrderedDict
@@ -16,6 +15,7 @@ from parameterized import parameterized
 from ra_utils.attrdict import attrdict
 from ra_utils.generate_uuid import uuid_generator
 
+from sdlon.date_utils import format_date
 from sdlon.models import MOBasePerson, ITUserSystem
 from sdlon.it_systems import MUTATION_ADD_IT_SYSTEM_TO_EMPLOYEE
 from .fixtures import get_employment_fixture
@@ -1564,7 +1564,16 @@ def test_apply_ny_logic(too_deep: list[str], expected_target_ou: str) -> None:
     assert target_ou_uuid == expected_target_ou
 
 
-def test_apply_ny_logic_for_non_existing_future_unit() -> None:
+@pytest.mark.parametrize(
+    "department_from_date,effective_fix_date",
+    [
+        # A date in the future
+        (date(2200, 1, 1), date(2200, 1, 1))
+    ],
+)
+def test_apply_ny_logic_for_non_existing_future_unit(
+    department_from_date: date, effective_fix_date: date
+) -> None:
     """
     Test the scenario where "apply_NY_logic" is called on a currently
     non-existing OU in MO, but on an SD unit which should be created with
@@ -1577,7 +1586,7 @@ def test_apply_ny_logic_for_non_existing_future_unit() -> None:
     ou_uuid_afd = "00000000-0000-0000-0000-000000000000"
     ou_uuid_ny1 = "10000000-0000-0000-0000-000000000000"
     person_uuid = str(uuid.uuid4())
-    department_from_date = "2200-01-01"  # A date in the future
+    department_from_date = format_date(department_from_date)
 
     mock_read_ou = MagicMock(
         side_effect=[
@@ -1608,10 +1617,13 @@ def test_apply_ny_logic_for_non_existing_future_unit() -> None:
 
     # Assert
     assert mock_read_ou.call_args_list == [
-        call(ou_uuid_afd, at=department_from_date, use_cache=False),
-        call(ou_uuid_afd, at=department_from_date, use_cache=False),
+        call(ou_uuid_afd, at=format_date(effective_fix_date), use_cache=False),
+        call(ou_uuid_afd, at=format_date(effective_fix_date), use_cache=False),
     ]
-    mock_fix_department.assert_called_once_with(ou_uuid_afd, date(2200, 1, 1))
+    mock_fix_department.assert_called_once_with(ou_uuid_afd, effective_fix_date)
     mock_create_association.assert_called_once_with(
-        ou_uuid_afd, person_uuid, 12345, {"from": department_from_date, "to": None}
+        ou_uuid_afd,
+        person_uuid,
+        12345,
+        {"from": format_date(effective_fix_date), "to": None},
     )
