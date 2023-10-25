@@ -830,15 +830,7 @@ class ChangeAtSD:
             )
 
         if ou_info["org_unit_level"]["user_key"] in too_deep:
-            self.create_association(
-                org_unit,
-                person_uuid,
-                job_id,
-                {
-                    "from": effective_fix_date_str,
-                    "to": validity["to"],
-                },
-            )
+            self.create_association(org_unit, person_uuid, job_id, validity)
 
         while ou_info["org_unit_level"]["user_key"] in too_deep:
             ou_info = ou_info["parent"]

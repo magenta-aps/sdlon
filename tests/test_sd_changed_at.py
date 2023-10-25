@@ -1628,5 +1628,5 @@ def test_apply_ny_logic_for_non_existing_future_unit(
         ou_uuid_afd,
         person_uuid,
         12345,
-        {"from": format_date(effective_fix_date), "to": None},
+        {"from": department_from_date, "to": None},
     )
