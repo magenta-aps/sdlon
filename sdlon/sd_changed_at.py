@@ -50,7 +50,7 @@ from sdlon.sd_to_pydantic import convert_to_sd_base_person
 from . import sd_payloads
 from .config import ChangedAtSettings
 from .config import get_changed_at_settings
-from .date_utils import date_to_datetime, parse_datetime
+from .date_utils import date_to_datetime, parse_datetime, format_date
 from .date_utils import gen_date_intervals
 from .date_utils import sd_to_mo_termination_date
 from .engagement import create_engagement, filtered_professions
@@ -808,14 +808,25 @@ class ChangeAtSD:
             "Apply NY logic", job_id=job_id, org_unit=org_unit, validity=validity
         )
         too_deep = self.settings.sd_import_too_deep
+
+        # Effective date for fixing the department must not be before today's date,
+        # since we cannot get SD department parents *with a validity* back in time via the
+        # SD API. It is only possible to get an SD department parent on a specific date.
+        # Calling fix_department with a date argument prior to today's date can therefore
+        # result in an incorrect parent (see more details on this Redmine issue
+        # https://redmine.magenta.dk/issues/58094)
+        validity_from_date = parse_datetime(validity["from"]).date()
+        effective_fix_date = max(validity_from_date, datetime.datetime.now().date())
+        effective_fix_date_str = format_date(effective_fix_date)
+
         # Move users and make associations according to NY logic
-        ou_info = self.helper.read_ou(org_unit, at=validity["from"], use_cache=False)
+        ou_info = self.helper.read_ou(
+            org_unit, at=effective_fix_date_str, use_cache=False
+        )
         if "status" in ou_info:
-            self.department_fixer.fix_department(
-                org_unit, parse_datetime(validity["from"]).date()
-            )
+            self.department_fixer.fix_department(org_unit, effective_fix_date)
             ou_info = self.helper.read_ou(
-                org_unit, at=validity["from"], use_cache=False
+                org_unit, at=effective_fix_date_str, use_cache=False
             )
 
         if ou_info["org_unit_level"]["user_key"] in too_deep:

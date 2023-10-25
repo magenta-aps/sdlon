@@ -47,6 +47,7 @@ def sd_lookup(
     request_uuid: Optional[uuid.UUID] = None,
 ) -> OrderedDict:
     """Fire a requests against SD."""
+    # TODO: this could potentially log CPRs - to be fixed
     logger.info("Retrieve: {}".format(url))
     logger.debug("Params: {}".format(params))
 
