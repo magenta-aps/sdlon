@@ -4,6 +4,8 @@
 import datetime
 import sys
 
+from prometheus_fastapi_instrumentator import Instrumentator
+
 from sdlon.fix_departments import unit_fixer
 
 sys.path.insert(0, "/")
@@ -14,7 +16,7 @@ from uuid import UUID
 
 from fastapi import BackgroundTasks, FastAPI
 from fastapi.responses import RedirectResponse
-from os2mo_fastapi_utils.tracing import setup_instrumentation, setup_logging
+from os2mo_fastapi_utils.tracing import setup_logging
 from os2mo_http_trigger_protocol import (
     EventType,
     MOTriggerPayload,
@@ -148,8 +150,7 @@ async def triggers_ou_refresh(payload: MOTriggerPayload, bg_tasks: BackgroundTas
         "msg": f"SD-Tool opdatering påbegyndt {start_time}. Genindlæs siden om nogle minutter."
     }
 
-
-app = setup_instrumentation(app)
+Instrumentator().instrument(app).expose(app)
 
 from structlog.contextvars import merge_contextvars
 
