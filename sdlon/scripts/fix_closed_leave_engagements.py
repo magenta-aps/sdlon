@@ -4,7 +4,7 @@ from uuid import UUID
 
 import click
 from gql import gql
-from more_itertools import one, last
+from more_itertools import one, last, only
 from raclients.graph.client import GraphQLClient
 from sdclient.client import SDClient
 from sdclient.requests import GetEmploymentRequest
@@ -12,7 +12,7 @@ from sdclient.responses import GetEmploymentResponse
 
 from sdlon.date_utils import format_date, parse_datetime, SD_INFINITY
 from sdlon.graphql import get_mo_client
-from sdlon.log import setup_logging, LogLevel
+from sdlon.log import setup_logging, LogLevel, anonymize_cpr
 from sdlon.scripts import print_json
 from sdlon.sd_common import EmploymentStatus as SDEmpStatus
 
@@ -178,64 +178,117 @@ def get_mo_engagement(
     return one(r["engagements"]["objects"])
 
 
-def fix_engagement(engagement: dict[str, Any], sd_final_end_date: date) -> None:
-    eng_to_date = [
-        datetime.fromisoformat(eng_obj["validity"]["to"]).date()
-        for eng_obj in engagement["objects"]
-    ]
-    eng_to_date.sort()
-    latest_eng_to = last(eng_to_date)
+def update_engagement_end_date(
+        gql_client: GraphQLClient,
+        engagement_uuid: UUID,
+        from_date: date,
+        to_date: date
+) -> None:
+    mutation = gql(
+        """
+        mutation EngagementUpdate(
+          $uuid: UUID!,
+          $from_date: DateTime!,
+          $to_date: DateTime
+        ) {
+          engagement_update(
+            input: {
+              uuid: $uuid,
+              validity: {
+                from: $from_date,
+                to: $to_date
+              }
+            }
+          ) {
+            uuid
+          }
+        }
+        """
+    )
+
+    gql_client.execute(mutation, variable_values={
+        "uuid": str(engagement_uuid),
+        "from_date": format_date(from_date),
+        "to_date": format_date(to_date) if not date == date.max else None
+    })
+
+
+def get_eng_dates(eng: dict[str, Any]) -> tuple[date, date]:
+    from_str = eng["validity"]["from"]
+    to_str = eng["validity"]["to"]
+
+    from_ = datetime.fromisoformat(from_str).date() if from_str is not None else date.min
+    to = datetime.fromisoformat(to_str).date() if to_str is not None else date.max
+
+    return from_, to
+
+
+def get_latest_eng_dates(engagement: dict[str, Any], sd_final_end_date: date) -> tuple[date, date] | None:
+    eng_objs = engagement["objects"]
+    # eng_objs.sort(key=lambda obj: datetime.fromisoformat(obj["validity"]["to"]).date())
+
+    # Assuming the eng_objs are always sorted in the response from MO!
+    latest_eng = last(eng_objs)
+    latest_eng_from, latest_eng_to = get_eng_dates(latest_eng)
 
     if latest_eng_to < sd_final_end_date:
-        print("-- Update engagement:", engagement["uuid"])
-        print("latest_eng_to:", latest_eng_to)
-        print("sd_final_end_date", sd_final_end_date)
-        print_json(engagement)
+        return latest_eng_from, latest_eng_to
+        # print("-- Update engagement:", engagement["uuid"])
+        # print("latest_eng_from:", latest_eng_from)
+        # print("latest_eng_to:", latest_eng_to)
+        # print("sd_final_end_date", sd_final_end_date)
+        # print_json(engagement)
+    return None
+
+
+def cpr_leaves_filter(leaves: list[dict[str, Any]], cpr: str) -> list[dict[str, Any]]:
+    return [
+        leave for leave in leaves
+        if one(leave["person"])["cpr_number"] == cpr
+    ]
 
 
 @click.command()
 @click.option(
     "--username",
-    "username",
-    type=click.STRING,
     envvar="SD_USER",
-    # required=True,
+    required=True,
     help="SD username"
 )
 @click.option(
     "--password",
-    "password",
-    type=click.STRING,
     envvar="SD_PASSWORD",
-    # required=True,
+    required=True,
     help="SD password"
 )
 @click.option(
     "--institution-identifier",
-    "institution_identifier",
-    type=click.STRING,
     envvar="SD_INSTITUTION_IDENTIFIER",
-    # required=True,
+    required=True,
     help="SD institution identifier"
 )
 @click.option(
     "--auth-server",
     default="http://localhost:8090/auth",
+    envvar="AUTH_SERVER",
     help="Keycloak auth server URL"
 )
 @click.option(
     "--client-id",
     default="dipex",
+    envvar="CLIENT_ID",
     help="Keycloak client id"
 )
 @click.option(
     "--client-secret",
     required=True,
+    envvar="CLIENT_SECRET",
     help="Keycloak client secret for the DIPEX client"
 )
 @click.option(
     "--mo-base-url",
     default="http://localhost:5000",
+    envvar="MORA_BASE",
     help="Base URL for calling MO"
 )
 @click.option(
@@ -271,28 +324,55 @@ def main(
         auth_server, client_id, client_secret, mo_base_url, 19
     )
 
-    leaves = get_mo_leaves(gql_client, datetime(2023, 9, 15))
-    print_json(leaves)
-
-    # TODO: CPR filter
+    leaves = get_mo_leaves(gql_client, effective_date)
+    if cpr is not None:
+        leaves = cpr_leaves_filter(leaves, cpr)
+    # print_json(leaves)
 
     for leave in leaves:
         user_key = leave["user_key"]
         person = one(leave["person"])
+        print(f"Processing user_key={user_key} cpr={person['cpr_number']}")
 
-        engagement = get_mo_engagement(gql_client, UUID(person["uuid"]), user_key)
-        print_json(engagement)
+        try:
+            engagement = get_mo_engagement(gql_client, UUID(person["uuid"]), user_key)
+            # print_json(engagement)
+        except ValueError:
+            print(f"Could not find engagement with user_key {user_key} for person {person['uuid']}")
+            continue
 
-        sd_final_end_date = get_final_sd_employment_end_date(
-            username,
-            password,
-            institution_identifier,
-            person["cpr_number"],
-            user_key,
-            effective_date.date(),
-        )
+        try:
+            sd_final_end_date = get_final_sd_employment_end_date(
+                username,
+                password,
+                institution_identifier,
+                person["cpr_number"],
+                user_key,
+                effective_date.date(),
+            )
 
-        fix_engagement(engagement, sd_final_end_date)
+            latest_eng_dates = get_latest_eng_dates(engagement, sd_final_end_date)
+            if latest_eng_dates is not None:
+                anonymized_cpr = anonymize_cpr(person["cpr_number"])
+                print(
+                    "Update engagement",
+                    anonymized_cpr,
+                    user_key,
+                    format_date(datetime.fromisoformat(leave["validity"]["from"]).date() if leave["validity"]["from"] is not None else date.min),
+                    format_date(datetime.fromisoformat(leave["validity"]["to"]).date() if leave["validity"]["to"] is not None else date.max),
+                    format_date(sd_final_end_date),
+                    format_date(latest_eng_dates[0]),
+                    format_date(latest_eng_dates[1]),
+                )
+                if not dry_run:
+                    update_engagement_end_date(
+                        gql_client,
+                        engagement_uuid=UUID(engagement["uuid"]),
+                        from_date=latest_eng_dates[0],
+                        to_date=sd_final_end_date
+                    )
+        except ValueError:
+            print(f"Could not find SD end date for {user_key}")
 
 
 if __name__ == "__main__":

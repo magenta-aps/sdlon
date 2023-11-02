@@ -23,6 +23,10 @@ COPY pyproject.toml poetry.lock ./
 
 RUN POETRY_NO_INTERACTION=1 /opt/poetry/bin/poetry install --no-root --no-dev
 
-COPY . ./
+COPY alembic ./alembic
+COPY alembic.ini ./alembic.ini
+COPY docker ./docker
+COPY payload_db ./payload_db
+COPY sdlon ./sdlon
 
 CMD ["./docker/start.sh"]
