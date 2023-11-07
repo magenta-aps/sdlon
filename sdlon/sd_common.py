@@ -78,16 +78,17 @@ def sd_lookup(
         auth=auth,
     )
 
-    try:
-        log_payload(
-            request_uuid=request_uuid,
-            full_url=full_url,
-            params=str(payload),
-            response=response.text,
-            status_code=response.status_code,
-        )
-    except Exception:
-        logger.exception("could not save SD response to payload database")
+    if settings.sd_persist_payloads:
+        try:
+            log_payload(
+                request_uuid=request_uuid,
+                full_url=full_url,
+                params=str(payload),
+                response=response.text,
+                status_code=response.status_code,
+            )
+        except Exception:
+            logger.exception("could not save SD response to payload database")
 
     dict_response = xmltodict.parse(response.text)
 

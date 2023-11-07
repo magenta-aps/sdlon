@@ -3,10 +3,12 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import date
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 import pytest
 from pytest import MonkeyPatch
+from requests import Response
+
 from sdlon.config import CommonSettings
 from sdlon.models import JobFunction
 from sdlon.sd_common import read_employment_at
@@ -35,6 +37,12 @@ def test_return_none_when_sd_employment_empty(
     assert read_employment_at(date(2000, 1, 1), common_settings) is None
 
 
+@dataclass
+class _MockResponse:
+    text: str
+    status_code: int
+
+
 def test_sd_lookup_logs_payload_to_db(
     monkeypatch: MonkeyPatch,
     common_settings: CommonSettings,
@@ -45,11 +53,6 @@ def test_sd_lookup_logs_payload_to_db(
     test_params: dict[str, Any] = {"params": "mocked"}
     test_response: str = f"""<{test_url}><Foo bar="baz"></Foo></{test_url}>"""
     test_status_code = 200
-
-    @dataclass
-    class _MockResponse:
-        text: str
-        status_code: int
 
     def mock_requests_get(url: str, **kwargs: Any):
         return _MockResponse(text=test_response, status_code=test_status_code)
@@ -73,3 +76,24 @@ def test_sd_lookup_logs_payload_to_db(
 
     # Act
     sd_lookup(test_url, common_settings, test_params, request_uuid=test_request_uuid)
+
+
+@patch("sdlon.sd_common.requests")
+@patch("sdlon.sd_common.log_payload")
+def test_sd_lookup_does_not_persist_payload_when_disabled_in_settings(
+    mock_log_payload: MagicMock,
+    mock_requests: MagicMock,
+    common_settings: CommonSettings,
+):
+    # Arrange
+    common_settings.sd_persist_payloads = False
+
+    mock_requests.get.return_value = _MockResponse(
+        text="<SomeSDEndpoint><foo></foo></SomeSDEndpoint>", status_code=200
+    )
+
+    # Act
+    sd_lookup("SomeSDEndpoint", common_settings)
+
+    # Assert
+    mock_log_payload.assert_not_called()
