@@ -23,7 +23,7 @@ from os2mo_http_trigger_protocol import (
     MOTriggerRegister,
     RequestType,
 )
-from structlog import get_logger
+from sdlon.log import get_logger
 from structlog.processors import KeyValueRenderer
 
 from sdtool.config import get_settings
