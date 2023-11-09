@@ -55,6 +55,7 @@ DEFAULT_EXPECTED_SETTINGS: Dict[str, Any] = {
     "sd_phone_number_id_trigger": "14",
     "sd_user": "user",
     "log_level": "DEBUG",
+    "sd_persist_payloads": True,
     "job_settings": {
         "auth_realm": "mo",
         "auth_server": "http://keycloak:8080/auth",

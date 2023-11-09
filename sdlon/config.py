@@ -46,6 +46,9 @@ class CommonSettings(BaseSettings):  # type: ignore
     sd_job_function: JobFunction
     sd_monthly_hourly_divide: PositiveInt
 
+    # Persist SD payloads in the SD payloads DB
+    sd_persist_payloads: bool = True
+
     # List of SD JobPositionIdentifiers which should not result in creation
     # of engagements
     sd_skip_employment_types: List[str] = []

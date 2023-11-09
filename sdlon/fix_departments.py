@@ -569,6 +569,10 @@ def unit_fixer(ou_uuid: UUID):
     settings = get_changed_at_settings()
     setup_logging(settings.log_level)
 
+    if ou_uuid == settings.sd_fix_departments_root:
+        logger.info("Cannot fix the root unit!")
+        return
+
     unit_fixer = FixDepartments(settings)
 
     today = datetime.datetime.today().date()
