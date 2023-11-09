@@ -7,7 +7,6 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 from pytest import MonkeyPatch
-from requests import Response
 
 from sdlon.config import CommonSettings
 from sdlon.models import JobFunction
