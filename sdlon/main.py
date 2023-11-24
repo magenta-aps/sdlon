@@ -108,7 +108,7 @@ def create_app(**kwargs) -> FastAPI:
         )
         return {"triggered": "OK"}
 
-    @app.post("/trigger/fix-departments/{ou}")
+    @app.post("/trigger/apply-ny-logic/{ou}")
     async def fix_departments(
         ou: UUID, request: Request, response: Response
     ) -> dict[str, str]:
@@ -118,7 +118,6 @@ def create_app(**kwargs) -> FastAPI:
         fix_departments = request.app.extra["fix_departments"]
 
         try:
-            fix_departments.fix_department(str(ou), today)
             fix_departments.fix_NY_logic(str(ou), today)
             return {"msg": "success"}
         except Exception as err:
