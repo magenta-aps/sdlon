@@ -28,10 +28,9 @@ def test_trigger_fix_departments(
     today = datetime.today().date()
 
     # Act
-    r = client.post(f"/trigger/fix-departments/{ou}")
+    r = client.post(f"/trigger/apply-ny-logic/{ou}")
 
     # Assert
-    fix_departments.fix_department.assert_called_once_with(ou, today)
     fix_departments.fix_NY_logic.assert_called_once_with(ou, today)
 
     assert r.status_code == 200
@@ -47,14 +46,14 @@ def test_trigger_fix_departments_on_error(
     # Arrange
     fix_departments = _TestableFixDepartments.get_instance()
     error = Exception("some error")
-    fix_departments.fix_department = MagicMock(side_effect=error)
+    fix_departments.fix_NY_logic = MagicMock(side_effect=error)
     mock_fix_dep.return_value = fix_departments
 
     app = create_app()
     client = TestClient(app)
 
     # Act
-    r = client.post(f"/trigger/fix-departments/{str(uuid4())}")
+    r = client.post(f"/trigger/apply-ny-logic/{str(uuid4())}")
 
     # Assert
     assert r.status_code == 500
