@@ -33,6 +33,7 @@ from more_itertools import last
 from more_itertools import one
 from more_itertools import partition
 from os2mo_helpers.mora_helpers import MoraHelper
+from prometheus_client import Gauge
 from ramodels.mo import Employee
 from ramodels.mo._shared import OrganisationRef
 
@@ -1540,10 +1541,15 @@ def cli():
 )
 def changed_at_cli(init: bool, force: bool, from_date: datetime.datetime):
     """Tool to delta synchronize with MO with SD."""
-    changed_at(init, force, from_date)
+    changed_at(init, force, from_date=from_date)
 
 
-def changed_at(init: bool, force: bool, from_date: Optional[datetime.datetime] = None):
+def changed_at(
+    init: bool,
+    force: bool,
+    dipex_last_success_timestamp: Gauge | None = None,
+    from_date: Optional[datetime.datetime] = None,
+):
     """Tool to delta synchronize with MO with SD."""
     settings = get_changed_at_settings()
     setup_logging(settings.log_level)
@@ -1587,7 +1593,10 @@ def changed_at(init: bool, force: bool, from_date: Optional[datetime.datetime] =
             settings.sd_import_run_db, (from_date, to_date, "Update finished: {}")
         )
 
-        logger.info("Program finished")
+    if dipex_last_success_timestamp is not None:
+        dipex_last_success_timestamp.set_to_current_time()
+
+    logger.info("Program finished")
 
 
 @cli.command()

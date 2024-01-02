@@ -24,7 +24,7 @@ from .fixtures import get_read_employment_changed_fixture
 from .fixtures import get_sd_person_fixture
 from .fixtures import read_employment_fixture
 from sdlon.config import ChangedAtSettings
-from sdlon.sd_changed_at import ChangeAtSD
+from sdlon.sd_changed_at import ChangeAtSD, changed_at
 from sdlon.sd_changed_at import get_from_date
 
 
@@ -1630,3 +1630,49 @@ def test_apply_ny_logic_for_non_existing_future_unit(
         12345,
         {"from": department_from_date, "to": None},
     )
+
+
+@patch("sdlon.sd_changed_at.setup_logging")
+@patch("sdlon.sd_changed_at.get_changed_at_settings")
+@patch("sdlon.sd_changed_at.sentry_sdk")
+@patch("sdlon.sd_changed_at.get_from_date")
+@patch("sdlon.sd_changed_at.gen_date_intervals", return_value=[])
+def test_dipex_last_success_timestamp_called(
+    mock_get_changed_at_settings: MagicMock,
+    mock_setup_logging: MagicMock,
+    mock_sentry_sdk: MagicMock,
+    mock_get_from_date: MagicMock,
+    mock_gen_date_intervals: MagicMock,
+):
+    # Assert
+    mock_dipex_last_success_timestamp = MagicMock()
+
+    # Act
+    changed_at(False, False, mock_dipex_last_success_timestamp)
+
+    # Assert
+    mock_dipex_last_success_timestamp.set_to_current_time.assert_called_once()
+
+
+@patch("sdlon.sd_changed_at.setup_logging")
+@patch("sdlon.sd_changed_at.get_changed_at_settings")
+@patch("sdlon.sd_changed_at.sentry_sdk")
+@patch("sdlon.sd_changed_at.get_from_date")
+@patch("sdlon.sd_changed_at.gen_date_intervals")
+def test_dipex_last_success_timestamp_not_called_on_error(
+    mock_get_changed_at_settings: MagicMock,
+    mock_setup_logging: MagicMock,
+    mock_sentry_sdk: MagicMock,
+    mock_get_from_date: MagicMock,
+    mock_gen_date_intervals: MagicMock,
+):
+    # Assert
+    mock_dipex_last_success_timestamp = MagicMock()
+    mock_gen_date_intervals.side_effect = Exception()
+
+    # Act
+    with pytest.raises(Exception):
+        changed_at(False, False, mock_dipex_last_success_timestamp)
+
+    # Assert
+    mock_dipex_last_success_timestamp.set_to_current_time.assert_not_called()
