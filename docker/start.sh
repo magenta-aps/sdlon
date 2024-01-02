@@ -10,8 +10,10 @@ set -o pipefail
 alembic upgrade head
 
 # Run app
-uvicorn --factory sdlon.main:create_app --host 0.0.0.0
-
-# docker-compose.yaml used to invoke the app like this:
-# uvicorn sdlon.main:app --host 0.0.0.0 --reload
-# Seems to be for local development?
+if [ "$ENVIRONMENT" = "development" ]; then
+    echo "Running in development mode (hot-reload)"
+    uvicorn --factory sdlon.main:create_app --host 0.0.0.0 --reload
+else
+    echo "Running in production mode"
+    uvicorn --factory sdlon.main:create_app --host 0.0.0.0
+fi
