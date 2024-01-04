@@ -6,12 +6,15 @@ from fastapi import FastAPI
 from fastapi import Request
 from fastapi import Response
 from prometheus_fastapi_instrumentator import Instrumentator
+from prometheus_client import Enum
 from prometheus_client import Gauge
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 
 from .config import get_changed_at_settings
 from .fix_departments import FixDepartments
 from .log import get_logger
+from .metrics import get_run_db_state
+from .metrics import RunDBState
 from .sd_changed_at import changed_at
 
 
@@ -33,6 +36,12 @@ def create_app(**kwargs) -> FastAPI:
         documentation="When the integration last successfully ran",
         unit="seconds",
     )
+    sd_changed_at_state = Enum(
+        name="sd_changed_at_state",
+        documentation="Reflecting the RunDB state",
+        states=[state.value for state in RunDBState],
+    )
+    sd_changed_at_state.state(get_run_db_state(settings).value)
     Instrumentator().instrument(app).expose(app)
 
     @app.get("/")

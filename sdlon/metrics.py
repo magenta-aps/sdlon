@@ -7,7 +7,7 @@ from sdlon.config import ChangedAtSettings
 
 class RunDBState(enum.Enum):
     RUNNING = "running"
-    COMPLETED = "completed"
+    COMPLETED = "ok"  # Use "ok" instead of "completed" due to the job-runner.sh
     UNKNOWN = "unknown"
 
 
