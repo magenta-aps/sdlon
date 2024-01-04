@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 from uuid import UUID
 
@@ -40,12 +41,9 @@ def create_app(**kwargs) -> FastAPI:
 
     @app.post("/trigger")
     async def trigger(force: bool = False) -> dict[str, str]:
-        changed_at(
-            init=False,
-            force=force,
-            dipex_last_success_timestamp=dipex_last_success_timestamp,
-        )
-        return {"msg": "Run completed"}
+        loop = asyncio.get_running_loop()
+        loop.call_soon(changed_at, False, force, dipex_last_success_timestamp)
+        return {"msg": "SD-changed-at started in background"}
 
     @app.post("/trigger/apply-ny-logic/{ou}")
     async def fix_departments(

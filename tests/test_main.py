@@ -5,6 +5,7 @@ from uuid import uuid4
 from fastapi.testclient import TestClient
 
 from sdlon.main import create_app
+from sdlon.sd_changed_at import changed_at
 from tests.test_fix_departments import _TestableFixDepartments
 
 
@@ -29,11 +30,9 @@ def test_trigger(
 
     # Assert
     mock_changed_at.assert_called_once_with(
-        init=False,
-        force=False,
-        dipex_last_success_timestamp=mock_dipex_last_success_timestamp,
+        False, False, mock_dipex_last_success_timestamp
     )
-    assert r.json() == {"msg": "Run completed"}
+    assert r.json() == {"msg": "SD-changed-at started in background"}
 
 
 @patch("sdlon.main.Gauge")
