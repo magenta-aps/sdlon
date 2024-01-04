@@ -1547,8 +1547,6 @@ def changed_at(
     if sd_changed_at_state is not None:
         sd_changed_at_state.state(RunDBState.RUNNING.value)
 
-    run_db = settings.sd_import_run_db
-
     # TODO: Sentry not working... fix settings.job_settings.sentry_dsn below
     if settings.job_settings.sentry_dsn:
         sentry_sdk.init(dsn=settings.job_settings.sentry_dsn)
@@ -1556,12 +1554,12 @@ def changed_at(
     if init:
         if not from_date:
             from_date = date_to_datetime(settings.sd_global_from_date)
-        run_db_path = pathlib.Path(run_db)
+        run_db_path = pathlib.Path(settings.sd_import_run_db)
 
         initialize_changed_at(from_date, run_db_path, force=True)
         exit()
 
-    from_date = get_from_date(run_db)
+    from_date = get_from_date(settings.sd_import_run_db)
     to_date = datetime.datetime.now()
     dates = gen_date_intervals(from_date, to_date)
     for from_date, to_date in dates:
