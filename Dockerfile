@@ -28,6 +28,7 @@ COPY docker ./docker
 COPY alembic.ini ./alembic.ini
 COPY alembic ./alembic
 COPY sdlon ./sdlon
+COPY sdtool ./sdtool
 COPY payload_db ./payload_db
 COPY tests ./tests
 
