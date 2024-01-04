@@ -1629,7 +1629,7 @@ def test_dipex_last_success_timestamp_called(
     mock_sd_changed_at_state = MagicMock()
 
     # Act
-    changed_at(False, mock_dipex_last_success_timestamp, mock_sd_changed_at_state)
+    changed_at(mock_dipex_last_success_timestamp, mock_sd_changed_at_state)
 
     # Assert
     mock_dipex_last_success_timestamp.set_to_current_time.assert_called_once()
