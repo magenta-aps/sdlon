@@ -1519,25 +1519,17 @@ def cli():
     help="Initialize a new rundb",
 )
 @click.option(
-    "--force",
-    is_flag=True,
-    type=click.BOOL,
-    default=False,
-    help="Ignore previously unfinished runs",
-)
-@click.option(
     "--from-date",
     type=click.DateTime(),
     help="Global import from-date, only used if init is True",
 )
-def changed_at_cli(init: bool, force: bool, from_date: datetime.datetime):
+def changed_at_cli(init: bool, from_date: datetime.datetime):
     """Tool to delta synchronize with MO with SD."""
-    changed_at(init, force, from_date=from_date)
+    changed_at(init, from_date=from_date)
 
 
 def changed_at(
     init: bool,
-    force: bool,
     dipex_last_success_timestamp: Gauge | None = None,
     sd_changed_at_state: Enum | None = None,
     from_date: Optional[datetime.datetime] = None,
@@ -1569,7 +1561,7 @@ def changed_at(
         initialize_changed_at(from_date, run_db_path, force=True)
         exit()
 
-    from_date = get_from_date(run_db, force=force)
+    from_date = get_from_date(run_db)
     to_date = datetime.datetime.now()
     dates = gen_date_intervals(from_date, to_date)
     for from_date, to_date in dates:

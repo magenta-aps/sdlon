@@ -17,6 +17,7 @@ from ra_utils.attrdict import attrdict
 from ra_utils.generate_uuid import uuid_generator
 
 from sdlon.date_utils import format_date
+from sdlon.metrics import RunDBState
 from sdlon.models import MOBasePerson, ITUserSystem
 from sdlon.it_systems import MUTATION_ADD_IT_SYSTEM_TO_EMPLOYEE
 from .fixtures import get_employment_fixture
@@ -33,33 +34,10 @@ def test_getfrom_date(test_from_date):
     """Test reading latest date from rundb"""
     with patch(
         "integrations.rundb.db_overview.DBOverview._read_last_line",
-        return_value=((test_from_date, "Update ended at ---")),
+        return_value=test_from_date,
     ):
         from_date = get_from_date("test", force=False)
         assert from_date == test_from_date
-
-
-@given(test_from_date=st.datetimes())
-def test_getfrom_date_running(test_from_date):
-    """Test raising error if last import didn't finish"""
-    with patch(
-        "integrations.rundb.db_overview.DBOverview._read_last_line",
-        return_value=((test_from_date, "Running")),
-    ):
-        with pytest.raises(click.ClickException):
-            get_from_date("test", force=False)
-
-
-@given(test_from_date=st.datetimes())
-@patch("integrations.rundb.db_overview.DBOverview.delete_last_row")
-def test_getfrom_date_force(delete_mock, test_from_date):
-    """Test reading though last import didn't finish using force=True"""
-    with patch(
-        "integrations.rundb.db_overview.DBOverview._read_last_line",
-        return_value=((test_from_date, "Running")),
-    ):
-        get_from_date("test", force=True)
-        delete_mock.assert_called_once()
 
 
 class ChangeAtSDTest(ChangeAtSD):
@@ -1632,6 +1610,7 @@ def test_apply_ny_logic_for_non_existing_future_unit(
     )
 
 
+@patch("sdlon.sd_changed_at.get_run_db_state", return_value=RunDBState.COMPLETED)
 @patch("sdlon.sd_changed_at.setup_logging")
 @patch("sdlon.sd_changed_at.get_changed_at_settings")
 @patch("sdlon.sd_changed_at.sentry_sdk")
@@ -1643,12 +1622,14 @@ def test_dipex_last_success_timestamp_called(
     mock_sentry_sdk: MagicMock,
     mock_get_from_date: MagicMock,
     mock_gen_date_intervals: MagicMock,
+    mock_get_run_db_state: MagicMock,
 ):
     # Assert
     mock_dipex_last_success_timestamp = MagicMock()
+    mock_sd_changed_at_state = MagicMock()
 
     # Act
-    changed_at(False, False, mock_dipex_last_success_timestamp)
+    changed_at(False, mock_dipex_last_success_timestamp, mock_sd_changed_at_state)
 
     # Assert
     mock_dipex_last_success_timestamp.set_to_current_time.assert_called_once()
