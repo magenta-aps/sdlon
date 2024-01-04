@@ -1,5 +1,4 @@
 import datetime
-import logging
 import pathlib
 import sqlite3
 import sys
@@ -33,10 +32,13 @@ from more_itertools import last
 from more_itertools import one
 from more_itertools import partition
 from os2mo_helpers.mora_helpers import MoraHelper
+from prometheus_client import Enum
+from prometheus_client import Gauge
 from ramodels.mo import Employee
 from ramodels.mo._shared import OrganisationRef
 
 from sdlon.employees import get_employee
+from sdlon.exceptions import PreviousRunNotCompletedError
 from sdlon.graphql import get_mo_client
 from sdlon.it_systems import (
     get_sd_to_ad_it_system_uuid,
@@ -46,6 +48,8 @@ from sdlon.it_systems import (
 from sdlon.log import anonymize_cpr
 from sdlon.log import get_logger
 from sdlon.log import setup_logging
+from sdlon.metrics import get_run_db_state
+from sdlon.metrics import RunDBState
 from sdlon.sd_to_pydantic import convert_to_sd_base_person
 from . import sd_payloads
 from .config import ChangedAtSettings
@@ -1497,19 +1501,7 @@ def initialize_changed_at(from_date, run_db, force=False):
 def get_from_date(run_db, force: bool = False) -> datetime.datetime:
     db_overview = DBOverview(run_db)
     # To date from last entries, becomes from_date for current entry
-    from_date, status = cast(
-        Tuple[datetime.datetime, str], db_overview._read_last_line("to_date", "status")
-    )
-    if "Running" in status:
-        if force:
-            db_overview.delete_last_row()
-            from_date, status = cast(
-                Tuple[datetime.datetime, str],
-                db_overview._read_last_line("to_date", "status"),
-            )
-        else:
-            logging.error("Previous ChangedAt run did not return!")
-            raise click.ClickException("Previous ChangedAt run did not return!")
+    from_date = cast(datetime.datetime, db_overview._read_last_line("to_date"))
     return from_date
 
 
@@ -1527,30 +1519,33 @@ def cli():
     help="Initialize a new rundb",
 )
 @click.option(
-    "--force",
-    is_flag=True,
-    type=click.BOOL,
-    default=False,
-    help="Ignore previously unfinished runs",
-)
-@click.option(
     "--from-date",
     type=click.DateTime(),
     help="Global import from-date, only used if init is True",
 )
-def changed_at_cli(init: bool, force: bool, from_date: datetime.datetime):
+def changed_at_cli(init: bool, from_date: datetime.datetime):
     """Tool to delta synchronize with MO with SD."""
-    changed_at(init, force, from_date)
+    changed_at(init, from_date=from_date)
 
 
-def changed_at(init: bool, force: bool, from_date: Optional[datetime.datetime] = None):
+def changed_at(
+    init: bool,
+    dipex_last_success_timestamp: Gauge | None = None,
+    sd_changed_at_state: Enum | None = None,
+    from_date: Optional[datetime.datetime] = None,
+):
     """Tool to delta synchronize with MO with SD."""
     settings = get_changed_at_settings()
     setup_logging(settings.log_level)
 
     logger.info("Program started")
 
-    run_db = settings.sd_import_run_db
+    run_db_state = get_run_db_state(settings)
+    if not run_db_state == RunDBState.COMPLETED:
+        logger.error("Previous run did not complete or RunDB state is unknown!")
+        raise PreviousRunNotCompletedError()
+    if sd_changed_at_state is not None:
+        sd_changed_at_state.state(RunDBState.RUNNING.value)
 
     # TODO: Sentry not working... fix settings.job_settings.sentry_dsn below
     if settings.job_settings.sentry_dsn:
@@ -1559,12 +1554,12 @@ def changed_at(init: bool, force: bool, from_date: Optional[datetime.datetime] =
     if init:
         if not from_date:
             from_date = date_to_datetime(settings.sd_global_from_date)
-        run_db_path = pathlib.Path(run_db)
+        run_db_path = pathlib.Path(settings.sd_import_run_db)
 
         initialize_changed_at(from_date, run_db_path, force=True)
         exit()
 
-    from_date = get_from_date(run_db, force=force)
+    from_date = get_from_date(settings.sd_import_run_db)
     to_date = datetime.datetime.now()
     dates = gen_date_intervals(from_date, to_date)
     for from_date, to_date in dates:
@@ -1587,7 +1582,12 @@ def changed_at(init: bool, force: bool, from_date: Optional[datetime.datetime] =
             settings.sd_import_run_db, (from_date, to_date, "Update finished: {}")
         )
 
-        logger.info("Program finished")
+    if dipex_last_success_timestamp is not None:
+        dipex_last_success_timestamp.set_to_current_time()
+    if sd_changed_at_state is not None:
+        sd_changed_at_state.state(RunDBState.COMPLETED.value)
+
+    logger.info("Program finished")
 
 
 @cli.command()
