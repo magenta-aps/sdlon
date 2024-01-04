@@ -29,5 +29,6 @@ COPY alembic.ini ./alembic.ini
 COPY alembic ./alembic
 COPY sdlon ./sdlon
 COPY payload_db ./payload_db
+COPY tests ./tests
 
 CMD ["./docker/start.sh"]
