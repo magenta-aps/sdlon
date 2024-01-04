@@ -34,7 +34,7 @@ def test_trigger(
 
     # Assert
     mock_changed_at.assert_called_once_with(
-        False, mock_dipex_last_success_timestamp, mock_sd_changed_at_state
+        mock_dipex_last_success_timestamp, mock_sd_changed_at_state
     )
     assert r.json() == {"msg": "SD-changed-at started in background"}
 

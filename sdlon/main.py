@@ -51,9 +51,7 @@ def create_app(**kwargs) -> FastAPI:
     @app.post("/trigger")
     async def trigger() -> dict[str, str]:
         loop = asyncio.get_running_loop()
-        loop.call_soon(
-            changed_at, False, dipex_last_success_timestamp, sd_changed_at_state
-        )
+        loop.call_soon(changed_at, dipex_last_success_timestamp, sd_changed_at_state)
         return {"msg": "SD-changed-at started in background"}
 
     @app.post("/trigger/apply-ny-logic/{ou}")

@@ -1478,7 +1478,7 @@ def _local_db_insert(path_to_run_db, insert_tuple):
     conn.close()
 
 
-def initialize_changed_at(from_date, run_db, force=False):
+def initialize_changed_at(from_date, run_db):
     if not run_db.is_file():
         raise Exception("RunDB not created, use 'db_overview.py' to create it")
 
@@ -1511,28 +1511,28 @@ def cli():
 
 
 @cli.command()
-@click.option(
-    "--init",
-    is_flag=True,
-    type=click.BOOL,
-    default=False,
-    help="Initialize a new rundb",
-)
-@click.option(
-    "--from-date",
-    type=click.DateTime(),
-    help="Global import from-date, only used if init is True",
-)
-def changed_at_cli(init: bool, from_date: datetime.datetime):
+def changed_at_cli():
     """Tool to delta synchronize with MO with SD."""
-    changed_at(init, from_date=from_date)
+    changed_at()
+
+
+@cli.command()
+def changed_at_init():
+    """SD-changed-at initialization"""
+    logger.info("Starting SD-changed-at initialization")
+
+    settings = get_changed_at_settings()
+    setup_logging(settings.log_level)
+
+    from_date = date_to_datetime(settings.sd_global_from_date)
+    run_db_path = pathlib.Path(settings.sd_import_run_db)
+
+    initialize_changed_at(from_date, run_db_path)
 
 
 def changed_at(
-    init: bool,
     dipex_last_success_timestamp: Gauge | None = None,
     sd_changed_at_state: Enum | None = None,
-    from_date: Optional[datetime.datetime] = None,
 ):
     """Tool to delta synchronize with MO with SD."""
     settings = get_changed_at_settings()
@@ -1550,14 +1550,6 @@ def changed_at(
     # TODO: Sentry not working... fix settings.job_settings.sentry_dsn below
     if settings.job_settings.sentry_dsn:
         sentry_sdk.init(dsn=settings.job_settings.sentry_dsn)
-
-    if init:
-        if not from_date:
-            from_date = date_to_datetime(settings.sd_global_from_date)
-        run_db_path = pathlib.Path(settings.sd_import_run_db)
-
-        initialize_changed_at(from_date, run_db_path, force=True)
-        exit()
 
     from_date = get_from_date(settings.sd_import_run_db)
     to_date = datetime.datetime.now()
