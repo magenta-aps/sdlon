@@ -48,7 +48,9 @@ from sdlon.it_systems import (
 from sdlon.log import anonymize_cpr
 from sdlon.log import get_logger
 from sdlon.log import setup_logging
+from sdlon.metrics import dipex_last_success_timestamp
 from sdlon.metrics import get_run_db_state
+from sdlon.metrics import sd_changed_at_state
 from sdlon.metrics import RunDBState
 from sdlon.sd_to_pydantic import convert_to_sd_base_person
 from . import sd_payloads
@@ -1513,7 +1515,7 @@ def cli():
 @cli.command()
 def changed_at_cli():
     """Tool to delta synchronize with MO with SD."""
-    changed_at()
+    changed_at(dipex_last_success_timestamp, sd_changed_at_state)
 
 
 @cli.command()
@@ -1531,8 +1533,8 @@ def changed_at_init():
 
 
 def changed_at(
-    dipex_last_success_timestamp: Gauge | None = None,
-    sd_changed_at_state: Enum | None = None,
+    dipex_last_success_timestamp: Gauge,
+    sd_changed_at_state: Enum,
 ):
     """Tool to delta synchronize with MO with SD."""
     settings = get_changed_at_settings()
@@ -1544,8 +1546,7 @@ def changed_at(
     if not run_db_state == RunDBState.COMPLETED:
         logger.error("Previous run did not complete or RunDB state is unknown!")
         raise PreviousRunNotCompletedError()
-    if sd_changed_at_state is not None:
-        sd_changed_at_state.state(RunDBState.RUNNING.value)
+    sd_changed_at_state.state(RunDBState.RUNNING.value)
 
     # TODO: Sentry not working... fix settings.job_settings.sentry_dsn below
     if settings.job_settings.sentry_dsn:
@@ -1574,10 +1575,8 @@ def changed_at(
             settings.sd_import_run_db, (from_date, to_date, "Update finished: {}")
         )
 
-    if dipex_last_success_timestamp is not None:
-        dipex_last_success_timestamp.set_to_current_time()
-    if sd_changed_at_state is not None:
-        sd_changed_at_state.state(RunDBState.COMPLETED.value)
+    dipex_last_success_timestamp.set_to_current_time()
+    sd_changed_at_state.state(RunDBState.COMPLETED.value)
 
     logger.info("Program finished")
 
