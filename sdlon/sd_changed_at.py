@@ -1543,8 +1543,12 @@ def changed_at(
     logger.info("Program started")
 
     run_db_state = get_run_db_state(settings)
+    sd_changed_at_state.state(run_db_state.value)
     if not run_db_state == RunDBState.COMPLETED:
-        logger.error("Previous run did not complete or RunDB state is unknown!")
+        logger.error(
+            "Previous run did not complete or RunDB state is unknown!",
+            run_db_state=run_db_state,
+        )
         raise PreviousRunNotCompletedError()
     sd_changed_at_state.state(RunDBState.RUNNING.value)
 
