@@ -4,9 +4,9 @@
 from logging.config import fileConfig
 
 from alembic import context
-from payload_db.engine import get_db_url
-from payload_db.engine import get_engine
-from payload_db.models import Base
+from db.engine import get_db_url
+from db.engine import get_engine
+from db.models import Base
 from sdlon.config import get_changed_at_settings
 
 # this is the Alembic Config object, which provides

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 from unittest.mock import patch, MagicMock
 
-from payload_db import engine
+from db import engine
 from pytest import MonkeyPatch
 from sqlalchemy.engine import Engine
 
@@ -24,7 +24,7 @@ def test_get_db_url_success(monkeypatch: MonkeyPatch) -> None:
 
 
 @patch(
-    "payload_db.engine.get_changed_at_settings",
+    "db.engine.get_changed_at_settings",
     return_value=ChangedAtSettings.parse_obj(DEFAULT_CHANGED_AT_SETTINGS)
 )
 def test_get_engine(mock_get_settings: MagicMock) -> None:
