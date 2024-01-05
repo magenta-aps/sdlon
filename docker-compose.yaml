@@ -50,8 +50,8 @@ services:
       POSTGRES_HOST: sd-db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: secret
-      KEYCLOAK_DB_NAME: sd_payload
-      KEYCLOAK_DB_USER: sd_payload
+      KEYCLOAK_DB_NAME: sd
+      KEYCLOAK_DB_USER: sd
       KEYCLOAK_DB_PASSWORD: super_secret_sd_payload_password
     networks:
       os2mo_default:
