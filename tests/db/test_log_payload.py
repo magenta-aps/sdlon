@@ -3,7 +3,7 @@
 import uuid
 from unittest.mock import Mock
 
-import payload_db
+import db
 from pytest import MonkeyPatch
 
 
@@ -12,10 +12,10 @@ def test_log_payload(monkeypatch: MonkeyPatch) -> None:
     request_uuid: uuid.UUID = uuid.uuid4()
     mock_session: Mock = Mock()
     mock_session_maker: Mock = Mock(return_value=mock_session)
-    monkeypatch.setattr(payload_db, "get_engine", lambda: None)
-    monkeypatch.setattr(payload_db, "Session", mock_session_maker)
+    monkeypatch.setattr(db, "get_engine", lambda: None)
+    monkeypatch.setattr(db, "Session", mock_session_maker)
     # Act
-    payload_db.log_payload(
+    db.log_payload(
         request_uuid=request_uuid,
         full_url="full_url",
         params="params",
@@ -25,7 +25,7 @@ def test_log_payload(monkeypatch: MonkeyPatch) -> None:
     # Assert
     mock_session.add.assert_called_once()
     mock_session.commit.assert_called_once()
-    payload: payload_db.Payload = mock_session.add.call_args.args[0]
+    payload: db.Payload = mock_session.add.call_args.args[0]
     assert payload.id == request_uuid
     assert payload.full_url == "full_url"
     assert payload.params == "params"
