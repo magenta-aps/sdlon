@@ -1,12 +1,15 @@
 # SPDX-FileCopyrightText: Magenta ApS
 # SPDX-License-Identifier: MPL-2.0
+from datetime import datetime
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
+from sqlalchemy import select, desc
 from sqlalchemy.orm import sessionmaker
 
-from .engine import get_engine
-from .models import Payload
-
+from sdlon.metrics import RunDBState
+from db.engine import get_engine
+from db.models import Payload, Runs
 
 Session = sessionmaker()
 
@@ -37,4 +40,35 @@ def log_payload(
         status_code=status_code,
     )
     session.add(payload)
+    session.commit()
+
+
+def get_status() -> RunDBState:
+    try:
+        Session.configure(bind=get_engine())
+        session = Session()
+        statement = select(Runs.status).order_by(desc(Runs.id)).limit(1)
+        status = session.execute(statement).scalar_one_or_none()
+
+        # status is only "None" the very first time the application is run
+        # and should in this case return "COMPLETED" in order to not abort
+        # the run when get_status() is called.
+        if "Running since" in status:
+            return RunDBState.RUNNING
+        if "Update finished" in status or status is None:
+            return RunDBState.COMPLETED
+        return RunDBState.UNKNOWN
+    except Exception:
+        return RunDBState.UNKNOWN
+
+
+# TODO: add dates
+def persist_status(status: RunDBState) -> None:
+    Session.configure(bind=get_engine())
+    session = Session()
+    run = Runs(
+        timestamp=datetime.now(tz=ZoneInfo("Europe/Copenhagen")),
+        status=status.value,
+    )
+    session.add(run)
     session.commit()
