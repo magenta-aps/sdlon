@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MPL-2.0
 from datetime import datetime
 from uuid import UUID
-from zoneinfo import ZoneInfo
 
 from sqlalchemy import select, desc
 from sqlalchemy.orm import sessionmaker
