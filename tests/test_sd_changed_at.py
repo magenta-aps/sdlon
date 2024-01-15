@@ -1610,7 +1610,7 @@ def test_apply_ny_logic_for_non_existing_future_unit(
     )
 
 
-@patch("sdlon.sd_changed_at.get_run_db_state", return_value=RunDBState.COMPLETED)
+@patch("sdlon.sd_changed_at.get_status", return_value=RunDBState.COMPLETED)
 @patch("sdlon.sd_changed_at.setup_logging")
 @patch("sdlon.sd_changed_at.get_changed_at_settings")
 @patch("sdlon.sd_changed_at.sentry_sdk")

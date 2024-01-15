@@ -36,7 +36,7 @@ from prometheus_client import Gauge
 from ramodels.mo import Employee
 from ramodels.mo._shared import OrganisationRef
 
-from db.queries import persist_status
+from db.queries import persist_status, get_status
 from sdlon.employees import get_employee
 from sdlon.exceptions import PreviousRunNotCompletedError
 from sdlon.graphql import get_mo_client
@@ -1517,7 +1517,7 @@ def changed_at(
 
     logger.info("Program started")
 
-    run_db_state = get_run_db_state(settings)
+    run_db_state = get_status()
     sd_changed_at_state.state(run_db_state.value)
     if not run_db_state == RunDBState.COMPLETED:
         logger.error(

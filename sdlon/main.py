@@ -27,7 +27,7 @@ def create_app(**kwargs) -> FastAPI:
     app = FastAPI(fix_departments=FixDepartments(settings))
 
     # Instrumentation
-    sd_changed_at_state.state(get_status(settings).value)
+    sd_changed_at_state.state(get_status().value)
     Instrumentator().instrument(app).expose(app)
 
     @app.get("/")
