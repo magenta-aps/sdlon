@@ -49,7 +49,6 @@ from sdlon.log import anonymize_cpr
 from sdlon.log import get_logger
 from sdlon.log import setup_logging
 from sdlon.metrics import dipex_last_success_timestamp
-from sdlon.metrics import get_run_db_state
 from sdlon.metrics import sd_changed_at_state
 from sdlon.metrics import RunDBState
 from sdlon.sd_to_pydantic import convert_to_sd_base_person
