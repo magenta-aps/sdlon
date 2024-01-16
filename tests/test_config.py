@@ -7,7 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 from sdlon.config import ChangedAtSettings
-from sdlon.config import ImporterSettings
+from sdlon.config import SDCommonSettings
 
 DEFAULT_MOCK_SETTINGS = {
     "integrations.SD_Lon.employment_field": "extension_1",
@@ -74,6 +74,8 @@ DEFAULT_FILTERED_JSON_SETTINGS = {
 }
 
 DEFAULT_CHANGED_AT_SETTINGS = {
+    "municipality_name": "Kommune",
+    "municipality_code": 100,
     "sd_employment_field": "extension_1",
     "sd_global_from_date": "2022-01-09",
     "sd_import_run_db": "run_db.sqlite",
@@ -91,7 +93,7 @@ DEFAULT_CHANGED_AT_SETTINGS = {
 
 def test_forbid_extra_settings():
     with pytest.raises(ValidationError):
-        ImporterSettings(
+        SDCommonSettings(
             municipality_name="name",
             municipality_code=100,
             sd_global_from_date="1970-01-01",
@@ -127,12 +129,12 @@ def test_special_values(key, value):
 
     # Act and assert
     with pytest.raises(ValidationError):
-        ImporterSettings.parse_obj(mock_settings)
+        SDCommonSettings.parse_obj(mock_settings)
 
 
 @pytest.mark.parametrize("job_function", ["JobPositionIdentifier", "EmploymentName"])
 def test_job_function_enums_allowed(job_function):
-    assert ImporterSettings(
+    assert SDCommonSettings(
         municipality_name="name",
         municipality_code=100,
         sd_global_from_date="1970-01-01",

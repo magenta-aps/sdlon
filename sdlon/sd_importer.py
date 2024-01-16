@@ -5,7 +5,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
 import datetime
-import logging
 import uuid
 from operator import itemgetter
 from typing import Any, OrderedDict
@@ -23,8 +22,7 @@ from os2mo_helpers.mora_helpers import MoraHelper
 from sdlon.log import get_logger
 from sdlon.log import LogLevel
 from sdlon.log import setup_logging
-from .config import get_importer_settings
-from .config import ImporterSettings
+from .config import get_importer_settings, SDCommonSettings
 from .date_utils import format_date, date_to_datetime
 from .date_utils import get_employment_datetimes
 from .date_utils import parse_datetime
@@ -49,7 +47,7 @@ class SdImport:
     def __init__(
         self,
         importer,
-        settings: ImporterSettings,
+        settings: SDCommonSettings,
         ad_info=None,
         org_only=False,
         org_id_prefix=None,

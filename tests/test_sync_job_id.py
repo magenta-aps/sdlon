@@ -16,6 +16,8 @@ class JobIdSyncTest(JobIdSync):
 class Test_sync_job_id(TestCase):
     def setUp(self):
         settings = ChangedAtSettings(
+            municipality_name="name",
+            municipality_code=100,
             mora_base="http://dummy.url",
             sd_job_function="JobPositionIdentifier",
             sd_import_run_db="run_db.sqlite",

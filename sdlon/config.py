@@ -67,11 +67,6 @@ class SDCommonSettings(BaseSettings):  # type: ignore
 
     job_settings: JobSettings = JobSettings()
 
-    class Config:
-        extra = Extra.forbid
-
-
-class ImporterSettings(SDCommonSettings):
     municipality_code: conint(ge=100, le=999)  # type: ignore
     municipality_name: str
     sd_importer_create_associations: bool = True
@@ -113,8 +108,8 @@ def get_common_settings(*args, **kwargs) -> SDCommonSettings:
 
 
 @lru_cache()
-def get_importer_settings(*args, **kwargs) -> ImporterSettings:
-    return ImporterSettings(*args, **kwargs)
+def get_importer_settings(*args, **kwargs) -> SDCommonSettings:
+    return SDCommonSettings(*args, **kwargs)
 
 
 @lru_cache()

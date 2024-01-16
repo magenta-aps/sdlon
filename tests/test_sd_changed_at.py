@@ -65,6 +65,8 @@ class ChangeAtSDTest(ChangeAtSD):
 def setup_sd_changed_at(updates=None, hours=24):
     # TODO: remove integrations.SD_Lon.terminate_engagement_with_to_only
     settings_dict = {
+        "municipality_name": "name",
+        "municipality_code": 100,
         "sd_global_from_date": "1970-01-01",
         "sd_import_run_db": "run_db.sqlite",
         "sd_institution_identifier": "XY",

@@ -17,6 +17,8 @@ from sdlon.sd_common import sd_lookup
 @pytest.fixture()
 def common_settings() -> SDCommonSettings:
     return SDCommonSettings(
+        municipality_name="name",
+        municipality_code=100,
         sd_global_from_date=date(2000, 1, 1),
         sd_import_run_db="not used",
         sd_institution_identifier="dummy",
