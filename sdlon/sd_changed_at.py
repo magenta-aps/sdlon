@@ -1174,9 +1174,11 @@ class ChangeAtSD:
                     mora_assert(response)
 
     def edit_engagement_worktime(self, engagement, mo_eng):
-        job_id, engagement_info = engagement_components(engagement)
+        employment_id, engagement_info = engagement_components(engagement)
         for worktime_info in engagement_info["working_time"]:
-            logger.info("Change working time of engagement", job_id=job_id)
+            logger.info(
+                "Change working time of engagement", employment_id=employment_id
+            )
 
             validity = self._validity(worktime_info, mo_eng["validity"]["to"], cut=True)
             if validity is None:
