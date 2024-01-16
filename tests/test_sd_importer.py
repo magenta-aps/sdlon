@@ -641,11 +641,6 @@ def test_skip_creation_of_sd_let_go_employments(employment_status: str) -> None:
     sd.importer.add_engagement.assert_not_called()
 
 
-def test_employment_date_as_engagement_start_date_disabled_per_default():
-    sd = get_sd_importer()
-    assert sd.employment_date_as_engagement_start_date is False
-
-
 @parameterized.expand(
     [
         (

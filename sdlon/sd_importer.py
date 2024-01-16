@@ -86,12 +86,6 @@ class SdImport:
         # Whether to import email addresses for organisations
         self.create_email_addresses = self.settings.sd_importer_create_email_addresses
 
-        # Whether to use <Employment><EmploymentDate> as engagement start date instead
-        # of <Employment><EmploymentStatus><ActivationDate>.
-        self.employment_date_as_engagement_start_date = (
-            self.settings.sd_importer_employment_date_as_engagement_start_date
-        )
-
         self.historic_org_unit_uuid = str(uuid.uuid4())
 
         # CPR indexed dictionary of AD users
