@@ -1116,9 +1116,9 @@ class ChangeAtSD:
                 mora_assert(response)
 
     def edit_engagement_profession(self, engagement, mo_eng):
-        job_id, engagement_info = engagement_components(engagement)
+        employment_id, engagement_info = engagement_components(engagement)
         for profession_info in engagement_info["professions"]:
-            logger.info("Change profession of engagement", job_id=job_id)
+            logger.info("Change profession of engagement", employment_id=employment_id)
             job_position = profession_info["JobPositionIdentifier"]
 
             # The variability handling introduced in the following lines
