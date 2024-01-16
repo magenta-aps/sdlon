@@ -8,11 +8,11 @@ from fastapi import Response
 from prometheus_fastapi_instrumentator import Instrumentator
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 
+from db.queries import get_status
 from .config import get_changed_at_settings
 from .fix_departments import FixDepartments
 from .log import get_logger
 from .metrics import dipex_last_success_timestamp
-from .metrics import get_run_db_state
 from .metrics import sd_changed_at_state
 from .sd_changed_at import changed_at
 
@@ -27,7 +27,7 @@ def create_app(**kwargs) -> FastAPI:
     app = FastAPI(fix_departments=FixDepartments(settings))
 
     # Instrumentation
-    sd_changed_at_state.state(get_run_db_state(settings).value)
+    sd_changed_at_state.state(get_status().value)
     Instrumentator().instrument(app).expose(app)
 
     @app.get("/")

@@ -1,6 +1,5 @@
 import datetime
 import pathlib
-import sqlite3
 import sys
 import uuid
 from functools import lru_cache
@@ -37,6 +36,7 @@ from prometheus_client import Gauge
 from ramodels.mo import Employee
 from ramodels.mo._shared import OrganisationRef
 
+from db.queries import persist_status, get_status
 from sdlon.employees import get_employee
 from sdlon.exceptions import PreviousRunNotCompletedError
 from sdlon.graphql import get_mo_client
@@ -49,7 +49,6 @@ from sdlon.log import anonymize_cpr
 from sdlon.log import get_logger
 from sdlon.log import setup_logging
 from sdlon.metrics import dipex_last_success_timestamp
-from sdlon.metrics import get_run_db_state
 from sdlon.metrics import sd_changed_at_state
 from sdlon.metrics import RunDBState
 from sdlon.sd_to_pydantic import convert_to_sd_base_person
@@ -1460,31 +1459,12 @@ class ChangeAtSD:
                     )
 
 
-def _local_db_insert(path_to_run_db, insert_tuple):
-    conn = sqlite3.connect(
-        path_to_run_db,
-        detect_types=sqlite3.PARSE_DECLTYPES,
-    )
-    c = conn.cursor()
-    query = "INSERT INTO runs (from_date, to_date, status) VALUES (?, ?, ?)"
-    final_tuple = (
-        insert_tuple[0],
-        insert_tuple[1],
-        insert_tuple[2].format(datetime.datetime.now()),
-    )
-    c.execute(query, final_tuple)
-    conn.commit()
-    conn.close()
-
-
 def initialize_changed_at(from_date, run_db):
     if not run_db.is_file():
         raise Exception("RunDB not created, use 'db_overview.py' to create it")
 
     settings = get_changed_at_settings()
-    _local_db_insert(
-        settings.sd_import_run_db, (from_date, from_date, "Running since {}")
-    )
+    persist_status(from_date, from_date, RunDBState.RUNNING)
 
     logger.info("Start initial ChangedAt")
     sd_updater = ChangeAtSD(settings, from_date)
@@ -1492,9 +1472,7 @@ def initialize_changed_at(from_date, run_db):
     sd_updater.update_all_employments()
     logger.info("Ended initial ChangedAt")
 
-    _local_db_insert(
-        settings.sd_import_run_db, (from_date, from_date, "Initial import: {}")
-    )
+    persist_status(from_date, from_date, RunDBState.COMPLETED)
 
 
 def get_from_date(run_db, force: bool = False) -> datetime.datetime:
@@ -1539,7 +1517,7 @@ def changed_at(
 
     logger.info("Program started")
 
-    run_db_state = get_run_db_state(settings)
+    run_db_state = get_status()
     sd_changed_at_state.state(run_db_state.value)
     if not run_db_state == RunDBState.COMPLETED:
         logger.error(
@@ -1557,9 +1535,7 @@ def changed_at(
     to_date = datetime.datetime.now()
     dates = gen_date_intervals(from_date, to_date)
     for from_date, to_date in dates:
-        _local_db_insert(
-            settings.sd_import_run_db, (from_date, to_date, "Running since {}")
-        )
+        persist_status(from_date, to_date, RunDBState.RUNNING)
 
         logger.info(
             "Initialize ChangedAtSD class", from_date=from_date, to_date=to_date
@@ -1572,9 +1548,7 @@ def changed_at(
         logger.info("Update all employments")
         sd_updater.update_all_employments()
 
-        _local_db_insert(
-            settings.sd_import_run_db, (from_date, to_date, "Update finished: {}")
-        )
+        persist_status(from_date, to_date, RunDBState.COMPLETED)
 
     dipex_last_success_timestamp.set_to_current_time()
     sd_changed_at_state.state(RunDBState.COMPLETED.value)

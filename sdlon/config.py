@@ -173,8 +173,8 @@ class ChangedAtSettings(CommonSettings):
 
     # Settings for the SD payload database
     pghost: str = "sd-db"
-    app_database: str = "sd_payload"
-    app_dbuser: str = "sd_payload"
+    app_database: str = "sd"
+    app_dbuser: str = "sd"
     app_dbpassword: SecretStr
 
     class Config:

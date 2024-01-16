@@ -12,7 +12,7 @@ from typing import Union
 
 import requests
 import xmltodict
-from payload_db import log_payload
+from db.queries import log_payload
 from ra_utils.load_settings import load_settings
 
 from .config import CommonSettings
