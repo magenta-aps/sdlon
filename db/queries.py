@@ -6,9 +6,12 @@ from uuid import UUID
 from sqlalchemy import select, desc
 from sqlalchemy.orm import sessionmaker
 
+from sdlon.log import get_logger
 from sdlon.metrics import RunDBState
 from db.engine import get_engine
 from db.models import Payload, Runs
+
+logger = get_logger()
 
 Session = sessionmaker()
 
@@ -57,7 +60,8 @@ def get_status() -> RunDBState:
         if status == RunDBState.COMPLETED.value or status is None:
             return RunDBState.COMPLETED
         return RunDBState.UNKNOWN
-    except Exception:
+    except Exception as error:
+        logger.error("Could not get RunDB status!", error=error)
         return RunDBState.UNKNOWN
 
 
