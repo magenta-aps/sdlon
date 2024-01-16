@@ -11,7 +11,7 @@ from pydantic import ValidationError
 
 from sdlon.config import ChangedAtSettings
 from sdlon.config import gen_json_file_settings_func
-from sdlon.config import get_changed_at_settings
+from sdlon.config import get_settings
 from sdlon.config import get_importer_settings
 from sdlon.config import ImporterSettings
 
@@ -194,10 +194,10 @@ def test_env_settings_takes_precedence(mock_env_and_json):
 
 def test_pydantic_settings_set_correctly_when_json_settings_not_found(mock_env):
     # Act
-    get_changed_at_settings.cache_clear()
+    get_settings.cache_clear()
     with patch("sdlon.config.load_settings") as mock_load_settings:
         mock_load_settings.side_effect = FileNotFoundError()
-        settings = get_changed_at_settings()
+        settings = get_settings()
 
     # Assert
     assert settings.sd_institution_identifier == "institution_id"

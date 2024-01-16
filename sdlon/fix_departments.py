@@ -20,7 +20,7 @@ from .date_utils import (
 )
 from . import sd_payloads
 from .config import ChangedAtSettings
-from .config import get_changed_at_settings
+from .config import get_settings
 from .exceptions import NoCurrentValdityException
 from .log import get_logger
 from .log import setup_logging
@@ -566,7 +566,7 @@ class FixDepartments:
 
 def unit_fixer(ou_uuid: UUID):
     """Sync SD department information to MO."""
-    settings = get_changed_at_settings()
+    settings = get_settings()
     setup_logging(settings.log_level)
 
     if ou_uuid == settings.sd_fix_departments_root:

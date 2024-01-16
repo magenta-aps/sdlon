@@ -9,7 +9,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 
 from db.queries import get_status
-from .config import get_changed_at_settings
+from .config import get_settings
 from .fix_departments import FixDepartments
 from .log import get_logger
 from .metrics import dipex_last_success_timestamp
@@ -21,7 +21,7 @@ logger = get_logger()
 
 
 def create_app(**kwargs) -> FastAPI:
-    settings = get_changed_at_settings(**kwargs)
+    settings = get_settings(**kwargs)
     settings.job_settings.start_logging_based_on_settings()
 
     app = FastAPI(fix_departments=FixDepartments(settings))

@@ -55,7 +55,7 @@ from sdlon.metrics import RunDBState
 from sdlon.sd_to_pydantic import convert_to_sd_base_person
 from . import sd_payloads
 from .config import ChangedAtSettings
-from .config import get_changed_at_settings
+from .config import get_settings
 from .date_utils import date_to_datetime, parse_datetime, format_date
 from .date_utils import gen_date_intervals
 from .date_utils import sd_to_mo_termination_date
@@ -1461,8 +1461,8 @@ class ChangeAtSD:
 
 
 def initialize_changed_at(from_date):
-    settings = get_changed_at_settings()
     persist_status(from_date, from_date, RunDBState.RUNNING)
+    settings = get_settings()
 
     logger.info("Start initial ChangedAt")
     sd_updater = ChangeAtSD(settings, from_date)
@@ -1489,7 +1489,7 @@ def changed_at_init():
     """SD-changed-at initialization"""
     logger.info("Starting SD-changed-at initialization")
 
-    settings = get_changed_at_settings()
+    settings = get_settings()
     setup_logging(settings.log_level)
 
     from_date = date_to_datetime(settings.sd_global_from_date)
@@ -1503,7 +1503,7 @@ def changed_at(
     sd_changed_at_state: Enum,
 ):
     """Tool to delta synchronize with MO with SD."""
-    settings = get_changed_at_settings()
+    settings = get_settings()
     setup_logging(settings.log_level)
 
     logger.info("Program started")
@@ -1568,7 +1568,7 @@ def changed_at(
 def import_single_user(cpr: str, from_date: datetime.datetime, dry_run: bool):
     """Import a single user into MO."""
 
-    settings = get_changed_at_settings()
+    settings = get_settings()
 
     sd_updater = ChangeAtSD(settings, from_date, None, dry_run)
     sd_updater.update_changed_persons(cpr)
@@ -1595,7 +1595,7 @@ def date_interval_run(
     cpr: str,
     dry_run: bool,
 ):
-    settings = get_changed_at_settings()
+    settings = get_settings()
     setup_logging(settings.log_level)
 
     logger.info("Date interval run started")

@@ -24,7 +24,7 @@ def test_get_db_url_success(monkeypatch: MonkeyPatch) -> None:
 
 
 @patch(
-    "db.engine.get_changed_at_settings",
+    "db.engine.get_settings",
     return_value=ChangedAtSettings.parse_obj(DEFAULT_CHANGED_AT_SETTINGS)
 )
 def test_get_engine(mock_get_settings: MagicMock) -> None:

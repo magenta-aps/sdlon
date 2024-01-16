@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from copy import deepcopy
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 from parameterized import parameterized
@@ -19,7 +19,7 @@ class TestCprEnvFilter:
             (False, ["5555555555"], True),
         ]
     )
-    @patch("sdlon.skip.get_changed_at_settings")
+    @patch("sdlon.skip.get_settings")
     def test_return_true_for_exclude_mode_when_cpr_not_in_list(
         self, exclude_mode, cprs, expected, mock
     ):

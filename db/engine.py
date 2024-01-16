@@ -5,7 +5,7 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 
-from sdlon.config import get_changed_at_settings, ChangedAtSettings
+from sdlon.config import get_settings, ChangedAtSettings
 
 
 def get_db_url(settings: ChangedAtSettings) -> str:
@@ -13,5 +13,5 @@ def get_db_url(settings: ChangedAtSettings) -> str:
 
 
 def get_engine() -> Engine:
-    settings = get_changed_at_settings()
+    settings = get_settings()
     return create_engine(get_db_url(settings))

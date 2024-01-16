@@ -1600,12 +1600,12 @@ def test_apply_ny_logic_for_non_existing_future_unit(
 
 @patch("sdlon.sd_changed_at.get_status", return_value=RunDBState.COMPLETED)
 @patch("sdlon.sd_changed_at.setup_logging")
-@patch("sdlon.sd_changed_at.get_changed_at_settings")
+@patch("sdlon.sd_changed_at.get_settings")
 @patch("sdlon.sd_changed_at.sentry_sdk")
 @patch("sdlon.sd_changed_at.get_run_db_from_date")
 @patch("sdlon.sd_changed_at.gen_date_intervals", return_value=[])
 def test_dipex_last_success_timestamp_called(
-    mock_get_changed_at_settings: MagicMock,
+    mock_get_settings: MagicMock,
     mock_setup_logging: MagicMock,
     mock_sentry_sdk: MagicMock,
     mock_get_run_db_from_date: MagicMock,
@@ -1624,12 +1624,12 @@ def test_dipex_last_success_timestamp_called(
 
 
 @patch("sdlon.sd_changed_at.setup_logging")
-@patch("sdlon.sd_changed_at.get_changed_at_settings")
+@patch("sdlon.sd_changed_at.get_settings")
 @patch("sdlon.sd_changed_at.sentry_sdk")
 @patch("sdlon.sd_changed_at.get_run_db_from_date")
 @patch("sdlon.sd_changed_at.gen_date_intervals")
 def test_dipex_last_success_timestamp_not_called_on_error(
-    mock_get_changed_at_settings: MagicMock,
+    mock_get_settings: MagicMock,
     mock_setup_logging: MagicMock,
     mock_sentry_sdk: MagicMock,
     mock_get_run_db_from_date: MagicMock,

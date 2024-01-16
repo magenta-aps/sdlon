@@ -10,7 +10,7 @@ import uuid
 
 import click
 
-from .config import get_changed_at_settings
+from .config import get_settings
 from .log import get_logger
 from .sd_changed_at import ChangeAtSD
 from .sd_common import sd_lookup
@@ -43,7 +43,7 @@ def read_person(cat, cpr):
 @click.option("--uuid", type=click.UUID, required=True, multiple=True)
 def cli(uuid):
     uuids = uuid
-    settings = get_changed_at_settings()
+    settings = get_settings()
     settings.sd_use_ad_integration = False
     cat = ChangeAtSD(settings, from_date=datetime.date.today())
     mh = cat.helper

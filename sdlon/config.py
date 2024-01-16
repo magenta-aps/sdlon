@@ -206,5 +206,5 @@ def get_importer_settings(*args, **kwargs) -> ImporterSettings:
 
 
 @lru_cache()
-def get_changed_at_settings(*args, **kwargs) -> ChangedAtSettings:
+def get_settings(*args, **kwargs) -> ChangedAtSettings:
     return ChangedAtSettings(*args, **kwargs)
