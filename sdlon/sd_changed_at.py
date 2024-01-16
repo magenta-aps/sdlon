@@ -995,9 +995,9 @@ class ChangeAtSD:
         return True
 
     def edit_engagement_department(self, engagement, mo_eng, person_uuid):
-        job_id, engagement_info = engagement_components(engagement)
+        employment_id, engagement_info = engagement_components(engagement)
         for department in engagement_info["departments"]:
-            logger.info("Change department of engagement", job_id=job_id)
+            logger.info("Change department of engagement", employment_id=employment_id)
             logger.debug("Department object", department=department)
 
             validity = self._validity(department, mo_eng["validity"]["to"], cut=True)
@@ -1039,7 +1039,7 @@ class ChangeAtSD:
             current_association = None
             # TODO: This is a filter + next (only?)
             for association in associations:
-                if association["user_key"] == job_id:
+                if association["user_key"] == employment_id:
                     current_association = association["uuid"]
 
             if current_association:
@@ -1051,7 +1051,9 @@ class ChangeAtSD:
                     response = self.helper._mo_post("details/edit", payload)
                     mora_assert(response)
 
-            org_unit = self.apply_NY_logic(org_unit, job_id, validity, person_uuid)
+            org_unit = self.apply_NY_logic(
+                org_unit, employment_id, validity, person_uuid
+            )
 
             logger.debug("New org unit for edited engagement", org_unit=org_unit)
             data = {"org_unit": {"uuid": org_unit}, "validity": validity}
