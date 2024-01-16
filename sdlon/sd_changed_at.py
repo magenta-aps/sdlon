@@ -660,11 +660,11 @@ class ChangeAtSD:
         self.mo_engagements_cache[person_uuid] = mo_engagements
         return mo_engagements
 
-    def _find_engagement(self, job_id, person_uuid):
+    def _find_engagement(self, employment_id, person_uuid):
         try:
-            user_key = str(int(job_id)).zfill(5)
-        except ValueError:  # We will end here, if int(job_id) fails
-            user_key = job_id
+            user_key = str(int(employment_id)).zfill(5)
+        except ValueError:  # We will end here, if int(employment_id) fails
+            user_key = employment_id
 
         logger.debug("Find engagement", from_date=self.from_date, user_key=user_key)
 
@@ -677,8 +677,8 @@ class ChangeAtSD:
 
         if relevant_engagement is None:
             logger.info(
-                "Fruitlessly searched for job_id in engagements",
-                job_id=job_id,
+                "Fruitlessly searched for employment_id in engagements",
+                employment_id=employment_id,
                 mo_engagements=mo_engagements,
             )
         return relevant_engagement
