@@ -24,7 +24,7 @@ from .fixtures import get_employment_fixture
 from .fixtures import get_read_employment_changed_fixture
 from .fixtures import get_sd_person_fixture
 from .fixtures import read_employment_fixture
-from sdlon.config import ChangedAtSettings
+from sdlon.config import Settings
 from sdlon.sd_changed_at import ChangeAtSD, changed_at
 
 
@@ -82,7 +82,7 @@ def setup_sd_changed_at(updates=None, hours=24):
     if updates:
         settings_dict.update(updates)
 
-    settings = ChangedAtSettings.parse_obj(settings_dict)
+    settings = Settings.parse_obj(settings_dict)
 
     today = date.today()
     start_date = today

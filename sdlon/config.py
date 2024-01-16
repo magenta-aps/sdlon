@@ -79,7 +79,7 @@ class SDCommonSettings(BaseSettings):  # type: ignore
         extra = Extra.forbid
 
 
-class ChangedAtSettings(SDCommonSettings):
+class Settings(SDCommonSettings):
     sd_fix_departments_root: Optional[UUID4] = None
     sd_no_salary_minimum_id: Optional[int] = None
     sd_overwrite_existing_employment_name = True
@@ -113,5 +113,5 @@ def get_importer_settings(*args, **kwargs) -> SDCommonSettings:
 
 
 @lru_cache()
-def get_settings(*args, **kwargs) -> ChangedAtSettings:
-    return ChangedAtSettings(*args, **kwargs)
+def get_settings(*args, **kwargs) -> Settings:
+    return Settings(*args, **kwargs)

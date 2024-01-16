@@ -4,7 +4,7 @@ from copy import deepcopy
 import pytest
 from parameterized import parameterized
 
-from sdlon.config import ChangedAtSettings
+from sdlon.config import Settings
 from sdlon.skip import cpr_env_filter, skip_job_position_id
 from .test_config import DEFAULT_CHANGED_AT_SETTINGS
 
@@ -23,7 +23,7 @@ class TestCprEnvFilter:
     ):
         settings_dict = deepcopy(DEFAULT_CHANGED_AT_SETTINGS)
         settings_dict.update({"sd_exclude_cprs_mode": exclude_mode, "sd_cprs": cprs})
-        settings = ChangedAtSettings.parse_obj(settings_dict)
+        settings = Settings.parse_obj(settings_dict)
 
         entity = {"PersonCivilRegistrationIdentifier": "5555555555"}
 

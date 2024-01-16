@@ -19,7 +19,7 @@ from .date_utils import (
     format_date,
 )
 from . import sd_payloads
-from .config import ChangedAtSettings
+from .config import Settings
 from .config import get_settings
 from .exceptions import NoCurrentValdityException
 from .log import get_logger
@@ -32,7 +32,7 @@ logger = get_logger()
 
 
 class FixDepartments:
-    def __init__(self, settings: ChangedAtSettings, dry_run: bool = False):
+    def __init__(self, settings: Settings, dry_run: bool = False):
         logger.info("Start program")
         self.settings = settings
         self.dry_run = dry_run

@@ -6,7 +6,7 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from sdlon.config import ChangedAtSettings
+from sdlon.config import Settings
 from sdlon.config import SDCommonSettings
 
 DEFAULT_MOCK_SETTINGS = {
@@ -161,13 +161,13 @@ def test_changed_at_settings(key, valid_value, invalid_value):
     settings = deepcopy(DEFAULT_CHANGED_AT_SETTINGS)
 
     # The setting is optional or has a default
-    assert ChangedAtSettings.parse_obj(settings)
+    assert Settings.parse_obj(settings)
 
     # ... and can be set to a valid_value
     settings.update({key: valid_value})
-    assert ChangedAtSettings.parse_obj(settings)
+    assert Settings.parse_obj(settings)
 
     # ... but not an invalid_value
     settings.update({key: invalid_value})
     with pytest.raises(ValidationError):
-        ChangedAtSettings.parse_obj(settings)
+        Settings.parse_obj(settings)

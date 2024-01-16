@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from sdlon.config import ChangedAtSettings
+from sdlon.config import Settings
 from sdlon.sync_job_id import JobIdSync
 
 
@@ -15,7 +15,7 @@ class JobIdSyncTest(JobIdSync):
 
 class Test_sync_job_id(TestCase):
     def setUp(self):
-        settings = ChangedAtSettings(
+        settings = Settings(
             municipality_name="name",
             municipality_code=100,
             mora_base="http://dummy.url",

@@ -54,7 +54,7 @@ from sdlon.metrics import sd_changed_at_state
 from sdlon.metrics import RunDBState
 from sdlon.sd_to_pydantic import convert_to_sd_base_person
 from . import sd_payloads
-from .config import ChangedAtSettings
+from .config import Settings
 from .config import get_settings
 from .date_utils import date_to_datetime, parse_datetime, format_date
 from .date_utils import gen_date_intervals
@@ -91,7 +91,7 @@ logger = get_logger()
 class ChangeAtSD:
     def __init__(
         self,
-        settings: ChangedAtSettings,
+        settings: Settings,
         from_date: datetime.datetime,
         to_date: Optional[datetime.datetime] = None,
         dry_run: bool = False,
@@ -192,7 +192,7 @@ class ChangeAtSD:
     def _get_mora_helper(self, mora_base) -> MoraHelper:
         return MoraHelper(hostname=mora_base, use_cache=False)
 
-    def _get_job_sync(self, settings: ChangedAtSettings) -> JobIdSync:
+    def _get_job_sync(self, settings: Settings) -> JobIdSync:
         return JobIdSync(settings)
 
     def _read_forced_uuids(self):

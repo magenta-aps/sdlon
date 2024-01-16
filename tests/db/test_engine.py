@@ -6,13 +6,13 @@ from db import engine
 from pytest import MonkeyPatch
 from sqlalchemy.engine import Engine
 
-from sdlon.config import ChangedAtSettings
+from sdlon.config import Settings
 from tests.test_config import DEFAULT_CHANGED_AT_SETTINGS
 
 
 def test_get_db_url_success(monkeypatch: MonkeyPatch) -> None:
     # Arrange
-    settings = ChangedAtSettings.parse_obj(DEFAULT_CHANGED_AT_SETTINGS)
+    settings = Settings.parse_obj(DEFAULT_CHANGED_AT_SETTINGS)
 
     # Act
     db_url: str = engine.get_db_url(settings)
@@ -25,7 +25,7 @@ def test_get_db_url_success(monkeypatch: MonkeyPatch) -> None:
 
 @patch(
     "db.engine.get_settings",
-    return_value=ChangedAtSettings.parse_obj(DEFAULT_CHANGED_AT_SETTINGS)
+    return_value=Settings.parse_obj(DEFAULT_CHANGED_AT_SETTINGS)
 )
 def test_get_engine(mock_get_settings: MagicMock) -> None:
     result: Engine = engine.get_engine()
