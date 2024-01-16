@@ -787,7 +787,7 @@ class ChangeAtSD:
             response = self.helper._mo_post("details/create", payload)
             assert response.status_code == 201
 
-    def create_association(self, department, person_uuid, job_id, validity):
+    def create_association(self, department, person_uuid, employment_id, validity):
         """Create a association for a user"""
         logger.info("Consider to create an association")
         associations = self.helper.read_user_association(
@@ -804,7 +804,7 @@ class ChangeAtSD:
         if not hit:
             logger.info("Association needs to be created")
             payload = sd_payloads.create_association(
-                department, person_uuid, str(self.association_uuid), job_id, validity
+                department, person_uuid, str(self.association_uuid), employment_id, validity
             )
             logger.debug("Create association (details/create)", payload=payload)
             if not self.dry_run:
