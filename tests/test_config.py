@@ -89,23 +89,6 @@ DEFAULT_CHANGED_AT_SETTINGS = {
 }
 
 
-@pytest.fixture
-def mock_env(monkeypatch):
-    monkeypatch.setenv("SD_USER", "env_user")
-
-
-@pytest.fixture
-def mock_env(monkeypatch):
-    monkeypatch.setenv("SD_INSTITUTION_IDENTIFIER", "institution_id")
-    monkeypatch.setenv("SD_USER", "env_user")
-    monkeypatch.setenv("SD_PASSWORD", "env_pwd")
-    monkeypatch.setenv("SD_JOB_FUNCTION", "EmploymentName")
-    monkeypatch.setenv("SD_MONTHLY_HOURLY_DIVIDE", "80000")
-    monkeypatch.setenv("SD_IMPORT_RUN_DB", "env_run_db")
-    monkeypatch.setenv("SD_GLOBAL_FROM_DATE", "2022-01-09")
-    monkeypatch.setenv("APP_DBPASSWORD", "secret")
-
-
 def test_forbid_extra_settings():
     with pytest.raises(ValidationError):
         ImporterSettings(

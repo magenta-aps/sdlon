@@ -22,11 +22,6 @@ from sdlon.config import ImporterSettings
 from sdlon.sd_importer import SdImport
 
 
-@pytest.fixture(autouse=True)
-def mock_json(monkeypatch):
-    monkeypatch.setattr("sdlon.config.load_settings", lambda: dict())
-
-
 class SdImportTest(SdImport):
     def __init__(self, *args, **kwargs):
         self.add_people_mock = MagicMock()
