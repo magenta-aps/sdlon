@@ -762,9 +762,9 @@ class ChangeAtSD:
             return job_uuid
         return self._create_professions(job_function, job_position)
 
-    def create_leave(self, status, job_id, person_uuid: str):
+    def create_leave(self, status, employment_id, person_uuid: str):
         """Create a leave for a user"""
-        logger.info("Create leave", job_id=job_id, status=status)
+        logger.info("Create leave", employment_id=employment_id, status=status)
         # TODO: This code potentially creates duplicated leaves.
 
         # Notice, the expected and desired behaviour for leaves is for the engagement
@@ -773,9 +773,13 @@ class ChangeAtSD:
         # forces an edit to the engagement that will extend it to span the
         # leave. If this ever turns out not to hold, add a dummy-edit to the
         # engagement here.
-        mo_eng = self._find_engagement(job_id, person_uuid)
+        mo_eng = self._find_engagement(employment_id, person_uuid)
         payload = sd_payloads.create_leave(
-            mo_eng, person_uuid, str(self.leave_uuid), job_id, self._validity(status)
+            mo_eng,
+            person_uuid,
+            str(self.leave_uuid),
+            employment_id,
+            self._validity(status),
         )
 
         logger.debug("Create leave (details/create)", payload=payload)
