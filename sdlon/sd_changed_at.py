@@ -804,7 +804,11 @@ class ChangeAtSD:
         if not hit:
             logger.info("Association needs to be created")
             payload = sd_payloads.create_association(
-                department, person_uuid, str(self.association_uuid), employment_id, validity
+                department,
+                person_uuid,
+                str(self.association_uuid),
+                employment_id,
+                validity,
             )
             logger.debug("Create association (details/create)", payload=payload)
             if not self.dry_run:
@@ -813,9 +817,12 @@ class ChangeAtSD:
         else:
             logger.info("No new Association is needed")
 
-    def apply_NY_logic(self, org_unit, job_id, validity, person_uuid) -> str:
+    def apply_NY_logic(self, org_unit, employment_id, validity, person_uuid) -> str:
         logger.debug(
-            "Apply NY logic", job_id=job_id, org_unit=org_unit, validity=validity
+            "Apply NY logic",
+            employment_id=employment_id,
+            org_unit=org_unit,
+            validity=validity,
         )
         too_deep = self.settings.sd_import_too_deep
 
@@ -840,7 +847,7 @@ class ChangeAtSD:
             )
 
         if ou_info["org_unit_level"]["user_key"] in too_deep:
-            self.create_association(org_unit, person_uuid, job_id, validity)
+            self.create_association(org_unit, person_uuid, employment_id, validity)
 
         while ou_info["org_unit_level"]["user_key"] in too_deep:
             ou_info = ou_info["parent"]
