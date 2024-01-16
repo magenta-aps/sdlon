@@ -660,11 +660,11 @@ class ChangeAtSD:
         self.mo_engagements_cache[person_uuid] = mo_engagements
         return mo_engagements
 
-    def _find_engagement(self, job_id, person_uuid):
+    def _find_engagement(self, employment_id, person_uuid):
         try:
-            user_key = str(int(job_id)).zfill(5)
-        except ValueError:  # We will end here, if int(job_id) fails
-            user_key = job_id
+            user_key = str(int(employment_id)).zfill(5)
+        except ValueError:  # We will end here, if int(employment_id) fails
+            user_key = employment_id
 
         logger.debug("Find engagement", from_date=self.from_date, user_key=user_key)
 
@@ -677,8 +677,8 @@ class ChangeAtSD:
 
         if relevant_engagement is None:
             logger.info(
-                "Fruitlessly searched for job_id in engagements",
-                job_id=job_id,
+                "Fruitlessly searched for employment_id in engagements",
+                employment_id=employment_id,
                 mo_engagements=mo_engagements,
             )
         return relevant_engagement
@@ -762,9 +762,9 @@ class ChangeAtSD:
             return job_uuid
         return self._create_professions(job_function, job_position)
 
-    def create_leave(self, status, job_id, person_uuid: str):
+    def create_leave(self, status, employment_id, person_uuid: str):
         """Create a leave for a user"""
-        logger.info("Create leave", job_id=job_id, status=status)
+        logger.info("Create leave", employment_id=employment_id, status=status)
         # TODO: This code potentially creates duplicated leaves.
 
         # Notice, the expected and desired behaviour for leaves is for the engagement
@@ -773,9 +773,13 @@ class ChangeAtSD:
         # forces an edit to the engagement that will extend it to span the
         # leave. If this ever turns out not to hold, add a dummy-edit to the
         # engagement here.
-        mo_eng = self._find_engagement(job_id, person_uuid)
+        mo_eng = self._find_engagement(employment_id, person_uuid)
         payload = sd_payloads.create_leave(
-            mo_eng, person_uuid, str(self.leave_uuid), job_id, self._validity(status)
+            mo_eng,
+            person_uuid,
+            str(self.leave_uuid),
+            employment_id,
+            self._validity(status),
         )
 
         logger.debug("Create leave (details/create)", payload=payload)
@@ -783,7 +787,7 @@ class ChangeAtSD:
             response = self.helper._mo_post("details/create", payload)
             assert response.status_code == 201
 
-    def create_association(self, department, person_uuid, job_id, validity):
+    def create_association(self, department, person_uuid, employment_id, validity):
         """Create a association for a user"""
         logger.info("Consider to create an association")
         associations = self.helper.read_user_association(
@@ -800,7 +804,11 @@ class ChangeAtSD:
         if not hit:
             logger.info("Association needs to be created")
             payload = sd_payloads.create_association(
-                department, person_uuid, str(self.association_uuid), job_id, validity
+                department,
+                person_uuid,
+                str(self.association_uuid),
+                employment_id,
+                validity,
             )
             logger.debug("Create association (details/create)", payload=payload)
             if not self.dry_run:
@@ -809,9 +817,12 @@ class ChangeAtSD:
         else:
             logger.info("No new Association is needed")
 
-    def apply_NY_logic(self, org_unit, job_id, validity, person_uuid) -> str:
+    def apply_NY_logic(self, org_unit, employment_id, validity, person_uuid) -> str:
         logger.debug(
-            "Apply NY logic", job_id=job_id, org_unit=org_unit, validity=validity
+            "Apply NY logic",
+            employment_id=employment_id,
+            org_unit=org_unit,
+            validity=validity,
         )
         too_deep = self.settings.sd_import_too_deep
 
@@ -836,7 +847,7 @@ class ChangeAtSD:
             )
 
         if ou_info["org_unit_level"]["user_key"] in too_deep:
-            self.create_association(org_unit, person_uuid, job_id, validity)
+            self.create_association(org_unit, person_uuid, employment_id, validity)
 
         while ou_info["org_unit_level"]["user_key"] in too_deep:
             ou_info = ou_info["parent"]
@@ -984,9 +995,9 @@ class ChangeAtSD:
         return True
 
     def edit_engagement_department(self, engagement, mo_eng, person_uuid):
-        job_id, engagement_info = engagement_components(engagement)
+        employment_id, engagement_info = engagement_components(engagement)
         for department in engagement_info["departments"]:
-            logger.info("Change department of engagement", job_id=job_id)
+            logger.info("Change department of engagement", employment_id=employment_id)
             logger.debug("Department object", department=department)
 
             validity = self._validity(department, mo_eng["validity"]["to"], cut=True)
@@ -1028,7 +1039,7 @@ class ChangeAtSD:
             current_association = None
             # TODO: This is a filter + next (only?)
             for association in associations:
-                if association["user_key"] == job_id:
+                if association["user_key"] == employment_id:
                     current_association = association["uuid"]
 
             if current_association:
@@ -1040,7 +1051,9 @@ class ChangeAtSD:
                     response = self.helper._mo_post("details/edit", payload)
                     mora_assert(response)
 
-            org_unit = self.apply_NY_logic(org_unit, job_id, validity, person_uuid)
+            org_unit = self.apply_NY_logic(
+                org_unit, employment_id, validity, person_uuid
+            )
 
             logger.debug("New org unit for edited engagement", org_unit=org_unit)
             data = {"org_unit": {"uuid": org_unit}, "validity": validity}
@@ -1077,9 +1090,11 @@ class ChangeAtSD:
         return self._fetch_engagement_type(job_position)
 
     def edit_engagement_type(self, engagement, mo_eng):
-        job_id, engagement_info = engagement_components(engagement)
+        employment_id, engagement_info = engagement_components(engagement)
         for profession_info in engagement_info["professions"]:
-            logger.info("Change engagement type of engagement", job_id=job_id)
+            logger.info(
+                "Change engagement type of engagement", employment_id=employment_id
+            )
             job_position = profession_info["JobPositionIdentifier"]
 
             validity = self._validity(
@@ -1101,9 +1116,9 @@ class ChangeAtSD:
                 mora_assert(response)
 
     def edit_engagement_profession(self, engagement, mo_eng):
-        job_id, engagement_info = engagement_components(engagement)
+        employment_id, engagement_info = engagement_components(engagement)
         for profession_info in engagement_info["professions"]:
-            logger.info("Change profession of engagement", job_id=job_id)
+            logger.info("Change profession of engagement", employment_id=employment_id)
             job_position = profession_info["JobPositionIdentifier"]
 
             # The variability handling introduced in the following lines
@@ -1159,9 +1174,11 @@ class ChangeAtSD:
                     mora_assert(response)
 
     def edit_engagement_worktime(self, engagement, mo_eng):
-        job_id, engagement_info = engagement_components(engagement)
+        employment_id, engagement_info = engagement_components(engagement)
         for worktime_info in engagement_info["working_time"]:
-            logger.info("Change working time of engagement", job_id=job_id)
+            logger.info(
+                "Change working time of engagement", employment_id=employment_id
+            )
 
             validity = self._validity(worktime_info, mo_eng["validity"]["to"], cut=True)
             if validity is None:
@@ -1355,9 +1372,9 @@ class ChangeAtSD:
                 # is terminated.
                 #
                 # The reason for this is that SD Løn sometimes reuses the same
-                # job_id for *different* persons, e.g. if a person with
-                # job_id=12345 is set to "Slettet" then a different newly
-                # employed SD person can get the SAME job_id!
+                # employment_id for *different* persons, e.g. if a person with
+                # employment_id=12345 is set to "Slettet" then a different newly
+                # employed SD person can get the SAME employment_id!
                 #
                 # In MO we therefore have to do the following. When a MO person
                 # is terminated, we have to make sure the the user_key (BVN) of
@@ -1382,11 +1399,11 @@ class ChangeAtSD:
         self, cpr: str, sd_employments, person_uuid: str
     ) -> None:
         for sd_employment in sd_employments:
-            job_id, eng = engagement_components(sd_employment)
+            employment_id, eng = engagement_components(sd_employment)
             logger.debug(
                 "Update SD employment",
                 cpr=anonymize_cpr(cpr),
-                employment_id=job_id,
+                employment_id=employment_id,
                 employmentsd_employment=sd_employment,
             )
             # If status is present, we have a potential creation
