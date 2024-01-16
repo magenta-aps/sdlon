@@ -22,7 +22,8 @@ from os2mo_helpers.mora_helpers import MoraHelper
 from sdlon.log import get_logger
 from sdlon.log import LogLevel
 from sdlon.log import setup_logging
-from .config import get_importer_settings, SDCommonSettings
+from .config import get_settings
+from .config import Settings
 from .date_utils import format_date, date_to_datetime
 from .date_utils import get_employment_datetimes
 from .date_utils import parse_datetime
@@ -47,7 +48,7 @@ class SdImport:
     def __init__(
         self,
         importer,
-        settings: SDCommonSettings,
+        settings: Settings,
         ad_info=None,
         org_only=False,
         org_id_prefix=None,
@@ -871,7 +872,7 @@ def full_import(
     if mox_base:
         overrides["mox_base"] = mox_base
 
-    settings = get_importer_settings(**overrides)
+    settings = get_settings(**overrides)
 
     # Check connection to MO before we fire requests against SD
     mh = MoraHelper(settings.mora_base)

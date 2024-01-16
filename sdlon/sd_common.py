@@ -15,7 +15,7 @@ import xmltodict
 from db.queries import log_payload
 from ra_utils.load_settings import load_settings
 
-from .config import SDCommonSettings
+from .config import Settings
 from .log import get_logger
 
 logger = get_logger()
@@ -42,7 +42,7 @@ def sd_lookup_settings():
 
 def sd_lookup(
     url: str,
-    settings: Optional[SDCommonSettings] = None,
+    settings: Optional[Settings] = None,
     params: Optional[Dict[str, Any]] = None,
     request_uuid: Optional[uuid.UUID] = None,
 ) -> OrderedDict:
@@ -268,7 +268,7 @@ def ensure_list(element):
 # We will get to the Pydantic models later...
 def read_employment_at(
     effective_date: datetime.date,
-    settings: SDCommonSettings,
+    settings: Settings,
     employment_id: Optional[str] = None,
     status_active_indicator: bool = True,
     status_passive_indicator: bool = True,

@@ -7,7 +7,7 @@ import requests
 from os2mo_helpers.mora_helpers import MoraHelper
 
 from sdlon.log import get_logger, setup_logging, LogLevel
-from .config import SDCommonSettings
+from .config import Settings
 from .config import get_settings
 from .models import JobFunction
 from .sd_common import mora_assert
@@ -19,7 +19,7 @@ logger = get_logger()
 
 
 class JobIdSync:
-    def __init__(self, settings: SDCommonSettings):
+    def __init__(self, settings: Settings):
         logger.info("Start sync")
         self.settings = settings
 

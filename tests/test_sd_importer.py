@@ -16,7 +16,7 @@ from os2mo_data_import.mora_data_types import OrganisationUnitType
 from parameterized import parameterized
 from ra_utils.attrdict import attrdict
 
-from sdlon.config import SDCommonSettings
+from sdlon.config import Settings
 from .fixtures import get_department_fixture
 from .fixtures import get_organisation_fixture
 from sdlon.sd_importer import SdImport
@@ -69,9 +69,10 @@ def get_sd_importer(
         "sd_password": "secret",
         "sd_user": "user",
         "sd_importer_create_associations": False,
+        "app_dbpassword": "secret,",
     }
     settings_dict.update(override_settings)
-    settings = SDCommonSettings.parse_obj(settings_dict)
+    settings = Settings.parse_obj(settings_dict)
 
     sd = SdImportTest(importer, settings=settings, org_only=org_only, ad_info=None)
 

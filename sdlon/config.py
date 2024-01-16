@@ -13,7 +13,6 @@ from pydantic import AnyHttpUrl
 from pydantic import BaseSettings
 from pydantic import conint
 from pydantic import constr
-from pydantic import Extra
 from pydantic import Field
 from pydantic import PositiveInt
 from pydantic import SecretStr
@@ -24,7 +23,7 @@ from .log import LogLevel
 from .models import JobFunction
 
 
-class SDCommonSettings(BaseSettings):  # type: ignore
+class Settings(BaseSettings):  # type: ignore
     """
     Settings common to both the SD importer and SD-changed-at
     """
@@ -75,13 +74,7 @@ class SDCommonSettings(BaseSettings):  # type: ignore
     sd_no_salary_minimum_id: Optional[int] = None
     sd_use_ad_integration: bool = True
 
-    class Config:
-        extra = Extra.forbid
-
-
-class Settings(SDCommonSettings):
     sd_fix_departments_root: Optional[UUID4] = None
-    sd_no_salary_minimum_id: Optional[int] = None
     sd_overwrite_existing_employment_name = True
 
     # List of CRPs to either include OR exclude in the run
@@ -93,23 +86,12 @@ class Settings(SDCommonSettings):
 
     sd_read_forced_uuids: bool = True
     sd_update_primary_engagement: bool = True
-    sd_use_ad_integration: bool = True
 
     # Settings for the SD payload database
     pghost: str = "sd-db"
     app_database: str = "sd"
     app_dbuser: str = "sd"
     app_dbpassword: SecretStr
-
-
-@lru_cache()
-def get_common_settings(*args, **kwargs) -> SDCommonSettings:
-    return SDCommonSettings(*args, **kwargs)
-
-
-@lru_cache()
-def get_importer_settings(*args, **kwargs) -> SDCommonSettings:
-    return SDCommonSettings(*args, **kwargs)
 
 
 @lru_cache()

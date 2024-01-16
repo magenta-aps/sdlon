@@ -7,7 +7,6 @@ import pytest
 from pydantic import ValidationError
 
 from sdlon.config import Settings
-from sdlon.config import SDCommonSettings
 
 DEFAULT_MOCK_SETTINGS = {
     "integrations.SD_Lon.employment_field": "extension_1",
@@ -93,7 +92,7 @@ DEFAULT_CHANGED_AT_SETTINGS = {
 
 def test_forbid_extra_settings():
     with pytest.raises(ValidationError):
-        SDCommonSettings(
+        Settings(
             municipality_name="name",
             municipality_code=100,
             sd_global_from_date="1970-01-01",
@@ -129,12 +128,12 @@ def test_special_values(key, value):
 
     # Act and assert
     with pytest.raises(ValidationError):
-        SDCommonSettings.parse_obj(mock_settings)
+        Settings.parse_obj(mock_settings)
 
 
 @pytest.mark.parametrize("job_function", ["JobPositionIdentifier", "EmploymentName"])
 def test_job_function_enums_allowed(job_function):
-    assert SDCommonSettings(
+    assert Settings(
         municipality_name="name",
         municipality_code=100,
         sd_global_from_date="1970-01-01",
@@ -145,6 +144,7 @@ def test_job_function_enums_allowed(job_function):
         sd_monthly_hourly_divide=9000,
         sd_password="secret",
         sd_user="user",
+        app_dbpassword="secret",
     )
 
 
