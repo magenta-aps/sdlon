@@ -29,6 +29,8 @@ services:
       - os2mo_default
     ports:
       - 8000:8000/tcp
+    volumes:
+      - ./:/app/
   sd-db:
     image: postgres:11.7  # Set image in global.sls
     environment:
