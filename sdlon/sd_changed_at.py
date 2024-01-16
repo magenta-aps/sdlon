@@ -1090,9 +1090,11 @@ class ChangeAtSD:
         return self._fetch_engagement_type(job_position)
 
     def edit_engagement_type(self, engagement, mo_eng):
-        job_id, engagement_info = engagement_components(engagement)
+        employment_id, engagement_info = engagement_components(engagement)
         for profession_info in engagement_info["professions"]:
-            logger.info("Change engagement type of engagement", job_id=job_id)
+            logger.info(
+                "Change engagement type of engagement", employment_id=employment_id
+            )
             job_position = profession_info["JobPositionIdentifier"]
 
             validity = self._validity(
