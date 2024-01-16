@@ -8,15 +8,15 @@ from unittest.mock import patch, MagicMock
 import pytest
 from pytest import MonkeyPatch
 
-from sdlon.config import CommonSettings
+from sdlon.config import SDCommonSettings
 from sdlon.models import JobFunction
 from sdlon.sd_common import read_employment_at
 from sdlon.sd_common import sd_lookup
 
 
 @pytest.fixture()
-def common_settings() -> CommonSettings:
-    return CommonSettings(
+def common_settings() -> SDCommonSettings:
+    return SDCommonSettings(
         sd_global_from_date=date(2000, 1, 1),
         sd_import_run_db="not used",
         sd_institution_identifier="dummy",
@@ -30,7 +30,7 @@ def common_settings() -> CommonSettings:
 @patch("sdlon.sd_common.sd_lookup")
 def test_return_none_when_sd_employment_empty(
     mock_sd_lookup,
-    common_settings: CommonSettings,
+    common_settings: SDCommonSettings,
 ) -> None:
     mock_sd_lookup.return_value = OrderedDict()
     assert read_employment_at(date(2000, 1, 1), common_settings) is None
@@ -44,7 +44,7 @@ class _MockResponse:
 
 def test_sd_lookup_logs_payload_to_db(
     monkeypatch: MonkeyPatch,
-    common_settings: CommonSettings,
+    common_settings: SDCommonSettings,
 ) -> None:
     # Arrange
     test_request_uuid = uuid.uuid4()
@@ -82,7 +82,7 @@ def test_sd_lookup_logs_payload_to_db(
 def test_sd_lookup_does_not_persist_payload_when_disabled_in_settings(
     mock_log_payload: MagicMock,
     mock_requests: MagicMock,
-    common_settings: CommonSettings,
+    common_settings: SDCommonSettings,
 ):
     # Arrange
     common_settings.sd_persist_payloads = False

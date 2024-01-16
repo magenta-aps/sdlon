@@ -24,7 +24,7 @@ from .log import LogLevel
 from .models import JobFunction
 
 
-class CommonSettings(BaseSettings):  # type: ignore
+class SDCommonSettings(BaseSettings):  # type: ignore
     """
     Settings common to both the SD importer and SD-changed-at
     """
@@ -67,13 +67,11 @@ class CommonSettings(BaseSettings):  # type: ignore
 
     job_settings: JobSettings = JobSettings()
 
-
-class SDCommonSettings(CommonSettings):
     class Config:
         extra = Extra.forbid
 
 
-class ImporterSettings(CommonSettings):
+class ImporterSettings(SDCommonSettings):
     municipality_code: conint(ge=100, le=999)  # type: ignore
     municipality_name: str
     sd_importer_create_associations: bool = True
@@ -89,7 +87,7 @@ class ImporterSettings(CommonSettings):
         extra = Extra.forbid
 
 
-class ChangedAtSettings(CommonSettings):
+class ChangedAtSettings(SDCommonSettings):
     sd_fix_departments_root: Optional[UUID4] = None
     sd_no_salary_minimum_id: Optional[int] = None
     sd_overwrite_existing_employment_name = True
