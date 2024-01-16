@@ -1372,9 +1372,9 @@ class ChangeAtSD:
                 # is terminated.
                 #
                 # The reason for this is that SD Løn sometimes reuses the same
-                # job_id for *different* persons, e.g. if a person with
-                # job_id=12345 is set to "Slettet" then a different newly
-                # employed SD person can get the SAME job_id!
+                # employment_id for *different* persons, e.g. if a person with
+                # employment_id=12345 is set to "Slettet" then a different newly
+                # employed SD person can get the SAME employment_id!
                 #
                 # In MO we therefore have to do the following. When a MO person
                 # is terminated, we have to make sure the the user_key (BVN) of
@@ -1399,11 +1399,11 @@ class ChangeAtSD:
         self, cpr: str, sd_employments, person_uuid: str
     ) -> None:
         for sd_employment in sd_employments:
-            job_id, eng = engagement_components(sd_employment)
+            employment_id, eng = engagement_components(sd_employment)
             logger.debug(
                 "Update SD employment",
                 cpr=anonymize_cpr(cpr),
-                employment_id=job_id,
+                employment_id=employment_id,
                 employmentsd_employment=sd_employment,
             )
             # If status is present, we have a potential creation
