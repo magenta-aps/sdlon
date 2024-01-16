@@ -2,15 +2,13 @@ import logging
 from typing import Any
 from typing import OrderedDict
 
-from .config import get_settings
+from .config import get_settings, ChangedAtSettings
 from .log import get_logger
 
 logger = get_logger()
 
 
-def cpr_env_filter(entity: OrderedDict[str, Any]) -> bool:
-    settings = get_settings()
-
+def cpr_env_filter(settings: ChangedAtSettings, entity: OrderedDict[str, Any]) -> bool:
     cpr = entity["PersonCivilRegistrationIdentifier"]
 
     if settings.sd_exclude_cprs_mode:

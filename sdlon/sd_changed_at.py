@@ -2,7 +2,7 @@ import datetime
 import pathlib
 import sys
 import uuid
-from functools import lru_cache
+from functools import lru_cache, partial
 from itertools import tee
 from operator import itemgetter
 from typing import Any
@@ -491,7 +491,9 @@ class ChangeAtSD:
         real_sd_persons_changed = filter(skip_fictional_users, all_sd_persons_changed)
 
         # Filter employees based on the sd_cprs list
-        sd_cpr_filtered_persons = filter(cpr_env_filter, real_sd_persons_changed)
+        sd_cpr_filtered_persons = filter(
+            partial(cpr_env_filter, self.settings), real_sd_persons_changed
+        )
 
         sd_persons_changed = map(convert_to_sd_base_person, sd_cpr_filtered_persons)
 
@@ -1405,7 +1407,9 @@ class ChangeAtSD:
         employments_changed = filter(skip_fictional_users, employments_changed)
 
         # Filter employees based on the sd_cprs list
-        employments_changed = filter(cpr_env_filter, employments_changed)
+        employments_changed = filter(
+            partial(cpr_env_filter, self.settings), employments_changed
+        )
 
         recalculate_users: Set[UUID] = set()
 
