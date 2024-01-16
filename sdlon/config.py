@@ -6,11 +6,8 @@
 #
 from datetime import date
 from functools import lru_cache
-from typing import Any
-from typing import Dict
 from typing import List
 from typing import Optional
-from typing import Type
 
 from pydantic import AnyHttpUrl
 from pydantic import BaseSettings
@@ -21,7 +18,6 @@ from pydantic import Field
 from pydantic import PositiveInt
 from pydantic import SecretStr
 from pydantic import UUID4
-from ra_utils.load_settings import load_settings
 from ra_utils.job_settings import JobSettings
 
 from .log import LogLevel
@@ -72,57 +68,9 @@ class CommonSettings(BaseSettings):  # type: ignore
     job_settings: JobSettings = JobSettings()
 
 
-def gen_json_file_settings_func(settings_class: Type[CommonSettings]):
-    def json_file_settings(settings: BaseSettings) -> Dict[str, Any]:  # type: ignore
-        try:
-            json_settings = load_settings()
-        except FileNotFoundError:
-            return dict()
-
-        # Remove the "integrations.SD_Lon." part of the key name
-        json_settings = {
-            key.replace("integrations.SD_Lon.", "sd_"): value
-            for key, value in json_settings.items()
-        }
-
-        # Remove any double "sd_sd_" in the keys
-        json_settings = {
-            key.replace("sd_sd_", "sd_"): value for key, value in json_settings.items()
-        }
-
-        # Replace dots with underscores to be Pydantic compliant
-        json_settings = {
-            key.replace(".", "_"): value for key, value in json_settings.items()
-        }
-
-        # Remove settings forbidden according to the Settings model
-        properties = settings_class.schema()["properties"].keys()
-        json_settings = {
-            key: value for key, value in json_settings.items() if key in properties
-        }
-
-        return json_settings
-
-    return json_file_settings
-
-
 class SDCommonSettings(CommonSettings):
     class Config:
         extra = Extra.forbid
-
-        @classmethod
-        def customise_sources(
-            cls,
-            init_settings,
-            env_settings,
-            file_secret_settings,
-        ):
-            return (
-                init_settings,
-                env_settings,
-                gen_json_file_settings_func(SDCommonSettings),
-                file_secret_settings,
-            )
 
 
 class ImporterSettings(CommonSettings):
@@ -139,20 +87,6 @@ class ImporterSettings(CommonSettings):
 
     class Config:
         extra = Extra.forbid
-
-        @classmethod
-        def customise_sources(
-            cls,
-            init_settings,
-            env_settings,
-            file_secret_settings,
-        ):
-            return (
-                init_settings,
-                env_settings,
-                gen_json_file_settings_func(ImporterSettings),
-                file_secret_settings,
-            )
 
 
 class ChangedAtSettings(CommonSettings):
@@ -176,23 +110,6 @@ class ChangedAtSettings(CommonSettings):
     app_database: str = "sd"
     app_dbuser: str = "sd"
     app_dbpassword: SecretStr
-
-    class Config:
-        extra = Extra.forbid
-
-        @classmethod
-        def customise_sources(
-            cls,
-            init_settings,
-            env_settings,
-            file_secret_settings,
-        ):
-            return (
-                init_settings,
-                env_settings,
-                gen_json_file_settings_func(ChangedAtSettings),
-                file_secret_settings,
-            )
 
 
 @lru_cache()
