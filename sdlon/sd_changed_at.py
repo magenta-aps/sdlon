@@ -1304,35 +1304,15 @@ class ChangeAtSD:
             code = status["EmploymentStatusCode"]
             code = EmploymentStatus(code)
 
-            if code == EmploymentStatus.AnsatUdenLoen:
+            if code in [EmploymentStatus.AnsatUdenLoen, EmploymentStatus.AnsatMedLoen]:
                 mo_eng = self._find_engagement(employment_id, person_uuid)
                 if mo_eng:
                     logger.info("Found MO engagement", eng_uuid=mo_eng["uuid"])
                     self._set_non_primary(status, mo_eng)
+                    self._refresh_mo_engagements(person_uuid)
                     self.edit_engagement(sd_employment, person_uuid)
                 else:
                     logger.info("MO engagement not found. Create new engagement")
-                    if is_employment_id_and_no_salary_minimum_consistent(
-                        sd_employment, self.no_salary_minimum
-                    ):
-                        self.create_new_engagement(
-                            sd_employment, status, cpr, person_uuid
-                        )
-                skip = True
-            elif code == EmploymentStatus.AnsatMedLoen:
-                # TODO: condense this block with the one above as they are identical
-                logger.info("Setting {} to status 1".format(employment_id))
-                mo_eng = self._find_engagement(employment_id, person_uuid)
-                if mo_eng:
-                    logger.info("Status 1, edit eng. {}".format(mo_eng["uuid"]))
-
-                    self._set_non_primary(status, mo_eng)
-                    self._refresh_mo_engagements(person_uuid)
-
-                    self.edit_engagement(sd_employment, person_uuid)
-                else:
-                    logger.info("Status 1: Create new engagement")
-                    logger.debug(sd_employment)
                     if is_employment_id_and_no_salary_minimum_consistent(
                         sd_employment, self.no_salary_minimum
                     ):
