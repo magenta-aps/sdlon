@@ -15,7 +15,7 @@ from sdlon.sd_common import sd_lookup
 
 
 @pytest.fixture()
-def common_settings() -> Settings:
+def settings() -> Settings:
     return Settings(
         municipality_name="name",
         municipality_code=100,
@@ -33,10 +33,10 @@ def common_settings() -> Settings:
 @patch("sdlon.sd_common.sd_lookup")
 def test_return_none_when_sd_employment_empty(
     mock_sd_lookup,
-    common_settings: Settings,
+    settings: Settings,
 ) -> None:
     mock_sd_lookup.return_value = OrderedDict()
-    assert read_employment_at(date(2000, 1, 1), common_settings) is None
+    assert read_employment_at(date(2000, 1, 1), settings) is None
 
 
 @dataclass
@@ -47,7 +47,7 @@ class _MockResponse:
 
 def test_sd_lookup_logs_payload_to_db(
     monkeypatch: MonkeyPatch,
-    common_settings: Settings,
+    settings: Settings,
 ) -> None:
     # Arrange
     test_request_uuid = uuid.uuid4()
@@ -77,7 +77,7 @@ def test_sd_lookup_logs_payload_to_db(
     monkeypatch.setattr("sdlon.sd_common.log_payload", mock_log_payload)
 
     # Act
-    sd_lookup(test_url, common_settings, test_params, request_uuid=test_request_uuid)
+    sd_lookup(test_url, settings, test_params, request_uuid=test_request_uuid)
 
 
 @patch("sdlon.sd_common.requests")
@@ -85,17 +85,17 @@ def test_sd_lookup_logs_payload_to_db(
 def test_sd_lookup_does_not_persist_payload_when_disabled_in_settings(
     mock_log_payload: MagicMock,
     mock_requests: MagicMock,
-    common_settings: Settings,
+    settings: Settings,
 ):
     # Arrange
-    common_settings.sd_persist_payloads = False
+    settings.sd_persist_payloads = False
 
     mock_requests.get.return_value = _MockResponse(
         text="<SomeSDEndpoint><foo></foo></SomeSDEndpoint>", status_code=200
     )
 
     # Act
-    sd_lookup("SomeSDEndpoint", common_settings)
+    sd_lookup("SomeSDEndpoint", settings)
 
     # Assert
     mock_log_payload.assert_not_called()
