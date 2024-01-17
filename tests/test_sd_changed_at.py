@@ -26,18 +26,6 @@ from .fixtures import get_sd_person_fixture
 from .fixtures import read_employment_fixture
 from sdlon.config import ChangedAtSettings
 from sdlon.sd_changed_at import ChangeAtSD, changed_at
-from sdlon.sd_changed_at import get_from_date
-
-
-@given(test_from_date=st.datetimes())
-def test_getfrom_date(test_from_date):
-    """Test reading latest date from rundb"""
-    with patch(
-        "integrations.rundb.db_overview.DBOverview._read_last_line",
-        return_value=test_from_date,
-    ):
-        from_date = get_from_date("test", force=False)
-        assert from_date == test_from_date
 
 
 class ChangeAtSDTest(ChangeAtSD):
@@ -1614,13 +1602,13 @@ def test_apply_ny_logic_for_non_existing_future_unit(
 @patch("sdlon.sd_changed_at.setup_logging")
 @patch("sdlon.sd_changed_at.get_changed_at_settings")
 @patch("sdlon.sd_changed_at.sentry_sdk")
-@patch("sdlon.sd_changed_at.get_from_date")
+@patch("sdlon.sd_changed_at.get_run_db_from_date")
 @patch("sdlon.sd_changed_at.gen_date_intervals", return_value=[])
 def test_dipex_last_success_timestamp_called(
     mock_get_changed_at_settings: MagicMock,
     mock_setup_logging: MagicMock,
     mock_sentry_sdk: MagicMock,
-    mock_get_from_date: MagicMock,
+    mock_get_run_db_from_date: MagicMock,
     mock_gen_date_intervals: MagicMock,
     mock_get_run_db_state: MagicMock,
 ):
@@ -1638,13 +1626,13 @@ def test_dipex_last_success_timestamp_called(
 @patch("sdlon.sd_changed_at.setup_logging")
 @patch("sdlon.sd_changed_at.get_changed_at_settings")
 @patch("sdlon.sd_changed_at.sentry_sdk")
-@patch("sdlon.sd_changed_at.get_from_date")
+@patch("sdlon.sd_changed_at.get_run_db_from_date")
 @patch("sdlon.sd_changed_at.gen_date_intervals")
 def test_dipex_last_success_timestamp_not_called_on_error(
     mock_get_changed_at_settings: MagicMock,
     mock_setup_logging: MagicMock,
     mock_sentry_sdk: MagicMock,
-    mock_get_from_date: MagicMock,
+    mock_get_run_db_from_date: MagicMock,
     mock_gen_date_intervals: MagicMock,
 ):
     # Assert

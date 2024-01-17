@@ -26,7 +26,6 @@ from integrations import cpr_mapper
 from integrations.ad_integration import ad_reader
 from integrations.calculate_primary.common import NoPrimaryFound
 from integrations.calculate_primary.sd import SDPrimaryEngagementUpdater
-from integrations.rundb.db_overview import DBOverview
 from more_itertools import last
 from more_itertools import one
 from more_itertools import partition
@@ -36,7 +35,9 @@ from prometheus_client import Gauge
 from ramodels.mo import Employee
 from ramodels.mo._shared import OrganisationRef
 
-from db.queries import persist_status, get_status
+from db.queries import get_run_db_from_date
+from db.queries import get_status
+from db.queries import persist_status
 from sdlon.employees import get_employee
 from sdlon.exceptions import PreviousRunNotCompletedError
 from sdlon.graphql import get_mo_client
@@ -1475,13 +1476,6 @@ def initialize_changed_at(from_date, run_db):
     persist_status(from_date, from_date, RunDBState.COMPLETED)
 
 
-def get_from_date(run_db, force: bool = False) -> datetime.datetime:
-    db_overview = DBOverview(run_db)
-    # To date from last entries, becomes from_date for current entry
-    from_date = cast(datetime.datetime, db_overview._read_last_line("to_date"))
-    return from_date
-
-
 @click.group()
 def cli():
     pass
@@ -1502,6 +1496,7 @@ def changed_at_init():
     setup_logging(settings.log_level)
 
     from_date = date_to_datetime(settings.sd_global_from_date)
+    from_date = from_date.astimezone(tz=datetime.timezone.utc)
     run_db_path = pathlib.Path(settings.sd_import_run_db)
 
     initialize_changed_at(from_date, run_db_path)
@@ -1518,6 +1513,8 @@ def changed_at(
     logger.info("Program started")
 
     run_db_state = get_status()
+    logger.info("The RunDB state is", run_db_state=run_db_state)
+
     sd_changed_at_state.state(run_db_state.value)
     if not run_db_state == RunDBState.COMPLETED:
         logger.error(
@@ -1531,8 +1528,8 @@ def changed_at(
     if settings.job_settings.sentry_dsn:
         sentry_sdk.init(dsn=settings.job_settings.sentry_dsn)
 
-    from_date = get_from_date(settings.sd_import_run_db)
-    to_date = datetime.datetime.now()
+    from_date = get_run_db_from_date()
+    to_date = datetime.datetime.now(tz=datetime.timezone.utc)
     dates = gen_date_intervals(from_date, to_date)
     for from_date, to_date in dates:
         persist_status(from_date, to_date, RunDBState.RUNNING)
