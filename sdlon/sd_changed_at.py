@@ -1496,6 +1496,7 @@ def changed_at_init():
     setup_logging(settings.log_level)
 
     from_date = date_to_datetime(settings.sd_global_from_date)
+    from_date = from_date.astimezone(tz=datetime.timezone.utc)
     run_db_path = pathlib.Path(settings.sd_import_run_db)
 
     initialize_changed_at(from_date, run_db_path)
@@ -1512,6 +1513,8 @@ def changed_at(
     logger.info("Program started")
 
     run_db_state = get_status()
+    logger.info("The RunDB state is", run_db_state=run_db_state)
+
     sd_changed_at_state.state(run_db_state.value)
     if not run_db_state == RunDBState.COMPLETED:
         logger.error(
@@ -1526,7 +1529,7 @@ def changed_at(
         sentry_sdk.init(dsn=settings.job_settings.sentry_dsn)
 
     from_date = get_run_db_from_date()
-    to_date = datetime.datetime.now()
+    to_date = datetime.datetime.now(tz=datetime.timezone.utc)
     dates = gen_date_intervals(from_date, to_date)
     for from_date, to_date in dates:
         persist_status(from_date, to_date, RunDBState.RUNNING)
