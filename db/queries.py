@@ -71,3 +71,12 @@ def persist_status(from_date: datetime, to_date: datetime, status: RunDBState) -
     run = Runs(from_date=from_date, to_date=to_date, status=status.value)
     session.add(run)
     session.commit()
+
+
+def get_run_db_from_date() -> datetime:
+    Session.configure(bind=get_engine())
+    session = Session()
+    # Note: we use the last to_date as the new from_date
+    statement = select(Runs.to_date).order_by(desc(Runs.id)).limit(1)
+    from_date = session.execute(statement).scalar_one_or_none()
+    return from_date
