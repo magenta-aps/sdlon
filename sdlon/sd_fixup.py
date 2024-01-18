@@ -25,7 +25,7 @@ from raclients.graph.client import SyncClientSession
 from tqdm import tqdm
 
 from . import sd_payloads
-from .config import get_importer_settings
+from .config import get_settings
 from .log import get_logger
 from .sd_changed_at import ChangeAtSD
 from .sd_common import EmploymentStatus
@@ -350,7 +350,7 @@ def fixup_associations(
 @click.pass_context
 def fixup_leaves(ctx, mox_base):
     """Fix all leaves that are missing a link to an engagement."""
-    settings = get_importer_settings()
+    settings = get_settings()
 
     mora_helper = ctx.obj["mora_helper"]
     # Find all classes of leave_types
