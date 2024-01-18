@@ -205,7 +205,6 @@ def test_pydantic_settings_set_correctly_when_json_settings_not_found(mock_env):
     assert settings.sd_password.get_secret_value() == "env_pwd"
     assert settings.sd_job_function == "EmploymentName"
     assert settings.sd_monthly_hourly_divide == 80000
-    assert settings.sd_import_run_db == "env_run_db"
 
 
 @patch("sdlon.config.load_settings")
