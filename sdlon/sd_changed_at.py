@@ -1460,10 +1460,7 @@ class ChangeAtSD:
                     )
 
 
-def initialize_changed_at(from_date, run_db):
-    if not run_db.is_file():
-        raise Exception("RunDB not created, use 'db_overview.py' to create it")
-
+def initialize_changed_at(from_date):
     settings = get_changed_at_settings()
     persist_status(from_date, from_date, RunDBState.RUNNING)
 
@@ -1497,9 +1494,8 @@ def changed_at_init():
 
     from_date = date_to_datetime(settings.sd_global_from_date)
     from_date = from_date.astimezone(tz=datetime.timezone.utc)
-    run_db_path = pathlib.Path(settings.sd_import_run_db)
 
-    initialize_changed_at(from_date, run_db_path)
+    initialize_changed_at(from_date)
 
 
 def changed_at(
