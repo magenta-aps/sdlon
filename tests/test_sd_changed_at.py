@@ -68,7 +68,6 @@ def setup_sd_changed_at(updates=None, hours=24):
         "municipality_name": "name",
         "municipality_code": 100,
         "sd_global_from_date": "1970-01-01",
-        "sd_import_run_db": "run_db.sqlite",
         "sd_institution_identifier": "XY",
         "sd_password": "secret",
         "sd_user": "user",

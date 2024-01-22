@@ -20,7 +20,6 @@ def settings() -> Settings:
         municipality_name="name",
         municipality_code=100,
         sd_global_from_date=date(2000, 1, 1),
-        sd_import_run_db="not used",
         sd_institution_identifier="dummy",
         sd_user="user",
         sd_password="password",

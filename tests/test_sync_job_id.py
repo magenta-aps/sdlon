@@ -20,7 +20,6 @@ class Test_sync_job_id(TestCase):
             municipality_code=100,
             mora_base="http://dummy.url",
             sd_job_function="JobPositionIdentifier",
-            sd_import_run_db="run_db.sqlite",
             sd_institution_identifier="XY",
             sd_monthly_hourly_divide=9000,
             sd_password="secret",

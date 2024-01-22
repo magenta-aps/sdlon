@@ -62,7 +62,6 @@ def get_sd_importer(
         "municipality_code": municipality_code,
         "sd_global_from_date": "1970-01-01",
         "sd_employment_field": "extension_1",
-        "sd_import_run_db": "run_db.sqlite",
         "sd_institution_identifier": "XY",
         "sd_job_function": "EmploymentName",
         "sd_monthly_hourly_divide": 9000,
