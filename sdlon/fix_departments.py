@@ -19,8 +19,8 @@ from .date_utils import (
     format_date,
 )
 from . import sd_payloads
-from .config import ChangedAtSettings
-from .config import get_changed_at_settings
+from .config import Settings
+from .config import get_settings
 from .exceptions import NoCurrentValdityException
 from .log import get_logger
 from .log import setup_logging
@@ -32,7 +32,7 @@ logger = get_logger()
 
 
 class FixDepartments:
-    def __init__(self, settings: ChangedAtSettings, dry_run: bool = False):
+    def __init__(self, settings: Settings, dry_run: bool = False):
         logger.info("Start program")
         self.settings = settings
         self.dry_run = dry_run
@@ -566,7 +566,7 @@ class FixDepartments:
 
 def unit_fixer(ou_uuid: UUID):
     """Sync SD department information to MO."""
-    settings = get_changed_at_settings()
+    settings = get_settings()
     setup_logging(settings.log_level)
 
     if ou_uuid == settings.sd_fix_departments_root:

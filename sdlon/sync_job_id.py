@@ -7,8 +7,8 @@ import requests
 from os2mo_helpers.mora_helpers import MoraHelper
 
 from sdlon.log import get_logger, setup_logging, LogLevel
-from .config import CommonSettings
-from .config import get_changed_at_settings
+from .config import Settings
+from .config import get_settings
 from .models import JobFunction
 from .sd_common import mora_assert
 from .sd_common import sd_lookup
@@ -19,7 +19,7 @@ logger = get_logger()
 
 
 class JobIdSync:
-    def __init__(self, settings: CommonSettings):
+    def __init__(self, settings: Settings):
         logger.info("Start sync")
         self.settings = settings
 
@@ -229,7 +229,7 @@ class JobIdSync:
 )
 def sync_jobid(job_pos_id, title, sync_all):
     """Job Position Synchronize tool."""
-    settings = get_changed_at_settings()
+    settings = get_settings()
     setup_logging(LogLevel.DEBUG)
 
     if job_pos_id is None and sync_all is None:

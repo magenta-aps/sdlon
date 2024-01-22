@@ -6,29 +6,24 @@
 #
 from datetime import date
 from functools import lru_cache
-from typing import Any
-from typing import Dict
 from typing import List
 from typing import Optional
-from typing import Type
 
 from pydantic import AnyHttpUrl
 from pydantic import BaseSettings
 from pydantic import conint
 from pydantic import constr
-from pydantic import Extra
 from pydantic import Field
 from pydantic import PositiveInt
 from pydantic import SecretStr
 from pydantic import UUID4
-from ra_utils.load_settings import load_settings
 from ra_utils.job_settings import JobSettings
 
 from .log import LogLevel
 from .models import JobFunction
 
 
-class CommonSettings(BaseSettings):  # type: ignore
+class Settings(BaseSettings):  # type: ignore
     """
     Settings common to both the SD importer and SD-changed-at
     """
@@ -38,7 +33,6 @@ class CommonSettings(BaseSettings):  # type: ignore
 
     sd_employment_field: Optional[str] = Field(default=None, regex="extension_[0-9]+")
     sd_global_from_date: date
-    sd_import_run_db: str
     sd_import_too_deep: List[str] = []
     sd_institution_identifier: str
     sd_password: SecretStr
@@ -71,93 +65,15 @@ class CommonSettings(BaseSettings):  # type: ignore
 
     job_settings: JobSettings = JobSettings()
 
-
-def gen_json_file_settings_func(settings_class: Type[CommonSettings]):
-    def json_file_settings(settings: BaseSettings) -> Dict[str, Any]:  # type: ignore
-        try:
-            json_settings = load_settings()
-        except FileNotFoundError:
-            return dict()
-
-        # Remove the "integrations.SD_Lon." part of the key name
-        json_settings = {
-            key.replace("integrations.SD_Lon.", "sd_"): value
-            for key, value in json_settings.items()
-        }
-
-        # Remove any double "sd_sd_" in the keys
-        json_settings = {
-            key.replace("sd_sd_", "sd_"): value for key, value in json_settings.items()
-        }
-
-        # Replace dots with underscores to be Pydantic compliant
-        json_settings = {
-            key.replace(".", "_"): value for key, value in json_settings.items()
-        }
-
-        # Remove settings forbidden according to the Settings model
-        properties = settings_class.schema()["properties"].keys()
-        json_settings = {
-            key: value for key, value in json_settings.items() if key in properties
-        }
-
-        return json_settings
-
-    return json_file_settings
-
-
-class SDCommonSettings(CommonSettings):
-    class Config:
-        extra = Extra.forbid
-
-        @classmethod
-        def customise_sources(
-            cls,
-            init_settings,
-            env_settings,
-            file_secret_settings,
-        ):
-            return (
-                init_settings,
-                env_settings,
-                gen_json_file_settings_func(SDCommonSettings),
-                file_secret_settings,
-            )
-
-
-class ImporterSettings(CommonSettings):
     municipality_code: conint(ge=100, le=999)  # type: ignore
     municipality_name: str
     sd_importer_create_associations: bool = True
     sd_importer_create_email_addresses: bool = True
 
-    # Deprecated
-    sd_importer_employment_date_as_engagement_start_date: bool = False
-
     sd_no_salary_minimum_id: Optional[int] = None
     sd_use_ad_integration: bool = True
 
-    class Config:
-        extra = Extra.forbid
-
-        @classmethod
-        def customise_sources(
-            cls,
-            init_settings,
-            env_settings,
-            file_secret_settings,
-        ):
-            return (
-                init_settings,
-                env_settings,
-                gen_json_file_settings_func(ImporterSettings),
-                file_secret_settings,
-            )
-
-
-class ChangedAtSettings(CommonSettings):
     sd_fix_departments_root: Optional[UUID4] = None
-    sd_no_salary_minimum_id: Optional[int] = None
     sd_overwrite_existing_employment_name = True
 
     # List of CRPs to either include OR exclude in the run
@@ -169,7 +85,6 @@ class ChangedAtSettings(CommonSettings):
 
     sd_read_forced_uuids: bool = True
     sd_update_primary_engagement: bool = True
-    sd_use_ad_integration: bool = True
 
     # Settings for the SD payload database
     pghost: str = "sd-db"
@@ -177,34 +92,7 @@ class ChangedAtSettings(CommonSettings):
     app_dbuser: str = "sd"
     app_dbpassword: SecretStr
 
-    class Config:
-        extra = Extra.forbid
-
-        @classmethod
-        def customise_sources(
-            cls,
-            init_settings,
-            env_settings,
-            file_secret_settings,
-        ):
-            return (
-                init_settings,
-                env_settings,
-                gen_json_file_settings_func(ChangedAtSettings),
-                file_secret_settings,
-            )
-
 
 @lru_cache()
-def get_common_settings(*args, **kwargs) -> SDCommonSettings:
-    return SDCommonSettings(*args, **kwargs)
-
-
-@lru_cache()
-def get_importer_settings(*args, **kwargs) -> ImporterSettings:
-    return ImporterSettings(*args, **kwargs)
-
-
-@lru_cache()
-def get_changed_at_settings(*args, **kwargs) -> ChangedAtSettings:
-    return ChangedAtSettings(*args, **kwargs)
+def get_settings(*args, **kwargs) -> Settings:
+    return Settings(*args, **kwargs)

@@ -2,7 +2,7 @@ import datetime
 import pathlib
 import sys
 import uuid
-from functools import lru_cache
+from functools import lru_cache, partial
 from itertools import tee
 from operator import itemgetter
 from typing import Any
@@ -54,8 +54,8 @@ from sdlon.metrics import sd_changed_at_state
 from sdlon.metrics import RunDBState
 from sdlon.sd_to_pydantic import convert_to_sd_base_person
 from . import sd_payloads
-from .config import ChangedAtSettings
-from .config import get_changed_at_settings
+from .config import Settings
+from .config import get_settings
 from .date_utils import date_to_datetime, parse_datetime, format_date
 from .date_utils import gen_date_intervals
 from .date_utils import sd_to_mo_termination_date
@@ -91,7 +91,7 @@ logger = get_logger()
 class ChangeAtSD:
     def __init__(
         self,
-        settings: ChangedAtSettings,
+        settings: Settings,
         from_date: datetime.datetime,
         to_date: Optional[datetime.datetime] = None,
         dry_run: bool = False,
@@ -192,7 +192,7 @@ class ChangeAtSD:
     def _get_mora_helper(self, mora_base) -> MoraHelper:
         return MoraHelper(hostname=mora_base, use_cache=False)
 
-    def _get_job_sync(self, settings: ChangedAtSettings) -> JobIdSync:
+    def _get_job_sync(self, settings: Settings) -> JobIdSync:
         return JobIdSync(settings)
 
     def _read_forced_uuids(self):
@@ -491,7 +491,9 @@ class ChangeAtSD:
         real_sd_persons_changed = filter(skip_fictional_users, all_sd_persons_changed)
 
         # Filter employees based on the sd_cprs list
-        sd_cpr_filtered_persons = filter(cpr_env_filter, real_sd_persons_changed)
+        sd_cpr_filtered_persons = filter(
+            partial(cpr_env_filter, self.settings), real_sd_persons_changed
+        )
 
         sd_persons_changed = map(convert_to_sd_base_person, sd_cpr_filtered_persons)
 
@@ -1405,7 +1407,9 @@ class ChangeAtSD:
         employments_changed = filter(skip_fictional_users, employments_changed)
 
         # Filter employees based on the sd_cprs list
-        employments_changed = filter(cpr_env_filter, employments_changed)
+        employments_changed = filter(
+            partial(cpr_env_filter, self.settings), employments_changed
+        )
 
         recalculate_users: Set[UUID] = set()
 
@@ -1461,8 +1465,8 @@ class ChangeAtSD:
 
 
 def initialize_changed_at(from_date):
-    settings = get_changed_at_settings()
     persist_status(from_date, from_date, RunDBState.RUNNING)
+    settings = get_settings()
 
     logger.info("Start initial ChangedAt")
     sd_updater = ChangeAtSD(settings, from_date)
@@ -1489,7 +1493,7 @@ def changed_at_init():
     """SD-changed-at initialization"""
     logger.info("Starting SD-changed-at initialization")
 
-    settings = get_changed_at_settings()
+    settings = get_settings()
     setup_logging(settings.log_level)
 
     from_date = date_to_datetime(settings.sd_global_from_date)
@@ -1503,7 +1507,7 @@ def changed_at(
     sd_changed_at_state: Enum,
 ):
     """Tool to delta synchronize with MO with SD."""
-    settings = get_changed_at_settings()
+    settings = get_settings()
     setup_logging(settings.log_level)
 
     logger.info("Program started")
@@ -1568,7 +1572,7 @@ def changed_at(
 def import_single_user(cpr: str, from_date: datetime.datetime, dry_run: bool):
     """Import a single user into MO."""
 
-    settings = get_changed_at_settings()
+    settings = get_settings()
 
     sd_updater = ChangeAtSD(settings, from_date, None, dry_run)
     sd_updater.update_changed_persons(cpr)
@@ -1595,7 +1599,7 @@ def date_interval_run(
     cpr: str,
     dry_run: bool,
 ):
-    settings = get_changed_at_settings()
+    settings = get_settings()
     setup_logging(settings.log_level)
 
     logger.info("Date interval run started")

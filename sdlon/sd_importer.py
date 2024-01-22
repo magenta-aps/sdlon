@@ -5,7 +5,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
 import datetime
-import logging
 import uuid
 from operator import itemgetter
 from typing import Any, OrderedDict
@@ -23,8 +22,8 @@ from os2mo_helpers.mora_helpers import MoraHelper
 from sdlon.log import get_logger
 from sdlon.log import LogLevel
 from sdlon.log import setup_logging
-from .config import get_importer_settings
-from .config import ImporterSettings
+from .config import get_settings
+from .config import Settings
 from .date_utils import format_date, date_to_datetime
 from .date_utils import get_employment_datetimes
 from .date_utils import parse_datetime
@@ -49,7 +48,7 @@ class SdImport:
     def __init__(
         self,
         importer,
-        settings: ImporterSettings,
+        settings: Settings,
         ad_info=None,
         org_only=False,
         org_id_prefix=None,
@@ -85,12 +84,6 @@ class SdImport:
 
         # Whether to import email addresses for organisations
         self.create_email_addresses = self.settings.sd_importer_create_email_addresses
-
-        # Whether to use <Employment><EmploymentDate> as engagement start date instead
-        # of <Employment><EmploymentStatus><ActivationDate>.
-        self.employment_date_as_engagement_start_date = (
-            self.settings.sd_importer_employment_date_as_engagement_start_date
-        )
 
         self.historic_org_unit_uuid = str(uuid.uuid4())
 
@@ -879,7 +872,7 @@ def full_import(
     if mox_base:
         overrides["mox_base"] = mox_base
 
-    settings = get_importer_settings(**overrides)
+    settings = get_settings(**overrides)
 
     # Check connection to MO before we fire requests against SD
     mh = MoraHelper(settings.mora_base)

@@ -15,7 +15,7 @@ import pytest
 from os2mo_helpers.mora_helpers import MoraHelper
 
 from .test_config import DEFAULT_CHANGED_AT_SETTINGS
-from sdlon.config import ChangedAtSettings
+from sdlon.config import Settings
 from sdlon.fix_departments import FixDepartments
 
 
@@ -56,7 +56,7 @@ class _TestableFixDepartments(FixDepartments):
         all_settings_dict = deepcopy(DEFAULT_CHANGED_AT_SETTINGS)
         if settings_dict is not None:
             all_settings_dict.update(settings_dict)
-        settings = ChangedAtSettings.parse_obj(all_settings_dict)
+        settings = Settings.parse_obj(all_settings_dict)
 
         read_mo_org = "sdlon.fix_departments.MoraHelper.read_organisation"
         with mock.patch(read_mo_org, return_value=cls.MO_ORG_ROOT):

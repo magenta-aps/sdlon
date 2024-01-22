@@ -24,7 +24,7 @@ from .fixtures import get_employment_fixture
 from .fixtures import get_read_employment_changed_fixture
 from .fixtures import get_sd_person_fixture
 from .fixtures import read_employment_fixture
-from sdlon.config import ChangedAtSettings
+from sdlon.config import Settings
 from sdlon.sd_changed_at import ChangeAtSD, changed_at
 
 
@@ -65,8 +65,9 @@ class ChangeAtSDTest(ChangeAtSD):
 def setup_sd_changed_at(updates=None, hours=24):
     # TODO: remove integrations.SD_Lon.terminate_engagement_with_to_only
     settings_dict = {
+        "municipality_name": "name",
+        "municipality_code": 100,
         "sd_global_from_date": "1970-01-01",
-        "sd_import_run_db": "run_db.sqlite",
         "sd_institution_identifier": "XY",
         "sd_password": "secret",
         "sd_user": "user",
@@ -80,7 +81,7 @@ def setup_sd_changed_at(updates=None, hours=24):
     if updates:
         settings_dict.update(updates)
 
-    settings = ChangedAtSettings.parse_obj(settings_dict)
+    settings = Settings.parse_obj(settings_dict)
 
     today = date.today()
     start_date = today
@@ -1600,12 +1601,12 @@ def test_apply_ny_logic_for_non_existing_future_unit(
 
 @patch("sdlon.sd_changed_at.get_status", return_value=RunDBState.COMPLETED)
 @patch("sdlon.sd_changed_at.setup_logging")
-@patch("sdlon.sd_changed_at.get_changed_at_settings")
+@patch("sdlon.sd_changed_at.get_settings")
 @patch("sdlon.sd_changed_at.sentry_sdk")
 @patch("sdlon.sd_changed_at.get_run_db_from_date")
 @patch("sdlon.sd_changed_at.gen_date_intervals", return_value=[])
 def test_dipex_last_success_timestamp_called(
-    mock_get_changed_at_settings: MagicMock,
+    mock_get_settings: MagicMock,
     mock_setup_logging: MagicMock,
     mock_sentry_sdk: MagicMock,
     mock_get_run_db_from_date: MagicMock,
@@ -1624,12 +1625,12 @@ def test_dipex_last_success_timestamp_called(
 
 
 @patch("sdlon.sd_changed_at.setup_logging")
-@patch("sdlon.sd_changed_at.get_changed_at_settings")
+@patch("sdlon.sd_changed_at.get_settings")
 @patch("sdlon.sd_changed_at.sentry_sdk")
 @patch("sdlon.sd_changed_at.get_run_db_from_date")
 @patch("sdlon.sd_changed_at.gen_date_intervals")
 def test_dipex_last_success_timestamp_not_called_on_error(
-    mock_get_changed_at_settings: MagicMock,
+    mock_get_settings: MagicMock,
     mock_setup_logging: MagicMock,
     mock_sentry_sdk: MagicMock,
     mock_get_run_db_from_date: MagicMock,
