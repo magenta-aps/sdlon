@@ -33,7 +33,6 @@ class Settings(BaseSettings):  # type: ignore
 
     sd_employment_field: Optional[str] = Field(default=None, regex="extension_[0-9]+")
     sd_global_from_date: date
-    sd_import_run_db: str
     sd_import_too_deep: List[str] = []
     sd_institution_identifier: str
     sd_password: SecretStr
