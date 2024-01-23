@@ -1,12 +1,29 @@
+import json
 from copy import deepcopy
 from typing import Any
 from typing import Dict
+from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
 from pydantic import ValidationError
 
-from sdlon.config import Settings
+from sdlon.config import Settings, json_file_settings, get_settings
+
+
+@pytest.fixture
+def mock_env(monkeypatch):
+    monkeypatch.setenv("SD_INSTITUTION_IDENTIFIER", "institution_id")
+    monkeypatch.setenv("SD_USER", "env_user")
+    monkeypatch.setenv("SD_PASSWORD", "env_pwd")
+    monkeypatch.setenv("SD_JOB_FUNCTION", "EmploymentName")
+    monkeypatch.setenv("SD_MONTHLY_HOURLY_DIVIDE", "80000")
+    monkeypatch.setenv("SD_IMPORT_RUN_DB", "env_run_db")
+    monkeypatch.setenv("SD_GLOBAL_FROM_DATE", "2022-01-09")
+    monkeypatch.setenv("APP_DBPASSWORD", "secret")
+    monkeypatch.setenv("MUNICIPALITY_NAME", "name")
+    monkeypatch.setenv("MUNICIPALITY_CODE", 100)
+
 
 DEFAULT_MOCK_SETTINGS = {
     "integrations.SD_Lon.employment_field": "extension_1",
@@ -19,6 +36,7 @@ DEFAULT_MOCK_SETTINGS = {
     "integrations.SD_Lon.sd_password": "password",
     "municipality.code": 740,
     "municipality.name": "Kolding Kommune",
+    "app_dbpassword": "secret",
 }
 
 DEFAULT_EXPECTED_SETTINGS: Dict[str, Any] = {
@@ -32,7 +50,6 @@ DEFAULT_EXPECTED_SETTINGS: Dict[str, Any] = {
     "sd_import_too_deep": [],
     "sd_importer_create_associations": True,
     "sd_importer_create_email_addresses": True,
-    "sd_importer_employment_date_as_engagement_start_date": False,
     "sd_institution_identifier": "XYZ",
     "sd_job_function": "EmploymentName",
     "sd_monthly_hourly_divide": 50000,
@@ -56,6 +73,16 @@ DEFAULT_EXPECTED_SETTINGS: Dict[str, Any] = {
         "mora_base": "http://mo:5000",
         "sentry_dsn": None,
     },
+    "app_database": "sd",
+    "app_dbuser": "sd",
+    "app_dbpassword": "**********",
+    "pghost": "sd-db",
+    "sd_cprs": [],
+    "sd_exclude_cprs_mode": True,
+    "sd_fix_departments_root": None,
+    "sd_overwrite_existing_employment_name": True,
+    "sd_read_forced_uuids": True,
+    "sd_update_primary_engagement": True,
 }
 
 DEFAULT_FILTERED_JSON_SETTINGS = {
@@ -68,6 +95,7 @@ DEFAULT_FILTERED_JSON_SETTINGS = {
     "sd_password": "password",
     "municipality_code": 740,
     "municipality_name": "Kolding Kommune",
+    "app_dbpassword": "secret",
 }
 
 DEFAULT_CHANGED_AT_SETTINGS = {
@@ -166,3 +194,93 @@ def test_changed_at_settings(key, valid_value, invalid_value):
     settings.update({key: invalid_value})
     with pytest.raises(ValidationError):
         Settings.parse_obj(settings)
+
+
+@patch("sdlon.config.load_settings")
+def test_json_file_settings(mock_load_settings):
+    # Arrange
+    mock_load_settings.return_value = DEFAULT_MOCK_SETTINGS
+
+    # Act
+    settings = json_file_settings(None)
+
+    # Assert
+    assert settings == DEFAULT_FILTERED_JSON_SETTINGS
+
+
+@patch("sdlon.config.load_settings")
+def test_json_file_settings_remove_unknown_settings(mock_load_settings):
+    # Arrange
+    mock_settings = deepcopy(DEFAULT_MOCK_SETTINGS)
+    mock_settings.update({"unknown": "property"})
+    mock_load_settings.return_value = mock_settings
+
+    # Act
+    settings = json_file_settings(None)
+
+    # Assert
+    assert settings == DEFAULT_FILTERED_JSON_SETTINGS
+
+
+@patch("sdlon.config.load_settings")
+def test_empty_dict_on_file_not_found_error(mock_load_settings):
+    # Arrange
+    mock_load_settings.side_effect = FileNotFoundError()
+
+    # Act
+    json_settings = json_file_settings(None)
+
+    # Assert
+    assert json_settings == dict()
+
+
+@patch("sdlon.config.load_settings")
+def test_set_defaults(mock_load_settings):
+    # Arrange
+    mock_load_settings.return_value = DEFAULT_MOCK_SETTINGS
+
+    # Act
+    get_settings.cache_clear()
+    settings_input = get_settings()
+
+    # Assert
+    assert json.loads(settings_input.json()) == DEFAULT_EXPECTED_SETTINGS
+
+
+def test_env_settings_takes_precedence(mock_env):
+    # Act
+    get_settings.cache_clear()
+    settings = get_settings()
+
+    # Assert
+    assert settings.sd_user == "env_user"
+
+
+def test_pydantic_settings_set_correctly_when_json_settings_not_found(mock_env):
+    # Act
+    get_settings.cache_clear()
+    with patch("sdlon.config.load_settings") as mock_load_settings:
+        mock_load_settings.side_effect = FileNotFoundError()
+        settings = get_settings()
+
+    # Assert
+    assert settings.sd_institution_identifier == "institution_id"
+    assert settings.sd_user == "env_user"
+    assert settings.sd_password.get_secret_value() == "env_pwd"
+    assert settings.sd_job_function == "EmploymentName"
+    assert settings.sd_monthly_hourly_divide == 80000
+
+
+@patch("sdlon.config.load_settings")
+def test_override_default(mock_load_settings):
+    # Arrange
+    mock_settings = deepcopy(DEFAULT_MOCK_SETTINGS)
+    mock_settings.update({"integrations.SD_Lon.sd_importer.create_associations": False})
+    mock_load_settings.return_value = mock_settings
+
+    # Act
+    get_settings.cache_clear()
+    settings = get_settings()
+
+    # Assert
+    assert not settings.sd_importer_create_associations

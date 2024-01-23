@@ -6,10 +6,12 @@
 #
 from datetime import date
 from functools import lru_cache
+from typing import Any
 from typing import List
 from typing import Optional
 
 from pydantic import AnyHttpUrl
+from pydantic import Extra
 from pydantic import BaseSettings
 from pydantic import conint
 from pydantic import constr
@@ -18,9 +20,41 @@ from pydantic import PositiveInt
 from pydantic import SecretStr
 from pydantic import UUID4
 from ra_utils.job_settings import JobSettings
+from ra_utils.load_settings import load_settings
 
 from .log import LogLevel
 from .models import JobFunction
+
+
+def json_file_settings(settings: BaseSettings) -> dict[str, Any]:  # type: ignore
+    try:
+        json_settings = load_settings()
+    except FileNotFoundError:
+        return dict()
+
+    # Remove the "integrations.SD_Lon." part of the key name
+    json_settings = {
+        key.replace("integrations.SD_Lon.", "sd_"): value
+        for key, value in json_settings.items()
+    }
+
+    # Remove any double "sd_sd_" in the keys
+    json_settings = {
+        key.replace("sd_sd_", "sd_"): value for key, value in json_settings.items()
+    }
+
+    # Replace dots with underscores to be Pydantic compliant
+    json_settings = {
+        key.replace(".", "_"): value for key, value in json_settings.items()
+    }
+
+    # Remove settings forbidden according to the Settings model
+    properties = Settings.schema()["properties"].keys()
+    json_settings = {
+        key: value for key, value in json_settings.items() if key in properties
+    }
+
+    return json_settings
 
 
 class Settings(BaseSettings):  # type: ignore
@@ -91,6 +125,23 @@ class Settings(BaseSettings):  # type: ignore
     app_database: str = "sd"
     app_dbuser: str = "sd"
     app_dbpassword: SecretStr
+
+    class Config:
+        extra = Extra.forbid
+
+        @classmethod
+        def customise_sources(
+            cls,
+            init_settings,
+            env_settings,
+            file_secret_settings,
+        ):
+            return (
+                init_settings,
+                env_settings,
+                json_file_settings,
+                file_secret_settings,
+            )
 
 
 @lru_cache()
