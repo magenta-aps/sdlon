@@ -1646,3 +1646,31 @@ def test_dipex_last_success_timestamp_not_called_on_error(
 
     # Assert
     mock_dipex_last_success_timestamp.set_to_current_time.assert_not_called()
+
+
+def test_only_create_leave_if_engagement_exists() -> None:
+    # Arrange
+    sd_employment = OrderedDict(
+        {
+            "EmploymentIdentifier": "12345",
+            "EmploymentStatus": {
+                "ActivationDate": "2020-11-10",
+                "DeactivationDate": "9999-12-31",
+                "EmploymentStatusCode": "3",  # Leave
+            },
+        }
+    )
+
+    mock_create_leave = MagicMock()
+
+    sd_updater = setup_sd_changed_at({"sd_skip_leave_creation_if_no_engagement": True})
+    sd_updater.create_leave = mock_create_leave
+    sd_updater._find_engagement = MagicMock(return_value=None)  # No engagement found
+
+    # Act
+    sd_updater._handle_employment_status_changes(
+        "1111111111", sd_employment, str(uuid.uuid4())
+    )
+
+    # Assert
+    mock_create_leave.assert_not_called()

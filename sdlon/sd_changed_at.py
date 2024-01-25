@@ -1325,6 +1325,9 @@ class ChangeAtSD:
             elif code == EmploymentStatus.Orlov:
                 mo_eng = self._find_engagement(employment_id, person_uuid)
                 if not mo_eng:
+                    if self.settings.sd_skip_leave_creation_if_no_engagement:
+                        logger.info("Not allowed to create leave with no engagement")
+                        continue
                     logger.info("Leave for non existent eng., create one")
                     if is_employment_id_and_no_salary_minimum_consistent(
                         sd_employment, self.no_salary_minimum
