@@ -86,6 +86,8 @@ class Settings(BaseSettings):  # type: ignore
     sd_read_forced_uuids: bool = True
     sd_update_primary_engagement: bool = True
 
+    sd_skip_leave_creation_if_no_engagement: bool = False
+
     # Settings for the SD payload database
     pghost: str = "sd-db"
     app_database: str = "sd"
