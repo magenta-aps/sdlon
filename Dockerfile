@@ -7,9 +7,9 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN apt-get update && apt-get -y install unixodbc-dev freetds-dev unixodbc tdsodbc libkrb5-dev libmariadb-dev
 # These need to be installed manually ALL THE TIME for debugging, so let's
 # include them here for now until we have a more stable application
-RUN apt -y install vim screen
+RUN apt-get -y install vim screen
 # `./docker/start.sh` requires `psql`
-RUN apt -y install postgresql-client
+RUN apt-get -y install postgresql-client
 
 WORKDIR /app
 
