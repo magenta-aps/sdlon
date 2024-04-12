@@ -59,6 +59,7 @@ def fetch_user_employments(cpr: str) -> List:
         settings=None,
         params=params,
         request_uuid=request_uuid,
+        dry_run=True,
     )
     if "Person" not in sd_employments_response:
         return []

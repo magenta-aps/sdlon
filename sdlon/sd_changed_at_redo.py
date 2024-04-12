@@ -31,7 +31,7 @@ def read_person(cat, cpr):
     url = "GetPerson20111201"
     request_uuid = uuid.uuid4()
     logger.info("read_person", request_uuid=request_uuid)
-    response = sd_lookup(url, params=params, request_uuid=request_uuid)
+    response = sd_lookup(url, params=params, request_uuid=request_uuid, dry_run=True)
     person = response.get("Person", [])
 
     if not isinstance(person, list):
