@@ -86,6 +86,7 @@ class FixDepartments:
             settings=self.settings,
             params=params,
             request_uuid=request_uuid,
+            dry_run=self.dry_run,
         )
         institution = institution_info["Region"]["Institution"]
         institution_uuid = institution["InstitutionUUIDIdentifier"]
@@ -290,6 +291,7 @@ class FixDepartments:
             settings=self.settings,
             params=params,
             request_uuid=request_uuid,
+            dry_run=self.dry_run,
         )
         department = department_info.get("Department")
         if department is None:
@@ -380,6 +382,7 @@ class FixDepartments:
                 settings=self.settings,
                 params=params,
                 request_uuid=request_uuid,
+                dry_run=self.dry_run,
             )
             people = employments.get("Person", [])
             if not isinstance(people, list):
@@ -508,6 +511,7 @@ class FixDepartments:
             settings=self.settings,
             params=params,
             request_uuid=request_uuid,
+            dry_run=self.dry_run,
         )
         if "DepartmentParent" not in parent_response:
             logger.error(
