@@ -46,6 +46,7 @@ def sd_lookup(
     params: Optional[Dict[str, Any]] = None,
     request_uuid: Optional[uuid.UUID] = None,
     dry_run: bool = False,
+    fake_payload: Optional[str] = None,
 ) -> OrderedDict:
     """Fire a requests against SD."""
     # TODO: this could potentially log CPRs - to be fixed

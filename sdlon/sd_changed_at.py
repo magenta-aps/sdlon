@@ -53,6 +53,7 @@ from sdlon.metrics import dipex_last_success_timestamp
 from sdlon.metrics import sd_changed_at_state
 from sdlon.metrics import RunDBState
 from sdlon.sd_to_pydantic import convert_to_sd_base_person
+from sdlon.xml import get_xml_payload
 from . import sd_payloads
 from .config import Settings
 from .config import get_settings
@@ -274,6 +275,7 @@ class ChangeAtSD:
         to_date: Optional[datetime.datetime] = None,
         employment_identifier: Optional[str] = None,
         in_cpr: Optional[str] = None,
+        fake_payload: Optional[str] = None,
     ):
         from_date = from_date or self.from_date
         to_date = to_date or self.to_date
@@ -1402,7 +1404,11 @@ class ChangeAtSD:
                 continue
             self.edit_engagement(sd_employment, person_uuid)
 
-    def update_all_employments(self, in_cpr: Optional[str] = None) -> None:
+    def update_all_employments(
+        self,
+        in_cpr: Optional[str] = None,
+        fake_payload: Optional[str] = None,
+    ) -> None:
         if in_cpr is not None:
             employments_changed = self.read_employment_changed(in_cpr=in_cpr)
         else:
@@ -1620,6 +1626,47 @@ def date_interval_run(
     sd_updater.update_all_employments(in_cpr=cpr)
 
     logger.info("Date interval run finished")
+
+
+@cli.command()
+@click.option(
+    "--file",
+    type=click.Path(exists=True, path_type=pathlib.Path),
+    help="Path to file containing fake XML GetEmploymentChangedAtDate payload",
+)
+def fake_payload_run(
+    file: pathlib.Path
+):
+    """
+    Currently, we are lacking integration tests for the SD-changed-at
+    integration, and it can sometimes be difficult to see the effects in MO
+    of an incoming GetEmploymentChangedAtDate SD payload. This CLI command
+    facilitates the possibility to inspect the effect of a fake SD XML payload
+    provided in the given file.
+
+    Args:
+        file: the path to the file containing the SD XML payload
+    """
+
+    # TODO: remove this CLI command once we have integrations tests instead
+
+    settings = get_settings()
+    setup_logging(settings.log_level)
+
+    fake_payload = get_xml_payload(file)
+
+    logger.info("Fake payload run started")
+
+    sd_updater = ChangeAtSD(settings, from_date, to_date, dry_run=True)  # type: ignore
+
+    # TODO: potentially add an option to provide a fake GetPersonChangedAtDate payload
+    # logger.info("Update changed persons")
+    # sd_updater.update_changed_persons()
+
+    logger.info("Update all employments")
+    sd_updater.update_all_employments()
+
+    logger.info("Fake payload run finished")
 
 
 if __name__ == "__main__":
