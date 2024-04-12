@@ -108,6 +108,7 @@ class JobIdSync:
                 settings=self.settings,
                 params=params,
                 request_uuid=request_uuid,
+                dry_run=True,
             )
         except Exception:  # TODO: Be specific here
             logger.info("This job_position could not be found in SD")
