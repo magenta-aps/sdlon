@@ -45,6 +45,7 @@ def sd_lookup(
     settings: Optional[Settings] = None,
     params: Optional[Dict[str, Any]] = None,
     request_uuid: Optional[uuid.UUID] = None,
+    dry_run: bool = False,
 ) -> OrderedDict:
     """Fire a requests against SD."""
     # TODO: this could potentially log CPRs - to be fixed
@@ -78,7 +79,7 @@ def sd_lookup(
         auth=auth,
     )
 
-    if settings.sd_persist_payloads:
+    if settings.sd_persist_payloads and not dry_run:
         try:
             log_payload(
                 request_uuid=request_uuid,
