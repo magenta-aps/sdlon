@@ -273,6 +273,7 @@ def read_employment_at(
     employment_id: Optional[str] = None,
     status_active_indicator: bool = True,
     status_passive_indicator: bool = True,
+    dry_run: bool = False,
 ) -> Union[OrderedDict, List[OrderedDict], None]:
     url = "GetEmployment20111201"
     params = {
@@ -298,5 +299,6 @@ def read_employment_at(
         settings=settings,
         params=params,
         request_uuid=request_uuid,
+        dry_run=dry_run,
     )
     return response.get("Person")
