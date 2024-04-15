@@ -39,7 +39,10 @@ def update_existing_engagement(
 def create_engagement(sd_updater, employment_id, person_uuid) -> None:
     # Call SD to get SD employment
     sd_employment_payload = read_employment_at(
-        datetime.now().date(), settings=sd_updater.settings, employment_id=employment_id
+        datetime.now().date(),
+        settings=sd_updater.settings,
+        employment_id=employment_id,
+        dry_run=sd_updater.dry_run,
     )
     if sd_employment_payload is None:
         return

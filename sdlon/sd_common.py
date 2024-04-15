@@ -45,6 +45,7 @@ def sd_lookup(
     settings: Optional[Settings] = None,
     params: Optional[Dict[str, Any]] = None,
     request_uuid: Optional[uuid.UUID] = None,
+    dry_run: bool = False,
 ) -> OrderedDict:
     """Fire a requests against SD."""
     # TODO: this could potentially log CPRs - to be fixed
@@ -78,7 +79,7 @@ def sd_lookup(
         auth=auth,
     )
 
-    if settings.sd_persist_payloads:
+    if settings.sd_persist_payloads and not dry_run:
         try:
             log_payload(
                 request_uuid=request_uuid,
@@ -272,6 +273,7 @@ def read_employment_at(
     employment_id: Optional[str] = None,
     status_active_indicator: bool = True,
     status_passive_indicator: bool = True,
+    dry_run: bool = False,
 ) -> Union[OrderedDict, List[OrderedDict], None]:
     url = "GetEmployment20111201"
     params = {
@@ -297,5 +299,6 @@ def read_employment_at(
         settings=settings,
         params=params,
         request_uuid=request_uuid,
+        dry_run=dry_run,
     )
     return response.get("Person")

@@ -161,6 +161,7 @@ class TestMOAgainstSd(object):
             "GetEmployment20111201",
             params=params,
             request_uuid=request_uuid,
+            dry_run=True,
         )
         if "Person" not in sd_employments_response:
             return mo_uuid, {

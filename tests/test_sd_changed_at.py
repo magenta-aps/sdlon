@@ -62,7 +62,7 @@ class ChangeAtSDTest(ChangeAtSD):
         return self.morahelper_mock
 
 
-def setup_sd_changed_at(updates=None, hours=24):
+def setup_sd_changed_at(updates=None, hours=24, dry_run=False):
     # TODO: remove integrations.SD_Lon.terminate_engagement_with_to_only
     settings_dict = {
         "municipality_name": "name",
@@ -87,7 +87,7 @@ def setup_sd_changed_at(updates=None, hours=24):
     start_date = today
 
     sd_updater = ChangeAtSDTest(
-        settings, start_date, start_date + timedelta(hours=hours)
+        settings, start_date, start_date + timedelta(hours=hours), dry_run=dry_run
     )
 
     return sd_updater
@@ -165,6 +165,48 @@ class Test_sd_changed_at(unittest.TestCase):
                 "user_key": user_uuid,
             },
         )
+
+    @parameterized.expand(
+        [
+            (True,),
+            (False,),
+        ]
+    )
+    @patch("sdlon.sd_changed_at.sd_lookup")
+    def test_get_sd_persons_changed_dry_run(
+        self,
+        dry_run,
+        mock_sd_lookup: MagicMock,
+    ):
+        # Arrange
+        sd_updater = setup_sd_changed_at(dry_run=dry_run)
+
+        # Act
+        sd_updater.get_sd_persons_changed(datetime.datetime.now())
+
+        # Assert
+        assert mock_sd_lookup.call_args.kwargs["dry_run"] is dry_run
+
+    @parameterized.expand(
+        [
+            (True,),
+            (False,),
+        ]
+    )
+    @patch("sdlon.sd_changed_at.sd_lookup")
+    def test_get_sd_person_dry_run(
+        self,
+        dry_run,
+        mock_sd_lookup: MagicMock,
+    ):
+        # Arrange
+        sd_updater = setup_sd_changed_at(dry_run=dry_run)
+
+        # Act
+        sd_updater.get_sd_person("1212129999")
+
+        # Assert
+        assert mock_sd_lookup.call_args.kwargs["dry_run"] is dry_run
 
     @patch(
         "sdlon.sd_changed_at.uuid4",
@@ -499,6 +541,31 @@ class Test_sd_changed_at(unittest.TestCase):
         sd_updater = setup_sd_changed_at()
         result = sd_updater.read_employment_changed()
         self.assertEqual(result, expected_read_employment_result)
+
+    @patch("sdlon.sd_common.log_payload")
+    @patch("sdlon.sd_common.requests.get")
+    def test_read_employment_changed_dry_run(
+        self,
+        requests_get: MagicMock,
+        mock_log_payload: MagicMock,
+    ):
+        # Arrange
+        sd_reply, expected_read_employment_result = read_employment_fixture(
+            cpr="0101709999",
+            employment_id="01337",
+            job_id="1234",
+            job_title="EDB-Mand",
+            status="1",
+        )
+
+        requests_get.return_value = sd_reply
+        sd_updater = setup_sd_changed_at(dry_run=True)
+
+        # Act
+        sd_updater.read_employment_changed()
+
+        # Assert
+        mock_log_payload.assert_not_called()
 
     def test_do_not_create_engagement_for_inconsistent_external_emp(self):
         """

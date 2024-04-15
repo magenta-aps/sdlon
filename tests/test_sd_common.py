@@ -98,3 +98,22 @@ def test_sd_lookup_does_not_persist_payload_when_disabled_in_settings(
 
     # Assert
     mock_log_payload.assert_not_called()
+
+
+@patch("sdlon.sd_common.requests")
+@patch("sdlon.sd_common.log_payload")
+def test_sd_lookup_does_not_persist_payload_when_dry_run(
+    mock_log_payload: MagicMock,
+    mock_requests: MagicMock,
+    settings: Settings,
+):
+    # Arrange
+    mock_requests.get.return_value = _MockResponse(
+        text="<SomeSDEndpoint><foo></foo></SomeSDEndpoint>", status_code=200
+    )
+
+    # Act
+    sd_lookup("SomeSDEndpoint", settings, dry_run=True)
+
+    # Assert
+    mock_log_payload.assert_not_called()

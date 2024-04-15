@@ -329,6 +329,7 @@ class ChangeAtSD:
             settings=self.settings,
             params=params,
             request_uuid=request_uuid,
+            dry_run=self.dry_run,
         )
 
         employment_response = ensure_list(response.get("Person", []))
@@ -375,6 +376,7 @@ class ChangeAtSD:
             settings=self.settings,
             params=params,
             request_uuid=request_uuid,
+            dry_run=self.dry_run,
         )
         persons_changed = ensure_list(response.get("Person", []))
         return persons_changed
@@ -409,6 +411,7 @@ class ChangeAtSD:
             settings=self.settings,
             params=params,
             request_uuid=request_uuid,
+            dry_run=self.dry_run,
         )
         person = ensure_list(response.get("Person", []))
         return person
@@ -1029,6 +1032,7 @@ class ChangeAtSD:
                     settings=self.settings,
                     params=params,
                     request_uuid=request_uuid,
+                    dry_run=self.dry_run,
                 )
                 logger.warning("GetDepartment returned", response=response)
                 org_unit = response["Department"]["DepartmentUUIDIdentifier"]
