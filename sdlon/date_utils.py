@@ -96,7 +96,7 @@ def get_employment_datetimes(employment: OrderedDict) -> Tuple[datetime, datetim
     if status in EmploymentStatus.let_go():
         datetime_from = parse_datetime(employment["EmploymentDate"])
         termination_date = str(
-            sd_to_mo_termination_date(employment["EmploymentStatus"]["ActivationDate"])
+            sd_to_mo_date(employment["EmploymentStatus"]["ActivationDate"])
         )
         datetime_to = parse_datetime(termination_date)
         return datetime_from, datetime_to
@@ -111,7 +111,7 @@ def get_employment_datetimes(employment: OrderedDict) -> Tuple[datetime, datetim
 #  "Validity" class and use these as input to the function below
 
 
-def sd_to_mo_termination_date(sd_date: str) -> Optional[str]:
+def sd_to_mo_date(sd_date: str) -> Optional[str]:
     """
     Convert SD termination date to MO termination date.
 

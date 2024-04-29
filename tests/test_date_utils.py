@@ -16,7 +16,7 @@ from sdlon.date_utils import gen_cut_dates
 from sdlon.date_utils import gen_date_intervals
 from sdlon.date_utils import get_employment_datetimes
 from sdlon.date_utils import is_midnight
-from sdlon.date_utils import sd_to_mo_termination_date
+from sdlon.date_utils import sd_to_mo_date
 from sdlon.date_utils import to_midnight
 
 
@@ -54,17 +54,17 @@ def from_to_datetime(draw):
 class TestSdToMoTerminationDate:
     def test_assert_string(self):
         with pytest.raises(AssertionError):
-            sd_to_mo_termination_date(list())
+            sd_to_mo_date(list())
 
     def test_assert_date_format_string(self):
         with pytest.raises(AssertionError):
-            sd_to_mo_termination_date("invalid string")
+            sd_to_mo_date("invalid string")
 
     def test_assert_invalid_date(self):
         with pytest.raises(AssertionError):
-            sd_to_mo_termination_date("2021-13-01")
+            sd_to_mo_date("2021-13-01")
         with pytest.raises(AssertionError):
-            sd_to_mo_termination_date("2021-12-32")
+            sd_to_mo_date("2021-12-32")
 
 
 @pytest.mark.parametrize(
