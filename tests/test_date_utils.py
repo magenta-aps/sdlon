@@ -51,7 +51,7 @@ def from_to_datetime(draw):
     return min_datetime, max_datetime
 
 
-class TestSdToMoTerminationDate:
+class TestSdToMoDate:
     def test_assert_string(self):
         with pytest.raises(AssertionError):
             sd_to_mo_date(list())
