@@ -58,7 +58,7 @@ from .config import Settings
 from .config import get_settings
 from .date_utils import date_to_datetime, parse_datetime, format_date
 from .date_utils import gen_date_intervals
-from .date_utils import sd_to_mo_termination_date
+from .date_utils import sd_to_mo_date
 from .engagement import create_engagement, filtered_professions
 from .engagement import engagement_components
 from .engagement import (
@@ -1143,7 +1143,7 @@ class ChangeAtSD:
                     mo_eng["user_key"],
                     mo_eng["person"]["uuid"],
                     sd_from_date,
-                    sd_to_mo_termination_date(sd_to_date),
+                    sd_to_mo_date(sd_to_date),
                 )
             else:
                 emp_name = profession_info.get("EmploymentName", job_position)
@@ -1348,7 +1348,7 @@ class ChangeAtSD:
                     user_key=employment_id,
                     person_uuid=person_uuid,
                     from_date=sd_from_date,
-                    to_date=sd_to_mo_termination_date(sd_to_date),
+                    to_date=sd_to_mo_date(sd_to_date),
                 )
                 if not success:
                     logger.error(
