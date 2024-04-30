@@ -1067,23 +1067,7 @@ class ChangeAtSD:
                 response = self.helper._mo_post("details/edit", payload)
                 mora_assert(response)
 
-            # We need to re-terminate the engagement, if it was terminated
-            # before this edit operation, since the edit operation re-opens any
-            # previously terminated engagements (since we are no longer using
-            # "cut" dates when generating the MO validity). See details here:
-            # https://redmine.magenta.dk/issues/60402#note-16
-            mo_end_date: str | None = mo_eng["validity"]["to"]  # Last day of work
-            if mo_end_date is not None:
-                term_start_date = parse_datetime(
-                    mo_end_date
-                ).date() + datetime.timedelta(days=1)
-                term_start: str = format_date(term_start_date)  # First day of non-work
-                logger.debug(
-                    "Re-terminate engagement",
-                    emp_id=employment_id,
-                    term_start_date=term_start,
-                )
-                self._terminate_engagement(employment_id, person_uuid, term_start)
+            self._re_terminate_engagement(employment_id, person_uuid, mo_eng)
 
     def determine_engagement_type(self, engagement, job_position):
         split = self.settings.sd_monthly_hourly_divide
@@ -1485,6 +1469,35 @@ class ChangeAtSD:
                     logger.warning(
                         "Could not find primary for user", user_uuid=user_uuid
                     )
+
+    def _re_terminate_engagement(
+        self, employment_id: str, person_uuid: str, mo_eng: dict[str, Any]
+    ) -> None:
+        """
+        We re-terminate an engagement, if it was terminated before an edit
+        operation, since the edit operation re-opens any previously terminated
+        engagements (since we are no longer using "cut" dates when generating
+        the MO validity). See details here:
+        https://redmine.magenta.dk/issues/60402#note-16
+
+        Args:
+            employment_id: SD EmploymentIdentifier (same as MO eng user_key)
+            person_uuid: MO UUID for person
+            mo_eng: the MO engagement
+        """
+
+        mo_end_date: str | None = mo_eng["validity"]["to"]  # Last day of work
+        if mo_end_date is not None:
+            term_start_date = parse_datetime(mo_end_date).date() + datetime.timedelta(
+                days=1
+            )
+            term_start: str = format_date(term_start_date)  # First day of non-work
+            logger.debug(
+                "Re-terminate engagement",
+                emp_id=employment_id,
+                term_start_date=term_start,
+            )
+            self._terminate_engagement(employment_id, person_uuid, term_start)
 
 
 def initialize_changed_at(from_date):
