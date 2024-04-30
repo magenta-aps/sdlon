@@ -1073,7 +1073,7 @@ class ChangeAtSD:
                 response = self.helper._mo_post("details/edit", payload)
                 mora_assert(response)
 
-            self._re_terminate_engagement(employment_id, person_uuid, mo_eng)
+            self._re_terminate_engagement(mo_eng)
 
     def determine_engagement_type(self, engagement, job_position):
         split = self.settings.sd_monthly_hourly_divide
@@ -1476,9 +1476,7 @@ class ChangeAtSD:
                         "Could not find primary for user", user_uuid=user_uuid
                     )
 
-    def _re_terminate_engagement(
-        self, employment_id: str, person_uuid: str, mo_eng: dict[str, Any]
-    ) -> None:
+    def _re_terminate_engagement(self, mo_eng: dict[str, Any]) -> None:
         """
         We re-terminate an engagement, if it was terminated before an edit
         operation, since the edit operation re-opens any previously terminated
@@ -1487,8 +1485,6 @@ class ChangeAtSD:
         https://redmine.magenta.dk/issues/60402#note-16
 
         Args:
-            employment_id: SD EmploymentIdentifier (same as MO eng user_key)
-            person_uuid: MO UUID for person
             mo_eng: the MO engagement
         """
 
@@ -1500,10 +1496,10 @@ class ChangeAtSD:
             term_start: str = format_date(term_start_date)  # First day of non-work
             logger.debug(
                 "Re-terminate engagement",
-                emp_id=employment_id,
+                eng_uuid=mo_eng["uuid"],
                 term_start_date=term_start,
             )
-            self._terminate_engagement(employment_id, person_uuid, term_start)
+            self._terminate_eng_from_uuid(mo_eng["uuid"], term_start)
 
 
 def initialize_changed_at(from_date):
