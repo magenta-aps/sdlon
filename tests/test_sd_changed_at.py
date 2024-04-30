@@ -999,7 +999,7 @@ class Test_sd_changed_at(unittest.TestCase):
             {
                 "user_key": employment_id,
                 "uuid": "mo_engagement_uuid",
-                "validity": {"to": "9999-12-31"},
+                "validity": {"to": None},
             }
         ]
 
