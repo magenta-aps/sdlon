@@ -1109,11 +1109,7 @@ class ChangeAtSD:
             )
             job_position = profession_info["JobPositionIdentifier"]
 
-            validity = self._validity(
-                profession_info, mo_eng["validity"]["to"], cut=True
-            )
-            if validity is None:
-                continue
+            validity = sd_to_mo_validity(profession_info)
 
             engagement_type = self.determine_engagement_type(engagement, job_position)
             if engagement_type is None:
@@ -1126,6 +1122,8 @@ class ChangeAtSD:
             if not self.dry_run:
                 response = self.helper._mo_post("details/edit", payload)
                 mora_assert(response)
+
+            self._re_terminate_engagement(mo_eng)
 
     def edit_engagement_profession(self, engagement, mo_eng):
         employment_id, engagement_info = engagement_components(engagement)
