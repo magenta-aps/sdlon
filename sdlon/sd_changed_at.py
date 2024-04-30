@@ -1153,11 +1153,7 @@ class ChangeAtSD:
                 )
             else:
                 emp_name = profession_info.get("EmploymentName", job_position)
-                validity = self._validity(
-                    profession_info, mo_eng["validity"]["to"], cut=True
-                )
-                if validity is None:
-                    continue
+                validity = sd_to_mo_validity(profession_info)
 
                 job_function = emp_name
                 if self.use_jpi:
@@ -1184,6 +1180,8 @@ class ChangeAtSD:
                 if not self.dry_run:
                     response = self.helper._mo_post("details/edit", payload)
                     mora_assert(response)
+
+                self._re_terminate_engagement(mo_eng)
 
     def edit_engagement_worktime(self, engagement, mo_eng):
         employment_id, engagement_info = engagement_components(engagement)
