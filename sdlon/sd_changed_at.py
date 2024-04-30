@@ -944,12 +944,32 @@ class ChangeAtSD:
 
         return True
 
+    def _terminate_eng_from_uuid(
+        self,
+        eng_uuid: str,
+        from_date: str,
+        to_date: str | None = None,
+    ) -> None:
+        validity = {"from": from_date, "to": to_date}
+
+        payload = {
+            "type": "engagement",
+            "uuid": eng_uuid,
+            "validity": validity,
+        }
+
+        logger.debug("Terminate payload (details/terminate)", payload=payload)
+        if not self.dry_run:
+            response = self.helper._mo_post("details/terminate", payload)
+            logger.debug("Terminate response: {}".format(response.text))
+            mora_assert(response)
+
     def _terminate_engagement(
         self,
         user_key: str,
         person_uuid: str,  # TODO: change type to UUID
         from_date: str,  # TODO: Introduce MO date version
-        to_date: Optional[str] = None,
+        to_date: str | None = None,
     ) -> bool:
         """
         Terminate an employment (engagement) in MO. Since this function calls
@@ -980,21 +1000,7 @@ class ChangeAtSD:
             logger.warning("Terminating non-existing job!", user_key=user_key)
             return False
 
-        validity = {"from": from_date, "to": to_date}
-
-        # TODO: use/create termination object from RA Models
-        payload = {
-            "type": "engagement",
-            "uuid": mo_engagement["uuid"],
-            "validity": validity,
-        }
-
-        logger.debug("Terminate payload (details/terminate)", payload=payload)
-        if not self.dry_run:
-            response = self.helper._mo_post("details/terminate", payload)
-            logger.debug("Terminate response: {}".format(response.text))
-            mora_assert(response)
-
+        self._terminate_eng_from_uuid(mo_engagement["uuid"], from_date, to_date)
         self._refresh_mo_engagements(person_uuid)
 
         return True
