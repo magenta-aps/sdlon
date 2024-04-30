@@ -1188,9 +1188,7 @@ class ChangeAtSD:
                 "Change working time of engagement", employment_id=employment_id
             )
 
-            validity = self._validity(worktime_info, mo_eng["validity"]["to"], cut=True)
-            if validity is None:
-                continue
+            validity = sd_to_mo_validity(worktime_info)
 
             working_time = float(worktime_info["OccupationRate"])
             data = {"fraction": int(working_time * 1000000), "validity": validity}
@@ -1199,6 +1197,8 @@ class ChangeAtSD:
             if not self.dry_run:
                 response = self.helper._mo_post("details/edit", payload)
                 mora_assert(response)
+
+            self._re_terminate_engagement(mo_eng)
 
     def _set_non_primary(self, status, mo_eng):
         logger.debug("Setting non-primary for engagement", uuid=mo_eng["uuid"])
