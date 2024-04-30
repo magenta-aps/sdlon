@@ -56,7 +56,7 @@ from sdlon.sd_to_pydantic import convert_to_sd_base_person
 from . import sd_payloads
 from .config import Settings
 from .config import get_settings
-from .date_utils import date_to_datetime, parse_datetime, format_date
+from .date_utils import date_to_datetime, parse_datetime, format_date, sd_to_mo_validity
 from .date_utils import gen_date_intervals
 from .date_utils import sd_to_mo_date
 from .engagement import create_engagement, filtered_professions
@@ -1005,9 +1005,7 @@ class ChangeAtSD:
             logger.info("Change department of engagement", employment_id=employment_id)
             logger.debug("Department object", department=department)
 
-            validity = self._validity(department, mo_eng["validity"]["to"], cut=True)
-            if validity is None:
-                continue
+            validity = sd_to_mo_validity(department)
 
             logger.debug("Validity of this department change", validity=validity)
             org_unit = department["DepartmentUUIDIdentifier"]
@@ -1068,6 +1066,24 @@ class ChangeAtSD:
             if not self.dry_run:
                 response = self.helper._mo_post("details/edit", payload)
                 mora_assert(response)
+
+            # We need to re-terminate the engagement, if it was terminated
+            # before this edit operation, since the edit operation re-opens any
+            # previously terminated engagements (since we are no longer using
+            # "cut" dates when generating the MO validity). See details here:
+            # https://redmine.magenta.dk/issues/60402#note-16
+            mo_end_date: str | None = mo_eng["validity"]["to"]  # Last day of work
+            if mo_end_date is not None:
+                term_start_date = parse_datetime(
+                    mo_end_date
+                ).date() + datetime.timedelta(days=1)
+                term_start: str = format_date(term_start_date)  # First day of non-work
+                logger.debug(
+                    "Re-terminate engagement",
+                    emp_id=employment_id,
+                    term_start_date=term_start,
+                )
+                self._terminate_engagement(employment_id, person_uuid, term_start)
 
     def determine_engagement_type(self, engagement, job_position):
         split = self.settings.sd_monthly_hourly_divide
