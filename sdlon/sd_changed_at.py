@@ -1489,17 +1489,20 @@ class ChangeAtSD:
         """
 
         mo_end_date: str | None = mo_eng["validity"]["to"]  # Last day of work
-        if mo_end_date is not None:
-            term_start_date = parse_datetime(mo_end_date).date() + datetime.timedelta(
-                days=1
-            )
-            term_start: str = format_date(term_start_date)  # First day of non-work
-            logger.debug(
-                "Re-terminate engagement",
-                eng_uuid=mo_eng["uuid"],
-                term_start_date=term_start,
-            )
-            self._terminate_eng_from_uuid(mo_eng["uuid"], term_start)
+
+        if mo_end_date is None:
+            return
+
+        term_start_date = parse_datetime(mo_end_date).date() + datetime.timedelta(
+            days=1
+        )
+        term_start: str = format_date(term_start_date)  # First day of non-work
+        logger.debug(
+            "Re-terminate engagement",
+            eng_uuid=mo_eng["uuid"],
+            term_start_date=term_start,
+        )
+        self._terminate_eng_from_uuid(mo_eng["uuid"], term_start)
 
 
 def initialize_changed_at(from_date):
