@@ -8,7 +8,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 from more_itertools import pairwise
 
-from sdlon.date_utils import _get_employment_from_date
+from sdlon.date_utils import _get_employment_from_date, sd_to_mo_validity
 from sdlon.date_utils import date_to_datetime
 from sdlon.date_utils import format_date
 from sdlon.date_utils import datetime_to_sd_date
@@ -51,7 +51,7 @@ def from_to_datetime(draw):
     return min_datetime, max_datetime
 
 
-class TestSdToMoTerminationDate:
+class TestSdToMoDate:
     def test_assert_string(self):
         with pytest.raises(AssertionError):
             sd_to_mo_date(list())
@@ -65,6 +65,31 @@ class TestSdToMoTerminationDate:
             sd_to_mo_date("2021-13-01")
         with pytest.raises(AssertionError):
             sd_to_mo_date("2021-12-32")
+
+
+@pytest.mark.parametrize(
+    "activation_date,deactivation_date,expected",
+    [
+        ("2000-01-01", "2010-01-01", {"from": "2000-01-01", "to": "2010-01-01"}),
+        ("2000-01-01", "9999-12-31", {"from": "2000-01-01", "to": None}),
+    ],
+)
+def test_sd_to_mo_validity(
+    activation_date: str,
+    deactivation_date: str,
+    expected: dict[str, str | None],
+) -> None:
+    # Arrange
+    engagement_info = {
+        "ActivationDate": activation_date,
+        "DeactivationDate": deactivation_date,
+    }
+
+    # Act
+    actual = sd_to_mo_validity(engagement_info)
+
+    # Assert
+    assert expected == actual
 
 
 @pytest.mark.parametrize(

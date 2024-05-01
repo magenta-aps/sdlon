@@ -5,6 +5,7 @@ from datetime import datetime
 from datetime import timedelta
 from itertools import chain
 from itertools import takewhile
+from typing import Any
 from typing import OrderedDict
 from typing import Union
 from typing import Iterator
@@ -129,6 +130,43 @@ def sd_to_mo_date(sd_date: str) -> Optional[str]:
         return MO_INFINITY
 
     return sd_date
+
+
+def sd_to_mo_validity(engagement_info: dict[str, Any]) -> dict[str, str | None]:
+    """
+    Convert the SD validity (ActivationDate and DeactivationDate) to a MO
+    validity.
+
+    Args:
+        engagement_info: the "engagement_info" object, e.g.
+        {
+            "ActivationDate": "1999-01-01",
+            "DeactivationDate": "9999-12-31",
+            "DepartmentIdentifier": "dep1",
+            "DepartmentLevelIdentifier": "NY1-niveau",
+            "DepartmentName": "Department 1",
+            "DepartmentUUIDIdentifier": "eb25d197-d278-41ac-abc1-cc7802093130",
+            "PostalAddress": {
+                "StandardAddressIdentifier": "Paradisæblevej 13",
+                "PostalCode": 1000,
+                "DistrictName": "Andeby",
+            },
+            "ProductionUnitIdentifier": 1234567890,
+        }
+
+    Returns:
+        The MO validity, e.g.
+        {
+            "from": "1999-01-01",
+            "to": None
+        }
+        for the example above.
+    """
+
+    return {
+        "from": sd_to_mo_date(engagement_info["ActivationDate"]),
+        "to": sd_to_mo_date(engagement_info["DeactivationDate"]),
+    }
 
 
 def to_midnight(dt: datetime) -> datetime:

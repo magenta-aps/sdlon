@@ -999,7 +999,7 @@ class Test_sd_changed_at(unittest.TestCase):
             {
                 "user_key": employment_id,
                 "uuid": "mo_engagement_uuid",
-                "validity": {"to": "9999-12-31"},
+                "validity": {"to": None},
             }
         ]
 
@@ -1468,6 +1468,139 @@ class Test_sd_changed_at(unittest.TestCase):
 
         # Assert
         sd_updater.edit_engagement_profession.assert_not_called()
+
+    def test_edit_engagement_department_eng_not_terminated(self) -> None:
+        """
+        We test the case where the department of an engagement
+        (which does not already have an end date) change.
+
+        (see https://redmine.magenta.dk/issues/60402#note-16)
+        """
+
+        # Arrange
+        org_unit = str(uuid.uuid4())
+        eng_uuid = str(uuid.uuid4())
+
+        sd_updater = setup_sd_changed_at()
+        mock_mo_post = MagicMock(
+            return_value=attrdict({"status_code": 200, "text": "response text"}),
+        )
+        sd_updater.morahelper_mock._mo_post = mock_mo_post
+        sd_updater.apply_NY_logic = MagicMock(return_value=org_unit)
+
+        sd_payload_fragment = {
+            "EmploymentIdentifier": "12345",
+            "EmploymentDepartment": {
+                "ActivationDate": "1999-01-01",
+                "DeactivationDate": "9999-12-31",
+                "DepartmentIdentifier": "dep1",
+                "DepartmentLevelIdentifier": "NY1-niveau",
+                "DepartmentName": "Department 1",
+                "DepartmentUUIDIdentifier": "eb25d197-d278-41ac-abc1-cc7802093130",
+            },
+        }
+
+        mo_eng = {
+            "uuid": eng_uuid,
+            "validity": {
+                "from": "2000-01-01",
+                "to": None,
+            },
+        }
+
+        sd_updater._find_engagement = MagicMock(return_value=mo_eng)
+
+        # Act
+        sd_updater.edit_engagement_department(
+            sd_payload_fragment, mo_eng, str(uuid.uuid4())
+        )
+
+        # Assert
+        calls = mock_mo_post.call_args_list
+        assert len(calls) == 1
+
+        assert calls[0] == call(
+            "details/edit",
+            {
+                "type": "engagement",
+                "uuid": eng_uuid,
+                "data": {
+                    "org_unit": {"uuid": org_unit},
+                    "validity": {"from": "1999-01-01", "to": None},
+                },
+            },
+        )
+
+    def test_edit_engagement_department_eng_terminated(self) -> None:
+        """
+        We test the case where the department of an engagement
+        (already having an end date) change.
+
+        (see https://redmine.magenta.dk/issues/60402#note-16)
+        """
+
+        # Arrange
+        org_unit = str(uuid.uuid4())
+        eng_uuid = str(uuid.uuid4())
+
+        sd_updater = setup_sd_changed_at()
+        mock_mo_post = MagicMock(
+            return_value=attrdict({"status_code": 200, "text": "response text"}),
+        )
+        sd_updater.morahelper_mock._mo_post = mock_mo_post
+        sd_updater.apply_NY_logic = MagicMock(return_value=org_unit)
+
+        sd_payload_fragment = {
+            "EmploymentIdentifier": "12345",
+            "EmploymentDepartment": {
+                "ActivationDate": "1999-01-01",
+                "DeactivationDate": "9999-12-31",
+                "DepartmentIdentifier": "dep1",
+                "DepartmentLevelIdentifier": "NY1-niveau",
+                "DepartmentName": "Department 1",
+                "DepartmentUUIDIdentifier": "eb25d197-d278-41ac-abc1-cc7802093130",
+            },
+        }
+
+        mo_eng = {
+            "uuid": eng_uuid,
+            "validity": {
+                "from": "2000-01-01",
+                "to": "2025-12-31",
+            },
+        }
+
+        sd_updater._find_engagement = MagicMock(return_value=mo_eng)
+
+        # Act
+        sd_updater.edit_engagement_department(
+            sd_payload_fragment, mo_eng, str(uuid.uuid4())
+        )
+
+        # Assert
+        calls = mock_mo_post.call_args_list
+        assert len(calls) == 2
+
+        assert calls[0] == call(
+            "details/edit",
+            {
+                "type": "engagement",
+                "uuid": eng_uuid,
+                "data": {
+                    "org_unit": {"uuid": org_unit},
+                    "validity": {"from": "1999-01-01", "to": None},
+                },
+            },
+        )
+
+        assert calls[1] == call(
+            "details/terminate",
+            {
+                "type": "engagement",
+                "uuid": eng_uuid,
+                "validity": {"from": "2026-01-01", "to": None},
+            },
+        )
 
     @given(
         status=st.sampled_from(["1", "S"]),
