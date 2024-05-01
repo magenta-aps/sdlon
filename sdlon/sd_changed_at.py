@@ -944,12 +944,32 @@ class ChangeAtSD:
 
         return True
 
+    def _terminate_eng_from_uuid(
+        self,
+        eng_uuid: str,
+        from_date: str,
+        to_date: str | None = None,
+    ) -> None:
+        validity = {"from": from_date, "to": to_date}
+
+        payload = {
+            "type": "engagement",
+            "uuid": eng_uuid,
+            "validity": validity,
+        }
+
+        logger.debug("Terminate payload (details/terminate)", payload=payload)
+        if not self.dry_run:
+            response = self.helper._mo_post("details/terminate", payload)
+            logger.debug("Terminate response: {}".format(response.text))
+            mora_assert(response)
+
     def _terminate_engagement(
         self,
         user_key: str,
         person_uuid: str,  # TODO: change type to UUID
         from_date: str,  # TODO: Introduce MO date version
-        to_date: Optional[str] = None,
+        to_date: str | None = None,
     ) -> bool:
         """
         Terminate an employment (engagement) in MO. Since this function calls
@@ -980,21 +1000,7 @@ class ChangeAtSD:
             logger.warning("Terminating non-existing job!", user_key=user_key)
             return False
 
-        validity = {"from": from_date, "to": to_date}
-
-        # TODO: use/create termination object from RA Models
-        payload = {
-            "type": "engagement",
-            "uuid": mo_engagement["uuid"],
-            "validity": validity,
-        }
-
-        logger.debug("Terminate payload (details/terminate)", payload=payload)
-        if not self.dry_run:
-            response = self.helper._mo_post("details/terminate", payload)
-            logger.debug("Terminate response: {}".format(response.text))
-            mora_assert(response)
-
+        self._terminate_eng_from_uuid(mo_engagement["uuid"], from_date, to_date)
         self._refresh_mo_engagements(person_uuid)
 
         return True
@@ -1067,7 +1073,7 @@ class ChangeAtSD:
                 response = self.helper._mo_post("details/edit", payload)
                 mora_assert(response)
 
-            self._re_terminate_engagement(employment_id, person_uuid, mo_eng)
+            self._re_terminate_engagement(mo_eng)
 
     def determine_engagement_type(self, engagement, job_position):
         split = self.settings.sd_monthly_hourly_divide
@@ -1470,9 +1476,7 @@ class ChangeAtSD:
                         "Could not find primary for user", user_uuid=user_uuid
                     )
 
-    def _re_terminate_engagement(
-        self, employment_id: str, person_uuid: str, mo_eng: dict[str, Any]
-    ) -> None:
+    def _re_terminate_engagement(self, mo_eng: dict[str, Any]) -> None:
         """
         We re-terminate an engagement, if it was terminated before an edit
         operation, since the edit operation re-opens any previously terminated
@@ -1481,23 +1485,27 @@ class ChangeAtSD:
         https://redmine.magenta.dk/issues/60402#note-16
 
         Args:
-            employment_id: SD EmploymentIdentifier (same as MO eng user_key)
-            person_uuid: MO UUID for person
             mo_eng: the MO engagement
         """
 
         mo_end_date: str | None = mo_eng["validity"]["to"]  # Last day of work
-        if mo_end_date is not None:
-            term_start_date = parse_datetime(mo_end_date).date() + datetime.timedelta(
-                days=1
-            )
-            term_start: str = format_date(term_start_date)  # First day of non-work
-            logger.debug(
-                "Re-terminate engagement",
-                emp_id=employment_id,
-                term_start_date=term_start,
-            )
-            self._terminate_engagement(employment_id, person_uuid, term_start)
+
+        if mo_end_date is None:
+            return
+
+        # Due to the way MOs service API is working, we need to add 1 day to
+        # the "last day of work" to get the "first day of non-work", i.e.
+        # the first day of the termination period.
+        term_start_date = parse_datetime(mo_end_date).date() + datetime.timedelta(
+            days=1
+        )
+        term_start: str = format_date(term_start_date)  # First day of non-work
+        logger.debug(
+            "Re-terminate engagement",
+            eng_uuid=mo_eng["uuid"],
+            term_start_date=term_start,
+        )
+        self._terminate_eng_from_uuid(mo_eng["uuid"], term_start)
 
 
 def initialize_changed_at(from_date):
