@@ -1762,15 +1762,17 @@ class TestEditEngagementX:
         """
 
         # Arrange
-        org_unit = str(uuid.uuid4())
+        org_unit_afd_level = str(uuid.uuid4())
+        org_unit_ny_level = str(uuid.uuid4())
         eng_uuid = str(uuid.uuid4())
+        person_uuid = str(uuid.uuid4())
 
         sd_updater = setup_sd_changed_at()
         mock_mo_post = MagicMock(
             return_value=attrdict({"status_code": 200, "text": "response text"}),
         )
         sd_updater.morahelper_mock._mo_post = mock_mo_post
-        sd_updater.apply_NY_logic = MagicMock(return_value=org_unit)
+        sd_updater.apply_NY_logic = MagicMock(return_value=org_unit_ny_level)
 
         sd_payload_fragment = {
             "EmploymentIdentifier": "12345",
@@ -1780,7 +1782,7 @@ class TestEditEngagementX:
                 "DepartmentIdentifier": "dep1",
                 "DepartmentLevelIdentifier": "NY1-niveau",
                 "DepartmentName": "Department 1",
-                "DepartmentUUIDIdentifier": "eb25d197-d278-41ac-abc1-cc7802093130",
+                "DepartmentUUIDIdentifier": org_unit_afd_level,
             },
         }
 
@@ -1792,14 +1794,14 @@ class TestEditEngagementX:
             },
         }
 
-        sd_updater._find_engagement = MagicMock(return_value=mo_eng)
-
         # Act
-        sd_updater.edit_engagement_department(
-            sd_payload_fragment, mo_eng, str(uuid.uuid4())
-        )
+        sd_updater.edit_engagement_department(sd_payload_fragment, mo_eng, person_uuid)
 
         # Assert
+        sd_updater.apply_NY_logic.assert_called_once_with(
+            org_unit_afd_level, "12345", {"from": "1999-01-01", "to": None}, person_uuid
+        )
+
         calls = mock_mo_post.call_args_list
         assert len(calls) == 1
 
@@ -1809,7 +1811,7 @@ class TestEditEngagementX:
                 "type": "engagement",
                 "uuid": eng_uuid,
                 "data": {
-                    "org_unit": {"uuid": org_unit},
+                    "org_unit": {"uuid": org_unit_ny_level},
                     "validity": {"from": "1999-01-01", "to": None},
                 },
             },
