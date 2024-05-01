@@ -1930,6 +1930,8 @@ class TestEditEngagementX:
         sd_updater.edit_engagement_profession(sd_payload_fragment, mo_eng)
 
         # Assert
+        sd_updater._fetch_professions.assert_called_once_with("1", "1")
+
         calls = mock_mo_post.call_args_list
         assert len(calls) == 1
 
@@ -1958,6 +1960,7 @@ class TestEditEngagementX:
         eng_uuid = str(uuid.uuid4())
 
         sd_updater = setup_sd_changed_at()
+        sd_updater.use_jpi = False
         mock_mo_post = MagicMock(
             return_value=attrdict({"status_code": 200, "text": "response text"}),
         )
@@ -1987,6 +1990,8 @@ class TestEditEngagementX:
         sd_updater.edit_engagement_profession(sd_payload_fragment, mo_eng)
 
         # Assert
+        sd_updater._fetch_professions.assert_called_once_with("Ninja", "1")
+
         calls = mock_mo_post.call_args_list
         assert len(calls) == 2
 
