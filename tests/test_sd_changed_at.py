@@ -1469,6 +1469,290 @@ class Test_sd_changed_at(unittest.TestCase):
         # Assert
         sd_updater.edit_engagement_profession.assert_not_called()
 
+    @given(
+        status=st.sampled_from(["1", "S"]),
+        from_date=st.datetimes(),
+        to_date=st.datetimes() | st.none(),
+    )
+    @patch("sdlon.sd_common.sd_lookup_settings")
+    @patch("sdlon.sd_changed_at.sd_lookup")
+    def test_timestamps_read_employment_changed(
+        self,
+        mock_sd_lookup,
+        sd_settings,
+        status,
+        from_date,
+        to_date,
+    ):
+        """Test that calls contain correct ActivationDate and ActivationTime"""
+        sd_settings.return_value = ("", "", "")
+
+        sd_updater = setup_sd_changed_at()
+        sd_updater.read_employment_changed(from_date=from_date, to_date=to_date)
+        expected_url = "GetEmploymentChangedAtDate20111201"
+        url = mock_sd_lookup.call_args.args[0]
+        params = mock_sd_lookup.call_args.kwargs["params"]
+        self.assertEqual(url, expected_url)
+        self.assertEqual(params["ActivationDate"], from_date.strftime("%d.%m.%Y"))
+        self.assertEqual(params["ActivationTime"], from_date.strftime("%H:%M"))
+        if to_date:
+            self.assertEqual(params["DeactivationDate"], to_date.strftime("%d.%m.%Y"))
+            self.assertEqual(params["DeactivationTime"], to_date.strftime("%H:%M"))
+
+    @given(
+        status=st.sampled_from(["1", "S"]),
+        from_date=st.datetimes(),
+        to_date=st.datetimes() | st.none(),
+    )
+    @patch("sdlon.sd_common.sd_lookup_settings")
+    @patch("sdlon.sd_changed_at.sd_lookup")
+    def test_timestamps_get_sd_persons_changed(
+        self,
+        mock_sd_lookup,
+        sd_settings,
+        status,
+        from_date,
+        to_date,
+    ):
+        """Test that calls contain correct ActivationDate and ActivationTime"""
+        sd_settings.return_value = ("", "", "")
+
+        sd_updater = setup_sd_changed_at()
+        sd_updater.get_sd_persons_changed(from_date=from_date, to_date=to_date)
+        expected_url = "GetPersonChangedAtDate20111201"
+        url = mock_sd_lookup.call_args.args[0]
+        params = mock_sd_lookup.call_args.kwargs["params"]
+        self.assertEqual(url, expected_url)
+        self.assertEqual(params["ActivationDate"], from_date.strftime("%d.%m.%Y"))
+        self.assertEqual(params["ActivationTime"], from_date.strftime("%H:%M"))
+        if to_date:
+            self.assertEqual(params["DeactivationDate"], to_date.strftime("%d.%m.%Y"))
+            self.assertEqual(params["DeactivationTime"], to_date.strftime("%H:%M"))
+
+
+def test_read_forced_uuid_use_empty_dict():
+    sd_updater = setup_sd_changed_at({"sd_read_forced_uuids": False})
+    assert sd_updater.employee_forced_uuids == dict()
+
+
+def test_updater_field_is_none_when_primary_engagement_calc_disabled():
+    sd_updater = setup_sd_changed_at({"sd_update_primary_engagement": False})
+    assert sd_updater.updater is None
+
+
+@pytest.mark.parametrize(
+    "too_deep,expected_target_ou",
+    [
+        ([], "00000000-0000-0000-0000-000000000000"),
+        (
+            ["Afdelings-niveau"],
+            "10000000-0000-0000-0000-000000000000",
+        ),
+        (
+            ["Afdelings-niveau", "NY1-niveau"],
+            "20000000-0000-0000-0000-000000000000",
+        ),
+    ],
+)
+def test_apply_ny_logic(too_deep: list[str], expected_target_ou: str) -> None:
+    """
+    Test the case where an SD employment is moved to a new SD department, which
+    is an "Afdelings-niveau". The apply_NY_logic function should then return
+    the UUID of the first "NY-niveau" which is not in the "too_deep" list.
+    """
+    # Arrange
+    sd_updater = setup_sd_changed_at({"sd_import_too_deep": too_deep})
+
+    ou_uuid_afd = "00000000-0000-0000-0000-000000000000"
+    ou_uuid_ny1 = "10000000-0000-0000-0000-000000000000"
+    ou_uuid_ny2 = "20000000-0000-0000-0000-000000000000"
+    ou_uuid_ny3 = "30000000-0000-0000-0000-000000000000"
+    person_uuid = str(uuid.uuid4())
+
+    sd_updater.helper.read_ou = MagicMock(
+        return_value={
+            "uuid": ou_uuid_afd,
+            "org_unit_level": {"user_key": "Afdelings-niveau"},
+            "parent": {
+                "uuid": ou_uuid_ny1,
+                "org_unit_level": {"user_key": "NY1-niveau"},
+                "parent": {
+                    "uuid": ou_uuid_ny2,
+                    "org_unit_level": {"user_key": "NY2-niveau"},
+                    "parent": {
+                        "uuid": ou_uuid_ny3,
+                        "org_unit_level": {"user_key": "NY3-niveau"},
+                        "parent": None,
+                    },
+                },
+            },
+        }
+    )
+    sd_updater.create_association = MagicMock()
+
+    # Act
+    target_ou_uuid = sd_updater.apply_NY_logic(
+        ou_uuid_afd, 12345, {"from": "2023-08-01", "to": None}, person_uuid
+    )
+
+    # Assert
+    assert target_ou_uuid == expected_target_ou
+
+
+@pytest.mark.parametrize(
+    "department_from_date,effective_fix_date",
+    [
+        # A date in the future
+        (date(2200, 1, 1), date(2200, 1, 1)),
+        # A date in the past
+        (date(2000, 1, 1), datetime.datetime.now().date()),
+    ],
+)
+def test_apply_ny_logic_for_non_existing_future_unit(
+    department_from_date: date, effective_fix_date: date
+) -> None:
+    """
+    Test the scenario where "apply_NY_logic" is called on a currently
+    non-existing OU in MO, but on an SD unit which should be created
+    in MO. We test that "read_ou" and "fix_department" are called with
+    the correct dates.
+    """
+    # Arrange
+    sd_updater = setup_sd_changed_at({"sd_import_too_deep": ["Afdelings-niveau"]})
+
+    ou_uuid_afd = "00000000-0000-0000-0000-000000000000"
+    ou_uuid_ny1 = "10000000-0000-0000-0000-000000000000"
+    person_uuid = str(uuid.uuid4())
+    department_from_date = format_date(department_from_date)
+
+    mock_read_ou = MagicMock(
+        side_effect=[
+            {"status": 404},
+            {
+                "uuid": ou_uuid_afd,
+                "org_unit_level": {"user_key": "Afdelings-niveau"},
+                "parent": {
+                    "uuid": ou_uuid_ny1,
+                    "org_unit_level": {"user_key": "NY1-niveau"},
+                    "parent": None,
+                },
+            },
+        ]
+    )
+    sd_updater.helper.read_ou = mock_read_ou
+
+    mock_fix_department = MagicMock()
+    sd_updater.department_fixer.fix_department = mock_fix_department
+
+    mock_create_association = MagicMock()
+    sd_updater.create_association = mock_create_association
+
+    # Act
+    sd_updater.apply_NY_logic(
+        ou_uuid_afd, 12345, {"from": department_from_date, "to": None}, person_uuid
+    )
+
+    # Assert
+    assert mock_read_ou.call_args_list == [
+        call(ou_uuid_afd, at=format_date(effective_fix_date), use_cache=False),
+        call(ou_uuid_afd, at=format_date(effective_fix_date), use_cache=False),
+    ]
+    mock_fix_department.assert_called_once_with(ou_uuid_afd, effective_fix_date)
+    mock_create_association.assert_called_once_with(
+        ou_uuid_afd,
+        person_uuid,
+        12345,
+        {"from": department_from_date, "to": None},
+    )
+
+
+@patch("sdlon.sd_changed_at.get_status", return_value=RunDBState.COMPLETED)
+@patch("sdlon.sd_changed_at.setup_logging")
+@patch("sdlon.sd_changed_at.get_settings")
+@patch("sdlon.sd_changed_at.sentry_sdk")
+@patch("sdlon.sd_changed_at.get_run_db_from_date")
+@patch("sdlon.sd_changed_at.gen_date_intervals", return_value=[])
+def test_dipex_last_success_timestamp_called(
+    mock_get_settings: MagicMock,
+    mock_setup_logging: MagicMock,
+    mock_sentry_sdk: MagicMock,
+    mock_get_run_db_from_date: MagicMock,
+    mock_gen_date_intervals: MagicMock,
+    mock_get_run_db_state: MagicMock,
+):
+    # Assert
+    mock_dipex_last_success_timestamp = MagicMock()
+    mock_sd_changed_at_state = MagicMock()
+
+    # Act
+    changed_at(mock_dipex_last_success_timestamp, mock_sd_changed_at_state)
+
+    # Assert
+    mock_dipex_last_success_timestamp.set_to_current_time.assert_called_once()
+
+
+@patch("sdlon.sd_changed_at.setup_logging")
+@patch("sdlon.sd_changed_at.get_settings")
+@patch("sdlon.sd_changed_at.sentry_sdk")
+@patch("sdlon.sd_changed_at.get_run_db_from_date")
+@patch("sdlon.sd_changed_at.gen_date_intervals")
+def test_dipex_last_success_timestamp_not_called_on_error(
+    mock_get_settings: MagicMock,
+    mock_setup_logging: MagicMock,
+    mock_sentry_sdk: MagicMock,
+    mock_get_run_db_from_date: MagicMock,
+    mock_gen_date_intervals: MagicMock,
+):
+    # Assert
+    mock_dipex_last_success_timestamp = MagicMock()
+    mock_gen_date_intervals.side_effect = Exception()
+
+    # Act
+    with pytest.raises(Exception):
+        changed_at(False, False, mock_dipex_last_success_timestamp)
+
+    # Assert
+    mock_dipex_last_success_timestamp.set_to_current_time.assert_not_called()
+
+
+def test_only_create_leave_if_engagement_exists() -> None:
+    # Arrange
+    sd_employment = OrderedDict(
+        {
+            "EmploymentIdentifier": "12345",
+            "EmploymentStatus": {
+                "ActivationDate": "2020-11-10",
+                "DeactivationDate": "9999-12-31",
+                "EmploymentStatusCode": "3",  # Leave
+            },
+        }
+    )
+
+    mock_create_leave = MagicMock()
+
+    sd_updater = setup_sd_changed_at({"sd_skip_leave_creation_if_no_engagement": True})
+    sd_updater.create_leave = mock_create_leave
+    sd_updater._find_engagement = MagicMock(return_value=None)  # No engagement found
+
+    # Act
+    sd_updater._handle_employment_status_changes(
+        "1111111111", sd_employment, str(uuid.uuid4())
+    )
+
+    # Assert
+    mock_create_leave.assert_not_called()
+
+
+class TestEditEngagementX:
+    """
+    Test the re-terminate functionality of the methods:
+
+    edit_engagement_department
+    edit_engagement_profession
+    edit_engagement_type
+    edit_engagement_worktime
+    """
+
     def test_edit_engagement_department_eng_not_terminated(self) -> None:
         """
         We test the case where the department of an engagement
@@ -1962,276 +2246,3 @@ class Test_sd_changed_at(unittest.TestCase):
                 },
             },
         )
-
-    @given(
-        status=st.sampled_from(["1", "S"]),
-        from_date=st.datetimes(),
-        to_date=st.datetimes() | st.none(),
-    )
-    @patch("sdlon.sd_common.sd_lookup_settings")
-    @patch("sdlon.sd_changed_at.sd_lookup")
-    def test_timestamps_read_employment_changed(
-        self,
-        mock_sd_lookup,
-        sd_settings,
-        status,
-        from_date,
-        to_date,
-    ):
-        """Test that calls contain correct ActivationDate and ActivationTime"""
-        sd_settings.return_value = ("", "", "")
-
-        sd_updater = setup_sd_changed_at()
-        sd_updater.read_employment_changed(from_date=from_date, to_date=to_date)
-        expected_url = "GetEmploymentChangedAtDate20111201"
-        url = mock_sd_lookup.call_args.args[0]
-        params = mock_sd_lookup.call_args.kwargs["params"]
-        self.assertEqual(url, expected_url)
-        self.assertEqual(params["ActivationDate"], from_date.strftime("%d.%m.%Y"))
-        self.assertEqual(params["ActivationTime"], from_date.strftime("%H:%M"))
-        if to_date:
-            self.assertEqual(params["DeactivationDate"], to_date.strftime("%d.%m.%Y"))
-            self.assertEqual(params["DeactivationTime"], to_date.strftime("%H:%M"))
-
-    @given(
-        status=st.sampled_from(["1", "S"]),
-        from_date=st.datetimes(),
-        to_date=st.datetimes() | st.none(),
-    )
-    @patch("sdlon.sd_common.sd_lookup_settings")
-    @patch("sdlon.sd_changed_at.sd_lookup")
-    def test_timestamps_get_sd_persons_changed(
-        self,
-        mock_sd_lookup,
-        sd_settings,
-        status,
-        from_date,
-        to_date,
-    ):
-        """Test that calls contain correct ActivationDate and ActivationTime"""
-        sd_settings.return_value = ("", "", "")
-
-        sd_updater = setup_sd_changed_at()
-        sd_updater.get_sd_persons_changed(from_date=from_date, to_date=to_date)
-        expected_url = "GetPersonChangedAtDate20111201"
-        url = mock_sd_lookup.call_args.args[0]
-        params = mock_sd_lookup.call_args.kwargs["params"]
-        self.assertEqual(url, expected_url)
-        self.assertEqual(params["ActivationDate"], from_date.strftime("%d.%m.%Y"))
-        self.assertEqual(params["ActivationTime"], from_date.strftime("%H:%M"))
-        if to_date:
-            self.assertEqual(params["DeactivationDate"], to_date.strftime("%d.%m.%Y"))
-            self.assertEqual(params["DeactivationTime"], to_date.strftime("%H:%M"))
-
-
-def test_read_forced_uuid_use_empty_dict():
-    sd_updater = setup_sd_changed_at({"sd_read_forced_uuids": False})
-    assert sd_updater.employee_forced_uuids == dict()
-
-
-def test_updater_field_is_none_when_primary_engagement_calc_disabled():
-    sd_updater = setup_sd_changed_at({"sd_update_primary_engagement": False})
-    assert sd_updater.updater is None
-
-
-@pytest.mark.parametrize(
-    "too_deep,expected_target_ou",
-    [
-        ([], "00000000-0000-0000-0000-000000000000"),
-        (
-            ["Afdelings-niveau"],
-            "10000000-0000-0000-0000-000000000000",
-        ),
-        (
-            ["Afdelings-niveau", "NY1-niveau"],
-            "20000000-0000-0000-0000-000000000000",
-        ),
-    ],
-)
-def test_apply_ny_logic(too_deep: list[str], expected_target_ou: str) -> None:
-    """
-    Test the case where an SD employment is moved to a new SD department, which
-    is an "Afdelings-niveau". The apply_NY_logic function should then return
-    the UUID of the first "NY-niveau" which is not in the "too_deep" list.
-    """
-    # Arrange
-    sd_updater = setup_sd_changed_at({"sd_import_too_deep": too_deep})
-
-    ou_uuid_afd = "00000000-0000-0000-0000-000000000000"
-    ou_uuid_ny1 = "10000000-0000-0000-0000-000000000000"
-    ou_uuid_ny2 = "20000000-0000-0000-0000-000000000000"
-    ou_uuid_ny3 = "30000000-0000-0000-0000-000000000000"
-    person_uuid = str(uuid.uuid4())
-
-    sd_updater.helper.read_ou = MagicMock(
-        return_value={
-            "uuid": ou_uuid_afd,
-            "org_unit_level": {"user_key": "Afdelings-niveau"},
-            "parent": {
-                "uuid": ou_uuid_ny1,
-                "org_unit_level": {"user_key": "NY1-niveau"},
-                "parent": {
-                    "uuid": ou_uuid_ny2,
-                    "org_unit_level": {"user_key": "NY2-niveau"},
-                    "parent": {
-                        "uuid": ou_uuid_ny3,
-                        "org_unit_level": {"user_key": "NY3-niveau"},
-                        "parent": None,
-                    },
-                },
-            },
-        }
-    )
-    sd_updater.create_association = MagicMock()
-
-    # Act
-    target_ou_uuid = sd_updater.apply_NY_logic(
-        ou_uuid_afd, 12345, {"from": "2023-08-01", "to": None}, person_uuid
-    )
-
-    # Assert
-    assert target_ou_uuid == expected_target_ou
-
-
-@pytest.mark.parametrize(
-    "department_from_date,effective_fix_date",
-    [
-        # A date in the future
-        (date(2200, 1, 1), date(2200, 1, 1)),
-        # A date in the past
-        (date(2000, 1, 1), datetime.datetime.now().date()),
-    ],
-)
-def test_apply_ny_logic_for_non_existing_future_unit(
-    department_from_date: date, effective_fix_date: date
-) -> None:
-    """
-    Test the scenario where "apply_NY_logic" is called on a currently
-    non-existing OU in MO, but on an SD unit which should be created
-    in MO. We test that "read_ou" and "fix_department" are called with
-    the correct dates.
-    """
-    # Arrange
-    sd_updater = setup_sd_changed_at({"sd_import_too_deep": ["Afdelings-niveau"]})
-
-    ou_uuid_afd = "00000000-0000-0000-0000-000000000000"
-    ou_uuid_ny1 = "10000000-0000-0000-0000-000000000000"
-    person_uuid = str(uuid.uuid4())
-    department_from_date = format_date(department_from_date)
-
-    mock_read_ou = MagicMock(
-        side_effect=[
-            {"status": 404},
-            {
-                "uuid": ou_uuid_afd,
-                "org_unit_level": {"user_key": "Afdelings-niveau"},
-                "parent": {
-                    "uuid": ou_uuid_ny1,
-                    "org_unit_level": {"user_key": "NY1-niveau"},
-                    "parent": None,
-                },
-            },
-        ]
-    )
-    sd_updater.helper.read_ou = mock_read_ou
-
-    mock_fix_department = MagicMock()
-    sd_updater.department_fixer.fix_department = mock_fix_department
-
-    mock_create_association = MagicMock()
-    sd_updater.create_association = mock_create_association
-
-    # Act
-    sd_updater.apply_NY_logic(
-        ou_uuid_afd, 12345, {"from": department_from_date, "to": None}, person_uuid
-    )
-
-    # Assert
-    assert mock_read_ou.call_args_list == [
-        call(ou_uuid_afd, at=format_date(effective_fix_date), use_cache=False),
-        call(ou_uuid_afd, at=format_date(effective_fix_date), use_cache=False),
-    ]
-    mock_fix_department.assert_called_once_with(ou_uuid_afd, effective_fix_date)
-    mock_create_association.assert_called_once_with(
-        ou_uuid_afd,
-        person_uuid,
-        12345,
-        {"from": department_from_date, "to": None},
-    )
-
-
-@patch("sdlon.sd_changed_at.get_status", return_value=RunDBState.COMPLETED)
-@patch("sdlon.sd_changed_at.setup_logging")
-@patch("sdlon.sd_changed_at.get_settings")
-@patch("sdlon.sd_changed_at.sentry_sdk")
-@patch("sdlon.sd_changed_at.get_run_db_from_date")
-@patch("sdlon.sd_changed_at.gen_date_intervals", return_value=[])
-def test_dipex_last_success_timestamp_called(
-    mock_get_settings: MagicMock,
-    mock_setup_logging: MagicMock,
-    mock_sentry_sdk: MagicMock,
-    mock_get_run_db_from_date: MagicMock,
-    mock_gen_date_intervals: MagicMock,
-    mock_get_run_db_state: MagicMock,
-):
-    # Assert
-    mock_dipex_last_success_timestamp = MagicMock()
-    mock_sd_changed_at_state = MagicMock()
-
-    # Act
-    changed_at(mock_dipex_last_success_timestamp, mock_sd_changed_at_state)
-
-    # Assert
-    mock_dipex_last_success_timestamp.set_to_current_time.assert_called_once()
-
-
-@patch("sdlon.sd_changed_at.setup_logging")
-@patch("sdlon.sd_changed_at.get_settings")
-@patch("sdlon.sd_changed_at.sentry_sdk")
-@patch("sdlon.sd_changed_at.get_run_db_from_date")
-@patch("sdlon.sd_changed_at.gen_date_intervals")
-def test_dipex_last_success_timestamp_not_called_on_error(
-    mock_get_settings: MagicMock,
-    mock_setup_logging: MagicMock,
-    mock_sentry_sdk: MagicMock,
-    mock_get_run_db_from_date: MagicMock,
-    mock_gen_date_intervals: MagicMock,
-):
-    # Assert
-    mock_dipex_last_success_timestamp = MagicMock()
-    mock_gen_date_intervals.side_effect = Exception()
-
-    # Act
-    with pytest.raises(Exception):
-        changed_at(False, False, mock_dipex_last_success_timestamp)
-
-    # Assert
-    mock_dipex_last_success_timestamp.set_to_current_time.assert_not_called()
-
-
-def test_only_create_leave_if_engagement_exists() -> None:
-    # Arrange
-    sd_employment = OrderedDict(
-        {
-            "EmploymentIdentifier": "12345",
-            "EmploymentStatus": {
-                "ActivationDate": "2020-11-10",
-                "DeactivationDate": "9999-12-31",
-                "EmploymentStatusCode": "3",  # Leave
-            },
-        }
-    )
-
-    mock_create_leave = MagicMock()
-
-    sd_updater = setup_sd_changed_at({"sd_skip_leave_creation_if_no_engagement": True})
-    sd_updater.create_leave = mock_create_leave
-    sd_updater._find_engagement = MagicMock(return_value=None)  # No engagement found
-
-    # Act
-    sd_updater._handle_employment_status_changes(
-        "1111111111", sd_employment, str(uuid.uuid4())
-    )
-
-    # Assert
-    mock_create_leave.assert_not_called()
