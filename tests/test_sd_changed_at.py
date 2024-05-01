@@ -2058,6 +2058,10 @@ class TestEditEngagementX:
         sd_updater.edit_engagement_type(sd_payload_fragment, mo_eng)
 
         # Assert
+        sd_updater.determine_engagement_type.assert_called_once_with(
+            sd_payload_fragment, "1"
+        )
+
         calls = mock_mo_post.call_args_list
         assert len(calls) == 2
 
