@@ -1493,6 +1493,9 @@ class ChangeAtSD:
         if mo_end_date is None:
             return
 
+        # Due to the way MOs service API is working, we need to add 1 day to
+        # the "last day of work" to get the "first day of non-work", i.e.
+        # the first day of the termination period.
         term_start_date = parse_datetime(mo_end_date).date() + datetime.timedelta(
             days=1
         )
