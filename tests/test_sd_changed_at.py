@@ -1115,8 +1115,8 @@ class Test_sd_changed_at(unittest.TestCase):
             "Profession": [{"JobPositionIdentifier": str(job_position)}],
         }
         status = {
-            "ActivationDate": "",
-            "DeactivationDate": "",
+            "ActivationDate": "2000-01-01",
+            "DeactivationDate": "2100-01-01",
             "EmploymentStatusCode": "",
         }
         cpr = ""
@@ -1469,139 +1469,6 @@ class Test_sd_changed_at(unittest.TestCase):
         # Assert
         sd_updater.edit_engagement_profession.assert_not_called()
 
-    def test_edit_engagement_department_eng_not_terminated(self) -> None:
-        """
-        We test the case where the department of an engagement
-        (which does not already have an end date) change.
-
-        (see https://redmine.magenta.dk/issues/60402#note-16)
-        """
-
-        # Arrange
-        org_unit = str(uuid.uuid4())
-        eng_uuid = str(uuid.uuid4())
-
-        sd_updater = setup_sd_changed_at()
-        mock_mo_post = MagicMock(
-            return_value=attrdict({"status_code": 200, "text": "response text"}),
-        )
-        sd_updater.morahelper_mock._mo_post = mock_mo_post
-        sd_updater.apply_NY_logic = MagicMock(return_value=org_unit)
-
-        sd_payload_fragment = {
-            "EmploymentIdentifier": "12345",
-            "EmploymentDepartment": {
-                "ActivationDate": "1999-01-01",
-                "DeactivationDate": "9999-12-31",
-                "DepartmentIdentifier": "dep1",
-                "DepartmentLevelIdentifier": "NY1-niveau",
-                "DepartmentName": "Department 1",
-                "DepartmentUUIDIdentifier": "eb25d197-d278-41ac-abc1-cc7802093130",
-            },
-        }
-
-        mo_eng = {
-            "uuid": eng_uuid,
-            "validity": {
-                "from": "2000-01-01",
-                "to": None,
-            },
-        }
-
-        sd_updater._find_engagement = MagicMock(return_value=mo_eng)
-
-        # Act
-        sd_updater.edit_engagement_department(
-            sd_payload_fragment, mo_eng, str(uuid.uuid4())
-        )
-
-        # Assert
-        calls = mock_mo_post.call_args_list
-        assert len(calls) == 1
-
-        assert calls[0] == call(
-            "details/edit",
-            {
-                "type": "engagement",
-                "uuid": eng_uuid,
-                "data": {
-                    "org_unit": {"uuid": org_unit},
-                    "validity": {"from": "1999-01-01", "to": None},
-                },
-            },
-        )
-
-    def test_edit_engagement_department_eng_terminated(self) -> None:
-        """
-        We test the case where the department of an engagement
-        (already having an end date) change.
-
-        (see https://redmine.magenta.dk/issues/60402#note-16)
-        """
-
-        # Arrange
-        org_unit = str(uuid.uuid4())
-        eng_uuid = str(uuid.uuid4())
-
-        sd_updater = setup_sd_changed_at()
-        mock_mo_post = MagicMock(
-            return_value=attrdict({"status_code": 200, "text": "response text"}),
-        )
-        sd_updater.morahelper_mock._mo_post = mock_mo_post
-        sd_updater.apply_NY_logic = MagicMock(return_value=org_unit)
-
-        sd_payload_fragment = {
-            "EmploymentIdentifier": "12345",
-            "EmploymentDepartment": {
-                "ActivationDate": "1999-01-01",
-                "DeactivationDate": "9999-12-31",
-                "DepartmentIdentifier": "dep1",
-                "DepartmentLevelIdentifier": "NY1-niveau",
-                "DepartmentName": "Department 1",
-                "DepartmentUUIDIdentifier": "eb25d197-d278-41ac-abc1-cc7802093130",
-            },
-        }
-
-        mo_eng = {
-            "uuid": eng_uuid,
-            "validity": {
-                "from": "2000-01-01",
-                "to": "2025-12-31",
-            },
-        }
-
-        sd_updater._find_engagement = MagicMock(return_value=mo_eng)
-
-        # Act
-        sd_updater.edit_engagement_department(
-            sd_payload_fragment, mo_eng, str(uuid.uuid4())
-        )
-
-        # Assert
-        calls = mock_mo_post.call_args_list
-        assert len(calls) == 2
-
-        assert calls[0] == call(
-            "details/edit",
-            {
-                "type": "engagement",
-                "uuid": eng_uuid,
-                "data": {
-                    "org_unit": {"uuid": org_unit},
-                    "validity": {"from": "1999-01-01", "to": None},
-                },
-            },
-        )
-
-        assert calls[1] == call(
-            "details/terminate",
-            {
-                "type": "engagement",
-                "uuid": eng_uuid,
-                "validity": {"from": "2026-01-01", "to": None},
-            },
-        )
-
     @given(
         status=st.sampled_from(["1", "S"]),
         from_date=st.datetimes(),
@@ -1874,3 +1741,507 @@ def test_only_create_leave_if_engagement_exists() -> None:
 
     # Assert
     mock_create_leave.assert_not_called()
+
+
+class TestEditEngagementX:
+    """
+    Test the re-terminate functionality of the methods:
+
+    edit_engagement_department
+    edit_engagement_profession
+    edit_engagement_type
+    edit_engagement_worktime
+    """
+
+    def test_edit_engagement_department_eng_not_terminated(self) -> None:
+        """
+        We test the case where the department of an engagement
+        (which does not already have an end date) change.
+
+        (see https://redmine.magenta.dk/issues/60402#note-16)
+        """
+
+        # Arrange
+        org_unit_afd_level = str(uuid.uuid4())
+        org_unit_ny_level = str(uuid.uuid4())
+        eng_uuid = str(uuid.uuid4())
+        person_uuid = str(uuid.uuid4())
+
+        sd_updater = setup_sd_changed_at()
+        mock_mo_post = MagicMock(
+            return_value=attrdict({"status_code": 200, "text": "response text"}),
+        )
+        sd_updater.morahelper_mock._mo_post = mock_mo_post
+        sd_updater.apply_NY_logic = MagicMock(return_value=org_unit_ny_level)
+
+        sd_payload_fragment = {
+            "EmploymentIdentifier": "12345",
+            "EmploymentDepartment": {
+                "ActivationDate": "1999-01-01",
+                "DeactivationDate": "9999-12-31",
+                "DepartmentIdentifier": "dep1",
+                "DepartmentLevelIdentifier": "NY1-niveau",
+                "DepartmentName": "Department 1",
+                "DepartmentUUIDIdentifier": org_unit_afd_level,
+            },
+        }
+
+        mo_eng = {
+            "uuid": eng_uuid,
+            "validity": {
+                "from": "2000-01-01",
+                "to": None,
+            },
+        }
+
+        # Act
+        sd_updater.edit_engagement_department(sd_payload_fragment, mo_eng, person_uuid)
+
+        # Assert
+        sd_updater.apply_NY_logic.assert_called_once_with(
+            org_unit_afd_level, "12345", {"from": "1999-01-01", "to": None}, person_uuid
+        )
+
+        mock_mo_post.assert_called_once_with(
+            "details/edit",
+            {
+                "type": "engagement",
+                "uuid": eng_uuid,
+                "data": {
+                    "org_unit": {"uuid": org_unit_ny_level},
+                    "validity": {"from": "1999-01-01", "to": None},
+                },
+            },
+        )
+
+    def test_edit_engagement_department_eng_terminated(self) -> None:
+        """
+        We test the case where the department of an engagement
+        (already having an end date) change.
+
+        (see https://redmine.magenta.dk/issues/60402#note-16)
+        """
+
+        # Arrange
+        org_unit = str(uuid.uuid4())
+        eng_uuid = str(uuid.uuid4())
+
+        sd_updater = setup_sd_changed_at()
+        mock_mo_post = MagicMock(
+            return_value=attrdict({"status_code": 200, "text": "response text"}),
+        )
+        sd_updater.morahelper_mock._mo_post = mock_mo_post
+        sd_updater.apply_NY_logic = MagicMock(return_value=org_unit)
+
+        sd_payload_fragment = {
+            "EmploymentIdentifier": "12345",
+            "EmploymentDepartment": {
+                "ActivationDate": "1999-01-01",
+                "DeactivationDate": "9999-12-31",
+                "DepartmentIdentifier": "dep1",
+                "DepartmentLevelIdentifier": "NY1-niveau",
+                "DepartmentName": "Department 1",
+                "DepartmentUUIDIdentifier": "eb25d197-d278-41ac-abc1-cc7802093130",
+            },
+        }
+
+        mo_eng = {
+            "uuid": eng_uuid,
+            "validity": {
+                "from": "2000-01-01",
+                "to": "2025-12-31",
+            },
+        }
+
+        sd_updater._find_engagement = MagicMock(return_value=mo_eng)
+
+        # Act
+        sd_updater.edit_engagement_department(
+            sd_payload_fragment, mo_eng, str(uuid.uuid4())
+        )
+
+        # Assert
+        calls = mock_mo_post.call_args_list
+        assert len(calls) == 2
+
+        assert calls[0] == call(
+            "details/edit",
+            {
+                "type": "engagement",
+                "uuid": eng_uuid,
+                "data": {
+                    "org_unit": {"uuid": org_unit},
+                    "validity": {"from": "1999-01-01", "to": None},
+                },
+            },
+        )
+
+        assert calls[1] == call(
+            "details/terminate",
+            {
+                "type": "engagement",
+                "uuid": eng_uuid,
+                "validity": {"from": "2026-01-01", "to": None},
+            },
+        )
+
+    def test_edit_engagement_profession_eng_not_terminated(self) -> None:
+        """
+        We test the case where the profession of an engagement
+        (which does not already have an end date) change.
+
+        (see https://redmine.magenta.dk/issues/60402#note-16)
+        """
+
+        # Arrange
+        job_function_uuid = str(uuid.uuid4())
+        eng_uuid = str(uuid.uuid4())
+
+        sd_updater = setup_sd_changed_at()
+        mock_mo_post = MagicMock(
+            return_value=attrdict({"status_code": 200, "text": "response text"}),
+        )
+        sd_updater.morahelper_mock._mo_post = mock_mo_post
+
+        sd_payload_fragment = {
+            "EmploymentIdentifier": "12345",
+            "Profession": {
+                "ActivationDate": "1999-01-01",
+                "DeactivationDate": "9999-12-31",
+                "EmploymentName": "Ninja",
+                "JobPositionIdentifier": "1",
+            },
+        }
+
+        mo_eng = {
+            "uuid": eng_uuid,
+            "validity": {
+                "from": "2000-01-01",
+                "to": None,
+            },
+        }
+
+        sd_updater._fetch_professions = MagicMock(return_value=job_function_uuid)
+
+        # Act
+        sd_updater.edit_engagement_profession(sd_payload_fragment, mo_eng)
+
+        # Assert
+        sd_updater._fetch_professions.assert_called_once_with("1", "1")
+
+        mock_mo_post.assert_called_once_with(
+            "details/edit",
+            {
+                "type": "engagement",
+                "uuid": eng_uuid,
+                "data": {
+                    "job_function": {"uuid": job_function_uuid},
+                    "validity": {"from": "1999-01-01", "to": None},
+                },
+            },
+        )
+
+    def test_edit_engagement_profession_eng_terminated(self) -> None:
+        """
+        We test the case where the profession of an engagement
+        (which already has an end date) change.
+
+        (see https://redmine.magenta.dk/issues/60402#note-16)
+        """
+
+        # Arrange
+        job_function_uuid = str(uuid.uuid4())
+        eng_uuid = str(uuid.uuid4())
+
+        sd_updater = setup_sd_changed_at()
+        sd_updater.use_jpi = False
+        mock_mo_post = MagicMock(
+            return_value=attrdict({"status_code": 200, "text": "response text"}),
+        )
+        sd_updater.morahelper_mock._mo_post = mock_mo_post
+
+        sd_payload_fragment = {
+            "EmploymentIdentifier": "12345",
+            "Profession": {
+                "ActivationDate": "1999-01-01",
+                "DeactivationDate": "9999-12-31",
+                "EmploymentName": "Ninja",
+                "JobPositionIdentifier": "1",
+            },
+        }
+
+        mo_eng = {
+            "uuid": eng_uuid,
+            "validity": {
+                "from": "2000-01-01",
+                "to": "2025-12-31",
+            },
+        }
+
+        sd_updater._fetch_professions = MagicMock(return_value=job_function_uuid)
+
+        # Act
+        sd_updater.edit_engagement_profession(sd_payload_fragment, mo_eng)
+
+        # Assert
+        sd_updater._fetch_professions.assert_called_once_with("Ninja", "1")
+
+        calls = mock_mo_post.call_args_list
+        assert len(calls) == 2
+
+        assert calls[0] == call(
+            "details/edit",
+            {
+                "type": "engagement",
+                "uuid": eng_uuid,
+                "data": {
+                    "job_function": {"uuid": job_function_uuid},
+                    "validity": {"from": "1999-01-01", "to": None},
+                },
+            },
+        )
+
+        assert calls[1] == call(
+            "details/terminate",
+            {
+                "type": "engagement",
+                "uuid": eng_uuid,
+                "validity": {"from": "2026-01-01", "to": None},
+            },
+        )
+
+    def test_edit_engagement_type_eng_terminated(self) -> None:
+        """
+        We test the case where the type of an engagement
+        (which already has an end date) change.
+
+        (see https://redmine.magenta.dk/issues/60402#note-16)
+        """
+
+        # Arrange
+        eng_type_uuid = str(uuid.uuid4())
+        eng_uuid = str(uuid.uuid4())
+
+        sd_updater = setup_sd_changed_at()
+        mock_mo_post = MagicMock(
+            return_value=attrdict({"status_code": 200, "text": "response text"}),
+        )
+        sd_updater.morahelper_mock._mo_post = mock_mo_post
+
+        sd_payload_fragment = {
+            "EmploymentIdentifier": "12345",
+            "Profession": {
+                "ActivationDate": "1999-01-01",
+                "DeactivationDate": "9999-12-31",
+                "EmploymentName": "Ninja",
+                "JobPositionIdentifier": "1",
+            },
+        }
+
+        mo_eng = {
+            "uuid": eng_uuid,
+            "validity": {
+                "from": "2000-01-01",
+                "to": "2025-12-31",
+            },
+        }
+
+        sd_updater.determine_engagement_type = MagicMock(return_value=eng_type_uuid)
+
+        # Act
+        sd_updater.edit_engagement_type(sd_payload_fragment, mo_eng)
+
+        # Assert
+        sd_updater.determine_engagement_type.assert_called_once_with(
+            sd_payload_fragment, "1"
+        )
+
+        calls = mock_mo_post.call_args_list
+        assert len(calls) == 2
+
+        assert calls[0] == call(
+            "details/edit",
+            {
+                "type": "engagement",
+                "uuid": eng_uuid,
+                "data": {
+                    "engagement_type": {"uuid": eng_type_uuid},
+                    "validity": {"from": "1999-01-01", "to": None},
+                },
+            },
+        )
+
+        assert calls[1] == call(
+            "details/terminate",
+            {
+                "type": "engagement",
+                "uuid": eng_uuid,
+                "validity": {"from": "2026-01-01", "to": None},
+            },
+        )
+
+    def test_edit_engagement_type_eng_not_terminated(self) -> None:
+        """
+        We test the case where the type of an engagement
+        (which does not already have an end date) change.
+
+        (see https://redmine.magenta.dk/issues/60402#note-16)
+        """
+
+        # Arrange
+        eng_type_uuid = str(uuid.uuid4())
+        eng_uuid = str(uuid.uuid4())
+
+        sd_updater = setup_sd_changed_at()
+        mock_mo_post = MagicMock(
+            return_value=attrdict({"status_code": 200, "text": "response text"}),
+        )
+        sd_updater.morahelper_mock._mo_post = mock_mo_post
+
+        sd_payload_fragment = {
+            "EmploymentIdentifier": "12345",
+            "Profession": {
+                "ActivationDate": "1999-01-01",
+                "DeactivationDate": "9999-12-31",
+                "EmploymentName": "Ninja",
+                "JobPositionIdentifier": "1",
+            },
+        }
+
+        mo_eng = {
+            "uuid": eng_uuid,
+            "validity": {
+                "from": "2000-01-01",
+                "to": None,
+            },
+        }
+
+        sd_updater.determine_engagement_type = MagicMock(return_value=eng_type_uuid)
+
+        # Act
+        sd_updater.edit_engagement_type(sd_payload_fragment, mo_eng)
+
+        # Assert
+        mock_mo_post.assert_called_once_with(
+            "details/edit",
+            {
+                "type": "engagement",
+                "uuid": eng_uuid,
+                "data": {
+                    "engagement_type": {"uuid": eng_type_uuid},
+                    "validity": {"from": "1999-01-01", "to": None},
+                },
+            },
+        )
+
+    def test_edit_engagement_worktime_eng_terminated(self) -> None:
+        """
+        We test the case where the worktime of an engagement
+        (which already has an end date) change.
+
+        (see https://redmine.magenta.dk/issues/60402#note-16)
+        """
+
+        # Arrange
+        eng_uuid = str(uuid.uuid4())
+
+        sd_updater = setup_sd_changed_at()
+        mock_mo_post = MagicMock(
+            return_value=attrdict({"status_code": 200, "text": "response text"}),
+        )
+        sd_updater.morahelper_mock._mo_post = mock_mo_post
+
+        sd_payload_fragment = {
+            "EmploymentIdentifier": "12345",
+            "WorkingTime": {
+                "ActivationDate": "1999-01-01",
+                "DeactivationDate": "9999-12-31",
+                "OccupationRate": "0.8765",
+            },
+        }
+
+        mo_eng = {
+            "uuid": eng_uuid,
+            "validity": {
+                "from": "2000-01-01",
+                "to": "2025-12-31",
+            },
+        }
+
+        # Act
+        sd_updater.edit_engagement_worktime(sd_payload_fragment, mo_eng)
+
+        # Assert
+        calls = mock_mo_post.call_args_list
+        assert len(calls) == 2
+
+        assert calls[0] == call(
+            "details/edit",
+            {
+                "type": "engagement",
+                "uuid": eng_uuid,
+                "data": {
+                    "fraction": 876500,
+                    "validity": {"from": "1999-01-01", "to": None},
+                },
+            },
+        )
+
+        assert calls[1] == call(
+            "details/terminate",
+            {
+                "type": "engagement",
+                "uuid": eng_uuid,
+                "validity": {"from": "2026-01-01", "to": None},
+            },
+        )
+
+    def test_edit_engagement_worktime_eng_not_terminated(self) -> None:
+        """
+        We test the case where the worktime of an engagement
+        (which does not already have an end date) change.
+
+        (see https://redmine.magenta.dk/issues/60402#note-16)
+        """
+
+        # Arrange
+        eng_uuid = str(uuid.uuid4())
+
+        sd_updater = setup_sd_changed_at()
+        mock_mo_post = MagicMock(
+            return_value=attrdict({"status_code": 200, "text": "response text"}),
+        )
+        sd_updater.morahelper_mock._mo_post = mock_mo_post
+
+        sd_payload_fragment = {
+            "EmploymentIdentifier": "12345",
+            "WorkingTime": {
+                "ActivationDate": "1999-01-01",
+                "DeactivationDate": "9999-12-31",
+                "OccupationRate": "0.8765",
+            },
+        }
+
+        mo_eng = {
+            "uuid": eng_uuid,
+            "validity": {
+                "from": "2000-01-01",
+                "to": None,
+            },
+        }
+
+        # Act
+        sd_updater.edit_engagement_worktime(sd_payload_fragment, mo_eng)
+
+        # Assert
+        mock_mo_post.assert_called_once_with(
+            "details/edit",
+            {
+                "type": "engagement",
+                "uuid": eng_uuid,
+                "data": {
+                    "fraction": 876500,
+                    "validity": {"from": "1999-01-01", "to": None},
+                },
+            },
+        )
