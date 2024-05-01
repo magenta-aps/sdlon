@@ -1802,10 +1802,7 @@ class TestEditEngagementX:
             org_unit_afd_level, "12345", {"from": "1999-01-01", "to": None}, person_uuid
         )
 
-        calls = mock_mo_post.call_args_list
-        assert len(calls) == 1
-
-        assert calls[0] == call(
+        mock_mo_post.assert_called_once_with(
             "details/edit",
             {
                 "type": "engagement",
@@ -1932,10 +1929,7 @@ class TestEditEngagementX:
         # Assert
         sd_updater._fetch_professions.assert_called_once_with("1", "1")
 
-        calls = mock_mo_post.call_args_list
-        assert len(calls) == 1
-
-        assert calls[0] == call(
+        mock_mo_post.assert_called_once_with(
             "details/edit",
             {
                 "type": "engagement",
@@ -2128,10 +2122,7 @@ class TestEditEngagementX:
         sd_updater.edit_engagement_type(sd_payload_fragment, mo_eng)
 
         # Assert
-        calls = mock_mo_post.call_args_list
-        assert len(calls) == 1
-
-        assert calls[0] == call(
+        mock_mo_post.assert_called_once_with(
             "details/edit",
             {
                 "type": "engagement",
@@ -2243,10 +2234,7 @@ class TestEditEngagementX:
         sd_updater.edit_engagement_worktime(sd_payload_fragment, mo_eng)
 
         # Assert
-        calls = mock_mo_post.call_args_list
-        assert len(calls) == 1
-
-        assert calls[0] == call(
+        mock_mo_post.assert_called_once_with(
             "details/edit",
             {
                 "type": "engagement",
