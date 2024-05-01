@@ -1115,8 +1115,8 @@ class Test_sd_changed_at(unittest.TestCase):
             "Profession": [{"JobPositionIdentifier": str(job_position)}],
         }
         status = {
-            "ActivationDate": "",
-            "DeactivationDate": "",
+            "ActivationDate": "2000-01-01",
+            "DeactivationDate": "2100-01-01",
             "EmploymentStatusCode": "",
         }
         cpr = ""

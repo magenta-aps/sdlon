@@ -615,43 +615,6 @@ class ChangeAtSD:
         )
         return compare
 
-    def _validity(self, engagement_info, original_end=None, cut=False):
-        """
-        Extract a validity object from the supplied SD information.
-        If the validity extends outside the current engagment, the
-        change is either refused (by returning None) or cut to the
-        length of the current engagment.
-        :param engagement_info: The SD object to extract from.
-        :param orginal_end: The engagment end to compare with.
-        :param cut: If True the returned validity will cut to fit
-        rather than rejeted, if the validity is too long.
-        :return: A validity dict suitable for a MO payload. None if
-        the change is rejected.
-        """
-        from_date = engagement_info["ActivationDate"]
-        to_date = engagement_info["DeactivationDate"]
-
-        if original_end is not None:
-            edit_from = datetime.datetime.strptime(from_date, "%Y-%m-%d")
-            edit_end = datetime.datetime.strptime(to_date, "%Y-%m-%d")
-            eng_end = datetime.datetime.strptime(original_end, "%Y-%m-%d")
-            if edit_from >= eng_end:
-                logger.info("This edit starts after the end of the engagement")
-                return None
-
-            if edit_end > eng_end:
-                if cut:
-                    to_date = datetime.datetime.strftime(eng_end, "%Y-%m-%d")
-                else:
-                    logger.info("This edit would have extended outside engagement")
-                    return None
-
-        if to_date == "9999-12-31":
-            to_date = None
-        validity = {"from": from_date, "to": to_date}
-
-        return validity
-
     def _refresh_mo_engagements(self, person_uuid):
         self.mo_engagements_cache.pop(person_uuid, None)
 
@@ -784,7 +747,7 @@ class ChangeAtSD:
             person_uuid,
             str(self.leave_uuid),
             employment_id,
-            self._validity(status),
+            sd_to_mo_validity(status),
         )
 
         logger.debug("Create leave (details/create)", payload=payload)
@@ -875,7 +838,7 @@ class ChangeAtSD:
         # one element in the professions list
         job_position = engagement_info["professions"][0]["JobPositionIdentifier"]
 
-        validity = self._validity(status)
+        validity = sd_to_mo_validity(status)
         also_edit = False
         if (
             len(engagement_info["professions"]) > 1
@@ -1203,7 +1166,7 @@ class ChangeAtSD:
     def _set_non_primary(self, status, mo_eng):
         logger.debug("Setting non-primary for engagement", uuid=mo_eng["uuid"])
 
-        validity = self._validity(status)
+        validity = sd_to_mo_validity(status)
         logger.debug("Validity for edit", validity=validity)
 
         data = {
