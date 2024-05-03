@@ -48,18 +48,18 @@ def log_payload(
 def get_status() -> RunDBState:
     try:
         Session.configure(bind=get_engine())
-        session = Session()
-        statement = select(Runs.status).order_by(desc(Runs.id)).limit(1)
-        status = session.execute(statement).scalar_one_or_none()
+        with Session() as session:
+            statement = select(Runs.status).order_by(desc(Runs.id)).limit(1)
+            status = session.execute(statement).scalar_one_or_none()
 
-        # status is only "None" the very first time the application is run
-        # and should in this case return "COMPLETED" in order to not abort
-        # the run when get_status() is called.
-        if status == RunDBState.RUNNING.value:
-            return RunDBState.RUNNING
-        if status == RunDBState.COMPLETED.value or status is None:
-            return RunDBState.COMPLETED
-        return RunDBState.UNKNOWN
+            # status is only "None" the very first time the application is run
+            # and should in this case return "COMPLETED" in order to not abort
+            # the run when get_status() is called.
+            if status == RunDBState.RUNNING.value:
+                return RunDBState.RUNNING
+            if status == RunDBState.COMPLETED.value or status is None:
+                return RunDBState.COMPLETED
+            return RunDBState.UNKNOWN
     except Exception as error:
         logger.error("Could not get RunDB status!", error=error)
         return RunDBState.UNKNOWN
@@ -67,28 +67,27 @@ def get_status() -> RunDBState:
 
 def persist_status(from_date: datetime, to_date: datetime, status: RunDBState) -> None:
     Session.configure(bind=get_engine())
-    session = Session()
-    run = Runs(from_date=from_date, to_date=to_date, status=status.value)
-    session.add(run)
-    session.commit()
+    with Session() as session:
+        run = Runs(from_date=from_date, to_date=to_date, status=status.value)
+        session.add(run)
+        session.commit()
 
 
 def get_run_db_from_date() -> datetime:
     Session.configure(bind=get_engine())
-    session = Session()
-    # Note: we use the last to_date as the new from_date
-    statement = select(Runs.to_date).order_by(desc(Runs.id)).limit(1)
-    from_date = session.execute(statement).scalar_one_or_none()
-    return from_date
+    with Session() as session:
+        # Note: we use the last to_date as the new from_date
+        statement = select(Runs.to_date).order_by(desc(Runs.id)).limit(1)
+        from_date = session.execute(statement).scalar_one_or_none()
+        return from_date
 
 
 def delete_last_run() -> None:
     Session.configure(bind=get_engine())
-    session = Session()
+    with Session() as session:
+        statement = select(Runs.id).order_by(desc(Runs.id)).limit(1)
+        last_run_id = session.execute(statement).scalar_one_or_none()
 
-    statement = select(Runs.id).order_by(desc(Runs.id)).limit(1)
-    last_run_id = session.execute(statement).scalar_one_or_none()
-
-    statement = delete(Runs).where(Runs.id == last_run_id)
-    session.execute(statement)
-    session.commit()
+        statement = delete(Runs).where(Runs.id == last_run_id)
+        session.execute(statement)
+        session.commit()
