@@ -5,7 +5,7 @@ from sqlalchemy import create_engine, desc, select
 from sqlalchemy.orm import Session
 
 from db.models import Base, Runs
-from db.queries import get_run_db_from_date
+from db.queries import get_run_db_from_date, delete_last_run
 from db.queries import get_status
 from db.queries import persist_status
 from sdlon.metrics import RunDBState
@@ -97,3 +97,24 @@ def test_get_run_db_from_date(mock_get_engine: MagicMock):
 
     # Assert
     assert actual_from_date == to_date
+
+
+@patch("db.queries.get_engine")
+def test_delete_last_run(mock_get_engine: MagicMock) -> None:
+    # Arrange
+    engine = create_engine("sqlite:///:memory:")
+    mock_get_engine.return_value = engine
+
+    Base.metadata.tables["runs"].create(bind=engine)
+    from_date = datetime(2000, 1, 1, 12, 0, 0)
+    to_date = datetime(2001, 1, 1, 12, 0, 0)
+
+    persist_status(from_date, to_date, RunDBState.COMPLETED)
+    persist_status(from_date, to_date, RunDBState.RUNNING)
+
+    # Act
+    delete_last_run()
+
+    # Assert
+    status = get_status()
+    assert status == RunDBState.COMPLETED

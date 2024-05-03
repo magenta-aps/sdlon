@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, delete
 from sqlalchemy.orm import sessionmaker
 
 from sdlon.log import get_logger
@@ -80,3 +80,15 @@ def get_run_db_from_date() -> datetime:
     statement = select(Runs.to_date).order_by(desc(Runs.id)).limit(1)
     from_date = session.execute(statement).scalar_one_or_none()
     return from_date
+
+
+def delete_last_run() -> None:
+    Session.configure(bind=get_engine())
+    session = Session()
+
+    statement = select(Runs.id).order_by(desc(Runs.id)).limit(1)
+    last_run_id = session.execute(statement).scalar_one_or_none()
+
+    statement = delete(Runs).where(Runs.id == last_run_id)
+    session.execute(statement)
+    session.commit()
