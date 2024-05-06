@@ -85,8 +85,12 @@ def get_run_db_from_date() -> datetime:
 def delete_last_run() -> None:
     Session.configure(bind=get_engine())
     with Session() as session:
-        statement = select(Runs.id).order_by(desc(Runs.id)).limit(1)
-        last_run_id = session.execute(statement).scalar_one_or_none()
+        statement = select(Runs.id, Runs.status).order_by(desc(Runs.id)).limit(1)
+        last_run_id, status = session.execute(statement).fetchone()
+
+        if status == RunDBState.COMPLETED:
+            logger.warning("Last status is 'COMPLETED': No op")
+            return
 
         statement = delete(Runs).where(Runs.id == last_run_id)
         session.execute(statement)

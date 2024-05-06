@@ -118,3 +118,25 @@ def test_delete_last_run(mock_get_engine: MagicMock) -> None:
     # Assert
     status = get_status()
     assert status == RunDBState.COMPLETED
+
+
+@patch("db.queries.get_engine")
+def test_delete_last_run_no_op(
+    mock_get_engine: MagicMock,
+) -> None:
+    # Arrange
+    engine = create_engine("sqlite:///:memory:")
+    mock_get_engine.return_value = engine
+
+    Base.metadata.tables["runs"].create(bind=engine)
+    from_date = datetime(2000, 1, 1, 12, 0, 0)
+    to_date = datetime(2001, 1, 1, 12, 0, 0)
+
+    persist_status(from_date, to_date, RunDBState.COMPLETED)
+
+    # Act
+    delete_last_run()
+
+    # Assert
+    status = get_status()
+    assert status == RunDBState.COMPLETED
