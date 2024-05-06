@@ -8,7 +8,7 @@ from fastapi import Response
 from prometheus_fastapi_instrumentator import Instrumentator
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 
-from db.queries import get_status
+from db.queries import get_status, delete_last_run
 from .config import get_settings
 from .fix_departments import FixDepartments
 from .log import get_logger
@@ -33,6 +33,11 @@ def create_app(**kwargs) -> FastAPI:
     @app.get("/")
     async def index() -> dict[str, str]:
         return {"name": "sdlon"}
+
+    @app.post("/rundb/delete-last-run")
+    def rundb_delete_last_run():
+        delete_last_run()
+        return {"msg": "Last run deleted"}
 
     @app.post("/trigger")
     async def trigger() -> dict[str, str]:
