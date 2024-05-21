@@ -30,7 +30,6 @@ from .log import get_logger
 from .sd_changed_at import ChangeAtSD
 from .sd_common import EmploymentStatus
 from .sd_common import mora_assert
-from .sd_common import primary_types
 from .sd_common import sd_lookup
 
 
@@ -100,14 +99,8 @@ def fixup(ctx, mo_employees):
     def fetch_mo_engagements(mo_employee) -> dict:
         mo_uuid = mo_employee["uuid"]
         mo_engagements = mora_helper.read_user_engagement(user=mo_uuid, read_all=True)
-        no_salary_mo_engagements = list(
-            filter(
-                lambda mo_engagement: mo_engagement["primary"]["user_key"] == "status0",
-                mo_engagements,
-            )
-        )
-        mo_salary_userkeys = map(itemgetter("user_key"), no_salary_mo_engagements)
-        mo_dict = dict(zip(mo_salary_userkeys, no_salary_mo_engagements))
+        userkeys = map(itemgetter("user_key"), mo_engagements)
+        mo_dict = dict(zip(userkeys, mo_engagements))
         return mo_dict
 
     def fetch_sd_employments(mo_employee):
@@ -145,13 +138,11 @@ def fixup(ctx, mo_employees):
         print("Fixing", key)
         data = {
             "validity": mo_engagement["validity"],
-            "primary": {"uuid": primary["non_primary"]},
         }
         payload = sd_payloads.engagement(data, mo_engagement)
         return payload
 
     mora_helper = ctx["mora_helper"]
-    primary = primary_types(mora_helper)
 
     if ctx["progress"]:
         mo_employees = tqdm(mo_employees, unit="Employee")

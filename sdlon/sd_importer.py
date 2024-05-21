@@ -7,9 +7,10 @@
 import datetime
 import uuid
 from operator import itemgetter
-from typing import Any, OrderedDict
+from typing import Any
 from typing import Dict
 from typing import Optional
+from typing import OrderedDict
 from uuid import uuid4
 
 import click
@@ -19,12 +20,10 @@ from integrations.ad_integration import ad_reader
 from os2mo_data_import import ImportHelper
 from os2mo_helpers.mora_helpers import MoraHelper
 
-from sdlon.log import get_logger
-from sdlon.log import LogLevel
-from sdlon.log import setup_logging
 from .config import get_settings
 from .config import Settings
-from .date_utils import format_date, date_to_datetime
+from .date_utils import date_to_datetime
+from .date_utils import format_date
 from .date_utils import get_employment_datetimes
 from .date_utils import parse_datetime
 from .models import JobFunction
@@ -35,6 +34,9 @@ from .sd_common import generate_uuid
 from .sd_common import read_employment_at
 from .sd_common import sd_lookup
 from .skip import skip_fictional_users
+from sdlon.log import get_logger
+from sdlon.log import LogLevel
+from sdlon.log import setup_logging
 
 
 HISTORIC = "historic"
@@ -147,7 +149,6 @@ class SdImport:
             ],
             "primary_type": [
                 ("Ansat", "Ansat", "3000"),
-                ("status0", "Ansat - Ikke i løn", "1000"),
                 ("non-primary", "Ikke-primær ansættelse", "0"),
                 ("explicitly-primary", "Manuelt primær ansættelse", "5000"),
             ],
@@ -711,11 +712,6 @@ class SdImport:
                 )
                 logger.info("Non-numeric id. Job pos id: {}".format(job_position_id))
 
-            primary_type_ref = "non-primary"
-            # If status 0, uncondtionally override
-            if status == EmploymentStatus.AnsatUdenLoen:
-                primary_type_ref = "status0"
-
             job_function_type = self.settings.sd_job_function
             if job_function_type == JobFunction.employment_name:
                 job_func_ref = self._add_klasse(
@@ -786,7 +782,6 @@ class SdImport:
                 organisation_unit=unit,
                 job_function_ref=job_func_ref,
                 fraction=int(occupation_rate * 1000000),
-                primary_ref=primary_type_ref,
                 engagement_type_ref=engagement_type_ref,
                 date_from=date_from_str,
                 date_to=date_to_str,
