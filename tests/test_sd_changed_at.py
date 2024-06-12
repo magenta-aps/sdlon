@@ -1535,11 +1535,6 @@ def test_read_forced_uuid_use_empty_dict():
     assert sd_updater.employee_forced_uuids == dict()
 
 
-def test_updater_field_is_none_when_primary_engagement_calc_disabled():
-    sd_updater = setup_sd_changed_at({"sd_update_primary_engagement": False})
-    assert sd_updater.updater is None
-
-
 @pytest.mark.parametrize(
     "too_deep,expected_target_ou",
     [

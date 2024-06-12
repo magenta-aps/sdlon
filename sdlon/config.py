@@ -84,7 +84,6 @@ class Settings(BaseSettings):  # type: ignore
     sd_exclude_cprs_mode: bool = True
 
     sd_read_forced_uuids: bool = True
-    sd_update_primary_engagement: bool = True
 
     sd_skip_leave_creation_if_no_engagement: bool = False
 

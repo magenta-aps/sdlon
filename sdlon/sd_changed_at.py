@@ -24,8 +24,7 @@ import sentry_sdk
 from fastapi.encoders import jsonable_encoder
 from integrations import cpr_mapper
 from integrations.ad_integration import ad_reader
-from integrations.calculate_primary.common import NoPrimaryFound
-from integrations.calculate_primary.sd import SDPrimaryEngagementUpdater
+
 from more_itertools import last
 from more_itertools import one
 from more_itertools import partition
@@ -124,11 +123,6 @@ class ChangeAtSD:
             logger.exception("Could not read MO organization", error=e)
             exit()
 
-        self.updater = (
-            self._get_primary_engagement_updater()
-            if self.settings.sd_update_primary_engagement
-            else None
-        )
         self.from_date = from_date
         self.to_date = to_date
 
@@ -179,12 +173,6 @@ class ChangeAtSD:
             settings.mora_base,
             5,
         )
-
-    def _get_primary_types(self, mora_helper: MoraHelper):
-        return primary_types(mora_helper)
-
-    def _get_primary_engagement_updater(self) -> SDPrimaryEngagementUpdater:
-        return SDPrimaryEngagementUpdater()
 
     def _get_fix_departments(self) -> FixDepartments:
         return FixDepartments(self.settings, self.dry_run)
@@ -1420,20 +1408,6 @@ class ChangeAtSD:
 
             # Re-calculate primary after all updates for user has been performed.
             recalculate_users.add(person_uuid)
-
-        if self.updater is None:
-            return
-
-        logger.info("Beginning recalculation of all users...")
-        for user_uuid in recalculate_users:
-            logger.debug("Recalculate user", user_uuid=user_uuid)
-            if not self.dry_run:
-                try:
-                    self.updater.recalculate_user(user_uuid)
-                except NoPrimaryFound:
-                    logger.warning(
-                        "Could not find primary for user", user_uuid=user_uuid
-                    )
 
     def _re_terminate_engagement(self, mo_eng: dict[str, Any]) -> None:
         """
