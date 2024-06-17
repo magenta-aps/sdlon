@@ -2,7 +2,8 @@ import datetime
 import pathlib
 import sys
 import uuid
-from functools import lru_cache, partial
+from functools import lru_cache
+from functools import partial
 from itertools import tee
 from operator import itemgetter
 from typing import Any
@@ -24,7 +25,6 @@ import sentry_sdk
 from fastapi.encoders import jsonable_encoder
 from integrations import cpr_mapper
 from integrations.ad_integration import ad_reader
-
 from more_itertools import last
 from more_itertools import one
 from more_itertools import partition
@@ -34,32 +34,18 @@ from prometheus_client import Gauge
 from ramodels.mo import Employee
 from ramodels.mo._shared import OrganisationRef
 
-from db.queries import get_run_db_from_date
-from db.queries import get_status
-from db.queries import persist_status
-from sdlon.employees import get_employee
-from sdlon.exceptions import PreviousRunNotCompletedError
-from sdlon.graphql import get_mo_client
-from sdlon.it_systems import (
-    get_sd_to_ad_it_system_uuid,
-    get_employee_it_systems,
-    add_it_system_to_employee,
-)
-from sdlon.log import anonymize_cpr
-from sdlon.log import get_logger
-from sdlon.log import setup_logging
-from sdlon.metrics import dipex_last_success_timestamp
-from sdlon.metrics import sd_changed_at_state
-from sdlon.metrics import RunDBState
-from sdlon.sd_to_pydantic import convert_to_sd_base_person
 from . import sd_payloads
-from .config import Settings
 from .config import get_settings
-from .date_utils import date_to_datetime, parse_datetime, format_date, sd_to_mo_validity
+from .config import Settings
+from .date_utils import date_to_datetime
+from .date_utils import format_date
 from .date_utils import gen_date_intervals
+from .date_utils import parse_datetime
 from .date_utils import sd_to_mo_date
-from .engagement import create_engagement, filtered_professions
+from .date_utils import sd_to_mo_validity
+from .engagement import create_engagement
 from .engagement import engagement_components
+from .engagement import filtered_professions
 from .engagement import (
     is_employment_id_and_no_salary_minimum_consistent,
 )
@@ -72,11 +58,26 @@ from .sd_common import calc_employment_id
 from .sd_common import EmploymentStatus
 from .sd_common import ensure_list
 from .sd_common import mora_assert
-from .sd_common import primary_types
 from .sd_common import sd_lookup
-from .skip import skip_fictional_users
 from .skip import cpr_env_filter
+from .skip import skip_fictional_users
 from .sync_job_id import JobIdSync
+from db.queries import get_run_db_from_date
+from db.queries import get_status
+from db.queries import persist_status
+from sdlon.employees import get_employee
+from sdlon.exceptions import PreviousRunNotCompletedError
+from sdlon.graphql import get_mo_client
+from sdlon.it_systems import add_it_system_to_employee
+from sdlon.it_systems import get_employee_it_systems
+from sdlon.it_systems import get_sd_to_ad_it_system_uuid
+from sdlon.log import anonymize_cpr
+from sdlon.log import get_logger
+from sdlon.log import setup_logging
+from sdlon.metrics import dipex_last_success_timestamp
+from sdlon.metrics import RunDBState
+from sdlon.metrics import sd_changed_at_state
+from sdlon.sd_to_pydantic import convert_to_sd_base_person
 
 
 DUMMY_CPR = "0000000000"
@@ -128,8 +129,6 @@ class ChangeAtSD:
 
         # Cache of mo engagements
         self.mo_engagements_cache: Dict[str, list] = {}
-
-        self.primary_types = self._get_primary_types(self.helper)
 
         logger.info("Read job_functions")
         facet_info = self.helper.read_classes_in_facet("engagement_job_function")
@@ -854,10 +853,6 @@ class ChangeAtSD:
         if self.use_jpi:
             job_function = job_position
 
-        primary = self.primary_types["non_primary"]
-        if status["EmploymentStatusCode"] == "0":
-            primary = self.primary_types["no_salary"]
-
         engagement_type = self.determine_engagement_type(engagement, job_position)
         if engagement_type is None:
             return False
@@ -874,7 +869,6 @@ class ChangeAtSD:
             person_uuid=person_uuid,
             job_function=job_function_uuid,
             engagement_type=engagement_type,
-            primary=primary,
             user_key=user_key,
             engagement_info=engagement_info,
             validity=validity,
@@ -1151,23 +1145,6 @@ class ChangeAtSD:
 
             self._re_terminate_engagement(mo_eng)
 
-    def _set_non_primary(self, status, mo_eng):
-        logger.debug("Setting non-primary for engagement", uuid=mo_eng["uuid"])
-
-        validity = sd_to_mo_validity(status)
-        logger.debug("Validity for edit", validity=validity)
-
-        data = {
-            "primary": {"uuid": self.primary_types["non_primary"]},
-            "validity": validity,
-        }
-        payload = sd_payloads.engagement(data, mo_eng)
-        logger.debug("Setting non-primary payload (details/edit)", payload=payload)
-
-        if not self.dry_run:
-            response = self.helper._mo_post("details/edit", payload)
-            mora_assert(response)
-
     def edit_engagement(self, engagement, person_uuid):
         """
         Edit an engagement
@@ -1267,7 +1244,6 @@ class ChangeAtSD:
                 mo_eng = self._find_engagement(employment_id, person_uuid)
                 if mo_eng:
                     logger.info("Found MO engagement", eng_uuid=mo_eng["uuid"])
-                    self._set_non_primary(status, mo_eng)
                     self._refresh_mo_engagements(person_uuid)
                     self.edit_engagement(sd_employment, person_uuid)
                 else:

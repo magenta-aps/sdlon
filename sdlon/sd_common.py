@@ -12,11 +12,11 @@ from typing import Union
 
 import requests
 import xmltodict
-from db.queries import log_payload
 from ra_utils.load_settings import load_settings
 
 from .config import Settings
 from .log import get_logger
+from db.queries import log_payload
 
 logger = get_logger()
 
@@ -146,65 +146,6 @@ def generate_uuid(value, org_id_prefix, org_name=None):
     return value_uuid
 
 
-def primary_types(helper):
-    """
-    Read the engagement types from MO and match them up against the four
-    known types in the SD->MO import.
-
-    Args:
-        helper: An instance of mora-helpers.
-
-    Returns:
-        A dict matching up the engagement types with LoRa class uuids (
-        i.e. UUIDs of facets).
-
-    Example:
-        An example return value:
-        ```python
-        {
-            "primary": "697c8838-ba0f-4e74-90f8-4e7c31d4e7e7",
-            "non_primary": "b9543f90-9511-494b-bbf5-f15678502c2d",
-            "no_salary": "88589e84-5736-4f8c-9c0c-2e29046d7471",
-            "fixed_primary": "c95a1999-9f95-4458-a218-e9c96e7ad3db",
-        }
-        ```
-    """
-
-    # These constants are global in all SD municipalities (because they are created
-    # by the SD->MO importer.
-    PRIMARY = "Ansat"
-    NO_SALARY = "status0"
-    NON_PRIMARY = "non-primary"
-    FIXED_PRIMARY = "explicitly-primary"
-
-    logger.info("Read primary types")
-    primary = None
-    no_salary = None
-    non_primary = None
-    fixed_primary = None
-
-    primary_types = helper.read_classes_in_facet("primary_type")
-    for primary_type in primary_types[0]:
-        if primary_type["user_key"] == PRIMARY:
-            primary = primary_type["uuid"]
-        if primary_type["user_key"] == NON_PRIMARY:
-            non_primary = primary_type["uuid"]
-        if primary_type["user_key"] == NO_SALARY:
-            no_salary = primary_type["uuid"]
-        if primary_type["user_key"] == FIXED_PRIMARY:
-            fixed_primary = primary_type["uuid"]
-
-    type_uuids = {
-        "primary": primary,
-        "non_primary": non_primary,
-        "no_salary": no_salary,
-        "fixed_primary": fixed_primary,
-    }
-    if None in type_uuids.values():
-        raise Exception("Missing primary types: {}".format(type_uuids))
-    return type_uuids
-
-
 class EmploymentStatus(Enum):
     """Corresponds to EmploymentStatusCode from SD.
 
@@ -224,7 +165,9 @@ class EmploymentStatus(Enum):
     guarantees given.
     """
 
-    # This status most likely represent not yet being at work
+    # This status represent not yet being at work
+    # It is treated as a regular engagement to ensure all it-accounts can be
+    # ready for when the engagement starts
     AnsatUdenLoen = "0"
 
     # These statusses represent being at work

@@ -101,7 +101,7 @@ def get_sd_importer(
     assert sd.importer.klassifikation[1].date_to == "infinity"
 
     # 29 classes exist hardcoded within sd_importer.py
-    assert len(sd.importer.klasse_objects) == 30
+    assert len(sd.importer.klasse_objects) == 29
 
     # 18 facets in os2mo_data_import/defaults.py
     assert len(sd.importer.facet_objects) == 18
@@ -238,7 +238,7 @@ def test_create_employee(create_associations: bool):
     assert engagement.date_to is None
     assert engagement.user_key == "TEST123"
     assert engagement.fraction == 1000000
-    assert engagement.primary_ref == "non-primary"
+    assert engagement.primary_ref == None
     assert engagement.org_unit_ref == org_unit_uuid
     assert engagement.type_ref == "engagement_typejob_id_123"
     assert engagement.job_function_ref == "job_id_123"

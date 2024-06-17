@@ -714,7 +714,6 @@ class Test_sd_changed_at(unittest.TestCase):
                 "org_unit": {"uuid": "department_uuid"},
                 "person": {"uuid": "user_uuid"},
                 "job_function": {"uuid": "new_profession_uuid"},
-                "primary": {"uuid": "non_primary_uuid"},
                 "engagement_type": {"uuid": engagement_type},
                 "user_key": employment_id,
                 "fraction": 0,
@@ -1023,20 +1022,9 @@ class Test_sd_changed_at(unittest.TestCase):
 
         sd_updater.update_all_employments()
         # We expect the exact following 4 calls to have been made
-        self.assertEqual(len(_mo_post.mock_calls), 5)
+        self.assertEqual(len(_mo_post.mock_calls), 4)
         _mo_post.assert_has_calls(
             [
-                call(
-                    "details/edit",
-                    {
-                        "type": "engagement",
-                        "uuid": "mo_engagement_uuid",
-                        "data": {
-                            "validity": {"from": "2020-11-10", "to": "2021-02-09"},
-                            "primary": {"uuid": "non_primary_uuid"},
-                        },
-                    },
-                ),
                 call(
                     "details/edit",
                     {
@@ -1343,7 +1331,6 @@ class Test_sd_changed_at(unittest.TestCase):
                 "job_function": {"uuid": "new_class_uuid"},
                 "org_unit": {"uuid": "org_unit_uuid"},
                 "person": {"uuid": "person_uuid"},
-                "primary": {"uuid": "primary_uuid"},
                 "type": "engagement",
                 "user_key": "emp_id",
                 "validity": {"from": "2020-11-10", "to": "2021-02-09"},

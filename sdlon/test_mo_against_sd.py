@@ -39,7 +39,7 @@ class TestMOAgainstSd(object):
         )
         # TODO, we should also consider to check for actual date_values.
         # This would need a loop that finds the entire validity of the engagement
-        if status in EmploymentStatus.on_payroll():
+        if status in EmploymentStatus.employeed():
             # Check that MO agrees that the engagement is active
             is_ok = (
                 mo_engagement["validity"]["from"]
@@ -53,20 +53,8 @@ class TestMOAgainstSd(object):
             is_ok = mo_engagement["validity"]["to"] < self.date
             # If false, should have been terminated
             return "dates_past", is_ok
-        if status == EmploymentStatus.AnsatUdenLoen:
-            return "status0", True
         msg = "Unhandled status, fix this program: " + str(status)
         raise NotImplementedError(msg)
-
-    def _compare_salary(self, sd_employment, mo_engagement):
-        """Check salary status for discrepancies."""
-        mo_no_salary = mo_engagement["primary"]["user_key"] == "status0"
-        sd_status = EmploymentStatus(
-            sd_employment["EmploymentStatus"]["EmploymentStatusCode"]
-        )
-        sd_no_salary = sd_status == EmploymentStatus.AnsatUdenLoen
-        is_ok = mo_no_salary == sd_no_salary
-        return "salary", is_ok
 
     def _compare_job_function(self, sd_employment, mo_engagement):
         """Check job function for discrepancies."""
