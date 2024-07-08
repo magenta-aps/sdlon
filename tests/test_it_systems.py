@@ -1,21 +1,18 @@
 from datetime import date
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
+from unittest.mock import patch
 from uuid import UUID
 
+from sdlon.it_systems import add_it_system_to_employee
+from sdlon.it_systems import get_employee_it_systems
+from sdlon.it_systems import get_sd_to_ad_it_system_uuid
+from sdlon.it_systems import MUTATION_ADD_IT_SYSTEM_TO_EMPLOYEE
+from sdlon.it_systems import QUERY_GET_EMPLOYEE_IT_SYSTEMS
+from sdlon.it_systems import QUERY_GET_SD_TO_AD_IT_SYSTEM_UUID
 from sdlon.models import ITUserSystem
-from tests.fixtures import mock_graphql_client
-
-from sdlon.it_systems import (
-    get_sd_to_ad_it_system_uuid,
-    QUERY_GET_SD_TO_AD_IT_SYSTEM_UUID,
-    get_employee_it_systems,
-    QUERY_GET_EMPLOYEE_IT_SYSTEMS,
-    add_it_system_to_employee,
-    MUTATION_ADD_IT_SYSTEM_TO_EMPLOYEE,
-)
 
 
-def test_get_sd_to_ad_it_system_uuid(mock_graphql_client: MagicMock) -> None:
+def test_get_sd_to_ad_it_system_uuid(mock_graphql_client) -> None:
     # Arrange
     mock_execute = MagicMock(
         return_value={
@@ -37,7 +34,7 @@ def test_get_sd_to_ad_it_system_uuid(mock_graphql_client: MagicMock) -> None:
     assert it_system_uuid == UUID("988dead8-7564-464a-8339-b7057bfa2665")
 
 
-def test_get_employee_it_systems(mock_graphql_client: MagicMock) -> None:
+def test_get_employee_it_systems(mock_graphql_client) -> None:
     # Arrange
     mock_execute = MagicMock(
         return_value={
@@ -92,7 +89,7 @@ def test_get_employee_it_systems(mock_graphql_client: MagicMock) -> None:
 @patch("sdlon.it_systems.date")
 def test_add_it_system_to_employee(
     mock_date: MagicMock,
-    mock_graphql_client: MagicMock,
+    mock_graphql_client,
 ) -> None:
     # Arrange
     mock_execute = MagicMock()

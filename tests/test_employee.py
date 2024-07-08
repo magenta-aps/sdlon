@@ -1,12 +1,12 @@
 from unittest.mock import MagicMock
 from uuid import UUID
 
-from sdlon.employees import get_employee, QUERY_GET_EMPLOYEE
+from sdlon.employees import get_employee
+from sdlon.employees import QUERY_GET_EMPLOYEE
 from sdlon.models import MOBasePerson
-from tests.fixtures import mock_graphql_client
 
 
-def test_get_employee(mock_graphql_client: MagicMock):
+def test_get_employee(mock_graphql_client):
     # Arrange
     mock_execute = MagicMock(
         return_value={

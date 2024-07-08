@@ -1,6 +1,5 @@
 # SPDX-FileCopyrightText: Magenta ApS
 # SPDX-License-Identifier: MPL-2.0
-
 """Add RunDB
 
 Revision ID: 07807c92dcd2
@@ -12,6 +11,7 @@ from typing import Sequence
 from typing import Union
 
 import sqlalchemy as sa
+
 from alembic import op
 
 

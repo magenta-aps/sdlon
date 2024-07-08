@@ -1,13 +1,17 @@
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
+from datetime import timedelta
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
 import click
-from more_itertools import one, only
+from more_itertools import one
+from more_itertools import only
 from pydantic import ValidationError
 
-from sdlon.log import setup_logging, LogLevel, anonymize_cpr
+from sdlon.log import anonymize_cpr
+from sdlon.log import LogLevel
+from sdlon.log import setup_logging
 from sdlon.mo import MO
 from sdlon.sd import SD
 
@@ -22,7 +26,7 @@ REGEX_INT = re.compile("[0-9]{5}")
     type=click.STRING,
     envvar="SD_USER",
     required=True,
-    help="SD username"
+    help="SD username",
 )
 @click.option(
     "--password",
@@ -30,7 +34,7 @@ REGEX_INT = re.compile("[0-9]{5}")
     type=click.STRING,
     envvar="SD_PASSWORD",
     required=True,
-    help="SD password"
+    help="SD password",
 )
 @click.option(
     "--institution-identifier",
@@ -38,7 +42,7 @@ REGEX_INT = re.compile("[0-9]{5}")
     type=click.STRING,
     envvar="SD_INSTITUTION_IDENTIFIER",
     required=True,
-    help="SD institution identifier"
+    help="SD institution identifier",
 )
 @click.option(
     "--auth-server",
@@ -46,7 +50,7 @@ REGEX_INT = re.compile("[0-9]{5}")
     type=click.STRING,
     envvar="AUTH_SERVER",
     default="http://localhost:8090/auth",
-    help="Keycloak auth server URL"
+    help="Keycloak auth server URL",
 )
 @click.option(
     "--client-id",
@@ -54,7 +58,7 @@ REGEX_INT = re.compile("[0-9]{5}")
     type=click.STRING,
     default="dipex",
     envvar="CLIENT_ID",
-    help="Keycloak client id"
+    help="Keycloak client id",
 )
 @click.option(
     "--client-secret",
@@ -62,7 +66,7 @@ REGEX_INT = re.compile("[0-9]{5}")
     type=click.STRING,
     required=True,
     envvar="CLIENT_SECRET",
-    help="Keycloak client secret for the DIPEX client"
+    help="Keycloak client secret for the DIPEX client",
 )
 @click.option(
     "--mo-base-url",
@@ -70,7 +74,7 @@ REGEX_INT = re.compile("[0-9]{5}")
     type=click.STRING,
     default="http://localhost:5000",
     envvar="MO_URL",
-    help="Base URL for calling MO"
+    help="Base URL for calling MO",
 )
 def main(
     username: str,
@@ -88,7 +92,7 @@ def main(
 
     now = datetime.now(tz=ZoneInfo("Europe/Copenhagen"))
 
-    sd_employments = sd.get_sd_employments(datetime.now())
+    # sd_employments = sd.get_sd_employments(datetime.now())
     engagements = mo.get_engagements()
 
     for count, eng in enumerate(engagements):
@@ -105,17 +109,21 @@ def main(
             cpr: str = person["cpr_number"]
             mo_emp_uuid: str = person["uuid"]
             user_key: str = validity["user_key"]
-            mo_from_date: datetime = datetime.fromisoformat(validity["validity"]["from"])
+            mo_from_date: datetime = datetime.fromisoformat(
+                validity["validity"]["from"]
+            )
             mo_to_date: str = validity["validity"]["to"]
             # UUID of the employee who is manager
             managers = only(org_unit["managers"])
-
 
             # print(f"Processing {cpr}...")
 
             if not REGEX_INT.match(user_key):
                 continue
-            if managers is not None and one(managers["employee"])["uuid"] == mo_emp_uuid:
+            if (
+                managers is not None
+                and one(managers["employee"])["uuid"] == mo_emp_uuid
+            ):
                 continue
 
             lookup_datetime = max(now, mo_from_date + timedelta(days=1))
@@ -124,11 +132,13 @@ def main(
                 sd_emp_resp = sd.get_sd_employments(
                     effective_date=lookup_datetime.date(),
                     cpr=cpr,
-                    employment_identifier=user_key
+                    employment_identifier=user_key,
                 )
                 employment = one(one(sd_emp_resp.Person).Employment)
-            except (ValidationError,  ValueError):
-                print(f"{str(mo_emp_uuid)} {anonymize_cpr(cpr)} {user_key} {mo_from_date.isoformat()} {mo_to_date} {mo_ou_uuid} Not found in SD! Terminating")
+            except (ValidationError, ValueError):
+                print(
+                    f"{str(mo_emp_uuid)} {anonymize_cpr(cpr)} {user_key} {mo_from_date.isoformat()} {mo_to_date} {mo_ou_uuid} Not found in SD! Terminating"  # noqa
+                )
                 mo.terminate_engagement(eng_uuid, now)
                 print("Terminated")
                 continue
@@ -138,11 +148,15 @@ def main(
             sd_dep_uuid = employment.EmploymentDepartment.DepartmentUUIDIdentifier
 
             if not mo_ou_uuid == str(sd_dep_uuid):
-                print(f"{str(mo_emp_uuid)} {anonymize_cpr(cpr)} {user_key} {mo_from_date.isoformat()} {mo_to_date} {mo_ou_uuid} {sd_from_date} {sd_to_date} {str(sd_dep_uuid)}")
+                print(
+                    f"{str(mo_emp_uuid)} {anonymize_cpr(cpr)} {user_key} {mo_from_date.isoformat()} {mo_to_date} {mo_ou_uuid} {sd_from_date} {sd_to_date} {str(sd_dep_uuid)}"  # noqa
+                )
                 mo.update_engagement(
                     eng_uuid,
                     mo_from_date,
-                    datetime.fromisoformat(mo_to_date) if mo_to_date is not None else None,
+                    datetime.fromisoformat(mo_to_date)
+                    if mo_to_date is not None
+                    else None,
                     sd_dep_uuid,
                 )
                 print("Updated")

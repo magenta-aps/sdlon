@@ -1,5 +1,4 @@
 import datetime
-import uuid
 from datetime import date
 from functools import partial
 from operator import itemgetter
@@ -7,6 +6,7 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 from uuid import UUID
+from uuid import uuid4
 
 import click
 import httpx
@@ -25,7 +25,8 @@ from raclients.graph.client import SyncClientSession
 from tqdm import tqdm
 
 from . import sd_payloads
-from .config import get_settings, Settings
+from .config import get_settings
+from .config import Settings
 from .log import get_logger
 from .sd_changed_at import ChangeAtSD
 from .sd_common import EmploymentStatus
@@ -51,7 +52,7 @@ def fetch_user_employments(settings: Settings, cpr: str) -> List:
         "SalaryCodeGroupIndicator": "false",
         "EffectiveDate": date.today().strftime("%d.%m.%Y"),
     }
-    request_uuid = uuid.uuid4()
+    request_uuid = uuid4()
     logger.info("fetch_user_employments", request_uuid=request_uuid)
     sd_employments_response = sd_lookup(
         "GetEmployment20111201",
@@ -209,14 +210,22 @@ def fix_association_types(
     """Update given associations with the given association type"""
     query = gql(
         """
-    mutation UpdateAssociation($uuid: UUID!, $from: DateTime!, $association_type: UUID!) {
-            association_update(
-            input: {uuid: $uuid, validity: {from: $from}, association_type: $association_type}
-            ) {
-                uuid
+        mutation UpdateAssociation(
+          $uuid: UUID!
+          $from: DateTime!
+          $association_type: UUID!
+        ) {
+          association_update(
+            input: {
+              uuid: $uuid
+              validity: { from: $from }
+              association_type: $association_type
             }
+          ) {
+            uuid
+          }
         }
-    """
+        """
     )
     session.execute(
         query,
@@ -321,7 +330,7 @@ def fixup_associations(
         }
         if ctx.obj["dry_run"]:
             click.echo(
-                f"Found {len(list(filtered_associations))} associations that needs to be changed."
+                f"Found {len(list(filtered_associations))} associations that needs to be changed."  # noqa
             )
             click.echo(filtered_associations.keys())
             return
@@ -333,7 +342,7 @@ def fixup_associations(
                     from_date=from_date,
                     correct_association_type_uuid=association_type_uuid,
                 )
-            except:
+            except:  # noqa
                 click.echo(f"Error processing association with {uuid=}")
 
 
@@ -348,6 +357,7 @@ def fixup_leaves(ctx, mox_base):
     """Fix all leaves that are missing a link to an engagement."""
 
     mora_helper = ctx.obj["mora_helper"]
+    settings = ctx.obj["settings"]
     # Find all classes of leave_types
     leave_types, _ = mora_helper.read_classes_in_facet("leave_type")
     leave_type_uuids = map(itemgetter("uuid"), leave_types)

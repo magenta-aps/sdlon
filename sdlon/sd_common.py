@@ -11,6 +11,7 @@ from typing import Union
 
 import requests
 import xmltodict
+
 from .config import Settings
 from .log import get_logger
 from db.queries import log_payload

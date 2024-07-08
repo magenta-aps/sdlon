@@ -9,18 +9,18 @@ from sqlalchemy.orm import Session
 from db.engine import get_engine
 from db.models import Payload
 
-GET_EMPLOYMENT_CHANGED_AT_DATE = "https://service.sd.dk/sdws/GetEmploymentChangedAtDate20111201"
+GET_EMPLOYMENT_CHANGED_AT_DATE = (
+    "https://service.sd.dk/sdws/GetEmploymentChangedAtDate20111201"
+)
 
 
 def get_payloads(engine: Engine, cpr: str) -> list[tuple[datetime, str]]:
     """
     Get payloads containing the CPR from the payload DB
     """
-    stmt = select(
-        Payload.timestamp, Payload.response
-    ).where(
+    stmt = select(Payload.timestamp, Payload.response).where(
         Payload.response.contains(cpr),
-        Payload.full_url == GET_EMPLOYMENT_CHANGED_AT_DATE
+        Payload.full_url == GET_EMPLOYMENT_CHANGED_AT_DATE,
     )
 
     with Session(engine) as session:
@@ -37,17 +37,14 @@ def get_sd_persons(payload: str, cpr: str):
 
     persons = root.findall("Person")
     return [
-        person for person in persons
+        person
+        for person in persons
         if person.find("PersonCivilRegistrationIdentifier").text.strip() == cpr
     ]
 
 
 @click.command()
-@click.option(
-    "--cpr",
-    required=True,
-    help="CPR number of person to payloads for"
-)
+@click.option("--cpr", required=True, help="CPR number of person to payloads for")
 def main(cpr: str):
     engine = get_engine()
 

@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import date
 
 from sdclient.client import SDClient
 from sdclient.requests import GetEmploymentRequest

@@ -4,6 +4,7 @@ import click
 
 from sdlon.sd_common import generate_uuid
 
+
 def _get_class_uuid(department_level_identifier: str) -> UUID:
     """
     Generate org_unit_level class UUID according to the way it is
@@ -18,9 +19,7 @@ def _get_class_uuid(department_level_identifier: str) -> UUID:
         UUID that the org_unit_level class has to be created with
     """
     class_uuid: str = generate_uuid(
-        department_level_identifier,
-        None,
-        "Silkeborg Kommune"
+        department_level_identifier, None, "Silkeborg Kommune"
     )
     return UUID(class_uuid)
 
