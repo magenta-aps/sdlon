@@ -348,6 +348,8 @@ def fixup_leaves(ctx, mox_base):
     """Fix all leaves that are missing a link to an engagement."""
 
     mora_helper = ctx.obj["mora_helper"]
+    settings: Settings = ctx["settings"]
+
     # Find all classes of leave_types
     leave_types, _ = mora_helper.read_classes_in_facet("leave_type")
     leave_type_uuids = map(itemgetter("uuid"), leave_types)
@@ -394,7 +396,7 @@ def fixup_leaves(ctx, mox_base):
         """
         employments = []
         try:
-            employments = fetch_user_employments(cpr=cpr)
+            employments = fetch_user_employments(settings, cpr=cpr)
         except Exception as e:
             click.echo(e)
         # filter leaves
