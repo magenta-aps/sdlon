@@ -128,11 +128,6 @@ def fixup(ctx, mo_employees):
         for key in common_keys:
             yield (key, mo_dict[key], sd_dict[key])
 
-    def sd_not_status_0(work_tuple):
-        key, mo_engagement, sd_employment = work_tuple
-        sd_status = sd_employment["EmploymentStatus"]["EmploymentStatusCode"]
-        return sd_status != "0"
-
     def generate_payload(work_tuple):
         key, mo_engagement, sd_employment = work_tuple
         print("Fixing", key)
@@ -161,8 +156,6 @@ def fixup(ctx, mo_employees):
     # (key, mo_engagement, sd_employment)
     # 'key' is the shared employment_id
     work_tuples = flatten(map(process_tuples, *unzip(dict_pairs)))
-    # Filter all tuples, where the sd_employment has status 0
-    work_tuples = filter(sd_not_status_0, work_tuples)
     # At this point, we have a tuple of items which need to be updated / fixed
 
     # Convert all the remaining tuples to MO payloads
