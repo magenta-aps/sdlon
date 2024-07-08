@@ -2,7 +2,6 @@ import datetime
 import hashlib
 import uuid
 from enum import Enum
-from functools import lru_cache
 from typing import Any
 from typing import Dict
 from typing import List
@@ -12,8 +11,6 @@ from typing import Union
 
 import requests
 import xmltodict
-from ra_utils.load_settings import load_settings
-
 from .config import Settings
 from .log import get_logger
 from db.queries import log_payload
@@ -21,30 +18,11 @@ from db.queries import log_payload
 logger = get_logger()
 
 
-@lru_cache(maxsize=None)
-def sd_lookup_settings():
-    settings = load_settings()
-
-    institution_identifier = settings["integrations.SD_Lon.institution_identifier"]
-    if not institution_identifier:
-        raise ValueError("Missing setting, institution_identifier")
-
-    sd_user = settings["integrations.SD_Lon.sd_user"]
-    if not sd_user:
-        raise ValueError("Missing setting, sd_user")
-
-    sd_password = settings["integrations.SD_Lon.sd_password"]
-    if not sd_password:
-        raise ValueError("Missing setting, sd_password")
-
-    return institution_identifier, sd_user, sd_password
-
-
 def sd_lookup(
     url: str,
-    settings: Optional[Settings] = None,
+    settings: Settings,
     params: Optional[Dict[str, Any]] = None,
-    request_uuid: Optional[uuid.UUID] = None,
+    request_uuid: uuid.UUID = uuid.uuid4(),
     dry_run: bool = False,
 ) -> OrderedDict:
     """Fire a requests against SD."""
@@ -57,22 +35,11 @@ def sd_lookup(
     BASE_URL = "https://service.sd.dk/sdws/"
     full_url = BASE_URL + url
 
-    # Use settings if provided as an argument to this function
-    # Currently, we only have Pydantic settings models for sd_importer.py
-    # and sd_changed_at.py, so this logic is required for now, since the
-    # sd_lookup function is used elsewhere too
-    if settings is not None:
-        institution_identifier = settings.sd_institution_identifier
-        sd_user = settings.sd_user
-        sd_password = settings.sd_password.get_secret_value()
-    else:
-        institution_identifier, sd_user, sd_password = sd_lookup_settings()
-
     payload = {
-        "InstitutionIdentifier": institution_identifier,
+        "InstitutionIdentifier": settings.sd_institution_identifier,
     }
     payload.update(params)
-    auth = (sd_user, sd_password)
+    auth = (settings.sd_user, settings.sd_password.get_secret_value())
     response = requests.get(
         full_url,
         params=payload,

@@ -94,12 +94,9 @@ def setup_sd_changed_at(updates=None, hours=24, dry_run=False):
 
 
 class Test_sd_changed_at(unittest.TestCase):
-    @patch("sdlon.sd_common.sd_lookup_settings")
     @patch("sdlon.sd_common.requests.get")
-    def test_get_sd_person(self, requests_get, sd_settings):
+    def test_get_sd_person(self, requests_get):
         """Test that read_person does the expected transformation."""
-        sd_settings.return_value = ("", "", "")
-
         cpr = "0101709999"
         sd_reply, expected_read_person_result = get_sd_person_fixture(
             cpr=cpr, first_name="John", last_name="Deere", employment_id="01337"
@@ -519,15 +516,12 @@ class Test_sd_changed_at(unittest.TestCase):
         mock_execute.assert_not_called()
 
     @given(status=st.sampled_from(["1", "S"]))
-    @patch("sdlon.sd_common.sd_lookup_settings")
     @patch("sdlon.sd_common.requests.get")
     def test_read_employment_changed(
         self,
         requests_get,
-        sd_settings,
         status,
     ):
-        sd_settings.return_value = ("", "", "")
 
         sd_reply, expected_read_employment_result = read_employment_fixture(
             cpr="0101709999",
@@ -1239,10 +1233,10 @@ class Test_sd_changed_at(unittest.TestCase):
             ]
         )
 
-    @patch("sdlon.sd_common.sd_lookup_settings")
     @patch("sdlon.sd_common.sd_lookup")
     def test_edit_engagement_job_position_id_set_to_value_above_9000(
-        self, mock_sd_lookup, mock_sd_lookup_settings
+        self,
+        mock_sd_lookup,
     ):
         """
         If an employment exists in MO but with no engagement (e.g. which happens
@@ -1289,7 +1283,6 @@ class Test_sd_changed_at(unittest.TestCase):
                 ),
             ]
         )
-        mock_sd_lookup_settings.return_value = ("", "", "")
 
         # Necessary for the _find_engagement call in edit_engagement
         # Mock the call to arrange that no engagements are found for the user
@@ -1337,10 +1330,7 @@ class Test_sd_changed_at(unittest.TestCase):
             },
         )
 
-    @patch("sdlon.sd_common.sd_lookup_settings")
-    def test_edit_engagement_profession_job_position_id_set_to_value_below_9000(
-        self, mock_sd_lookup_settings
-    ):
+    def test_edit_engagement_profession_job_position_id_set_to_value_below_9000(self):
         """
         If an employment exists in MO WITH an engagement and we receive an
         SD change payload, where the JobPositionIdentifier is set to a value
@@ -1381,8 +1371,6 @@ class Test_sd_changed_at(unittest.TestCase):
         )
 
         mo_eng = {"user_key": "12345", "person": {"uuid": "person_uuid"}}
-
-        mock_sd_lookup_settings.return_value = ("", "", "")
 
         # Mock the terminate engagement call
         mock_terminate_engagement = MagicMock()
@@ -1461,18 +1449,15 @@ class Test_sd_changed_at(unittest.TestCase):
         from_date=st.datetimes(),
         to_date=st.datetimes() | st.none(),
     )
-    @patch("sdlon.sd_common.sd_lookup_settings")
     @patch("sdlon.sd_changed_at.sd_lookup")
     def test_timestamps_read_employment_changed(
         self,
         mock_sd_lookup,
-        sd_settings,
         status,
         from_date,
         to_date,
     ):
         """Test that calls contain correct ActivationDate and ActivationTime"""
-        sd_settings.return_value = ("", "", "")
 
         sd_updater = setup_sd_changed_at()
         sd_updater.read_employment_changed(from_date=from_date, to_date=to_date)
@@ -1491,19 +1476,15 @@ class Test_sd_changed_at(unittest.TestCase):
         from_date=st.datetimes(),
         to_date=st.datetimes() | st.none(),
     )
-    @patch("sdlon.sd_common.sd_lookup_settings")
     @patch("sdlon.sd_changed_at.sd_lookup")
     def test_timestamps_get_sd_persons_changed(
         self,
         mock_sd_lookup,
-        sd_settings,
         status,
         from_date,
         to_date,
     ):
         """Test that calls contain correct ActivationDate and ActivationTime"""
-        sd_settings.return_value = ("", "", "")
-
         sd_updater = setup_sd_changed_at()
         sd_updater.get_sd_persons_changed(from_date=from_date, to_date=to_date)
         expected_url = "GetPersonChangedAtDate20111201"
