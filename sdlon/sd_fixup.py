@@ -152,9 +152,9 @@ def fixup(ctx, mo_employees):
     # First dict is a mapping from employment_id to mo_engagement
     # Second dict is a mapping from employment_id to sd_engagement
     dict_pairs = [
-        x := fetch_pairs(settings, mo_employee)
+        dicts
         for mo_employee in mo_employees
-        if x is not None
+        if (dicts := fetch_pairs(settings, mo_employee)) is not None
     ]
 
     # Convert dict_pairs into an iterator of three tuples:
