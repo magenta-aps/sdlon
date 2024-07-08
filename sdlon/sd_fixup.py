@@ -25,7 +25,7 @@ from raclients.graph.client import SyncClientSession
 from tqdm import tqdm
 
 from . import sd_payloads
-from .config import get_settings
+from .config import get_settings, Settings
 from .log import get_logger
 from .sd_changed_at import ChangeAtSD
 from .sd_common import EmploymentStatus
@@ -36,7 +36,7 @@ from .sd_common import sd_lookup
 logger = get_logger()
 
 
-def fetch_user_employments(cpr: str) -> List:
+def fetch_user_employments(settings: Settings, cpr: str) -> List:
     # Notice, this will not get future engagements
     params = {
         "PersonCivilRegistrationIdentifier": cpr,
@@ -55,7 +55,7 @@ def fetch_user_employments(cpr: str) -> List:
     logger.info("fetch_user_employments", request_uuid=request_uuid)
     sd_employments_response = sd_lookup(
         "GetEmployment20111201",
-        settings=None,
+        settings=settings,
         params=params,
         request_uuid=request_uuid,
         dry_run=True,
@@ -103,19 +103,19 @@ def fixup(ctx, mo_employees):
         mo_dict = dict(zip(userkeys, mo_engagements))
         return mo_dict
 
-    def fetch_sd_employments(mo_employee):
+    def fetch_sd_employments(settings, mo_employee):
         mo_cpr = mo_employee["cpr_no"]
-        sd_employments = fetch_user_employments(mo_cpr)
+        sd_employments = fetch_user_employments(settings, mo_cpr)
         sd_ids = map(itemgetter("EmploymentIdentifier"), sd_employments)
         sd_dict = dict(zip(sd_ids, sd_employments))
         return sd_dict
 
-    def fetch_pairs(mo_employee):
+    def fetch_pairs(settings, mo_employee):
         try:
             mo_dict = fetch_mo_engagements(mo_employee)
             if not mo_dict:
                 return None
-            sd_dict = fetch_sd_employments(mo_employee)
+            sd_dict = fetch_sd_employments(settings, mo_employee)
             return mo_dict, sd_dict
         except Exception as exp:
             print(mo_employee)
@@ -143,16 +143,19 @@ def fixup(ctx, mo_employees):
         return payload
 
     mora_helper = ctx["mora_helper"]
+    settings: Settings = ctx["settings"]
 
     if ctx["progress"]:
         mo_employees = tqdm(mo_employees, unit="Employee")
 
-    # Dict pair is an iterator of (dict, dict) tuples or None
+    # Dict pair is a list of (dict, dict) tuples
     # First dict is a mapping from employment_id to mo_engagement
     # Second dict is a mapping from employment_id to sd_engagement
-    dict_pairs = map(fetch_pairs, mo_employees)
-    # Remove all the None's from dict_pairs
-    dict_pairs = filter(None.__ne__, dict_pairs)
+    dict_pairs = [
+        x := fetch_pairs(settings, mo_employee)
+        for mo_employee in mo_employees
+        if x is not None
+    ]
 
     # Convert dict_pairs into an iterator of three tuples:
     # (key, mo_engagement, sd_employment)
@@ -250,6 +253,7 @@ def cli(ctx, mora_base, **kwargs):
     ctx.obj = dict(kwargs)
     ctx.obj["mora_base"] = mora_base
     ctx.obj["mora_helper"] = MoraHelper(hostname=mora_base, use_cache=False)
+    ctx.obj["settings"] = get_settings()
 
 
 @cli.command()
@@ -342,7 +346,6 @@ def fixup_associations(
 @click.pass_context
 def fixup_leaves(ctx, mox_base):
     """Fix all leaves that are missing a link to an engagement."""
-    settings = get_settings()
 
     mora_helper = ctx.obj["mora_helper"]
     # Find all classes of leave_types

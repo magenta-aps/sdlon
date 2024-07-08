@@ -244,15 +244,11 @@ def test_create_employee(create_associations: bool):
     assert engagement.job_function_ref == "job_id_123"
 
 
-@patch("sdlon.sd_common.sd_lookup_settings")
 @patch("sdlon.sd_common.requests.get")
 @patch("integrations.dawa_helper.dawa_lookup")
 @given(st.booleans())
 @settings(deadline=None)
-def test_create_ou_tree(
-    dawa_lookup, requests_get, sd_settings, create_email_addresses: bool
-):
-    sd_settings.return_value = ("", "", "")
+def test_create_ou_tree(dawa_lookup, requests_get, create_email_addresses: bool):
     dawa_lookup.return_value = None
 
     sd = get_sd_importer(

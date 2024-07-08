@@ -10,8 +10,8 @@ from os2mo_helpers.mora_helpers import MoraHelper
 
 from .log import get_logger
 from .sd_common import EmploymentStatus
-from .sd_common import load_settings
 from .sd_common import sd_lookup
+from .config import get_settings
 
 
 logger = get_logger()
@@ -27,10 +27,10 @@ def progress_iterator(elements, outputter, mod=10):
 
 class TestMOAgainstSd(object):
     def __init__(self):
-        self.settings = load_settings()
+        self.settings = get_settings()
         self.date = datetime.now()
 
-        self.helper = MoraHelper(hostname=self.settings["mora.base"], use_cache=False)
+        self.helper = MoraHelper(hostname=self.settings.mora_base, use_cache=False)
 
     def _compare_dates(self, sd_employment, mo_engagement):
         """Check dates for discrepancies."""
@@ -147,6 +147,7 @@ class TestMOAgainstSd(object):
         logger.info("check_user", request_uuid=request_uuid)
         sd_employments_response = sd_lookup(
             "GetEmployment20111201",
+            settings=self.settings,
             params=params,
             request_uuid=request_uuid,
             dry_run=True,
