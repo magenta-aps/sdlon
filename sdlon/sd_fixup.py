@@ -24,6 +24,8 @@ from raclients.graph.client import GraphQLClient
 from raclients.graph.client import SyncClientSession
 from tqdm import tqdm
 
+from .date_utils import sd_to_mo_date
+
 from . import sd_payloads
 from .config import get_settings, Settings
 from .log import get_logger
@@ -132,7 +134,12 @@ def fixup(ctx, mo_employees):
         key, mo_engagement, sd_employment = work_tuple
         print("Fixing", key)
         data = {
-            "validity": mo_engagement["validity"],
+            "validity": {
+                "from": mo_engagement["validity"]["from"],
+                "to": sd_to_mo_date(
+                    sd_employment["EmploymentDepartment"]["DeactivationDate"]
+                ),
+            },
         }
         payload = sd_payloads.engagement(data, mo_engagement)
         return payload
