@@ -465,15 +465,15 @@ def fixup_department(ctx, uuid):
 
 @cli.command()
 @click.option(
-    "--limit",
+    "--page-size",
     type=click.INT,
-    help="Number of employees to check. 0 --> All.",
-    default=5,
+    help="Number of employees to read from mo at a time. 0 --> All.",
+    default=0,
 )
 @click.pass_context
-def fixup_all(ctx, limit):
+def fixup_all(ctx, page_size):
     """Fix limit/all employees in an MO instance."""
-    mo_employees = ctx.obj["mora_helper"].read_all_users(limit=limit)
+    mo_employees = ctx.obj["mora_helper"].read_all_users(limit=page_size)
     fixup(ctx.obj, mo_employees)
 
 
