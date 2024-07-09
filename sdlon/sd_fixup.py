@@ -169,6 +169,9 @@ def fixup(ctx, mo_employees):
     payloads = map(generate_payload, work_tuples)
 
     if ctx["dry_run"]:
+        print("Dry-run. Would send the following payloads:")
+        for p in payloads:
+            print(p)
         return
 
     for payload in payloads:
