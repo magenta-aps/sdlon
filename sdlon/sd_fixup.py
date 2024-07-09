@@ -131,14 +131,16 @@ def fixup(ctx, mo_employees):
             yield (key, mo_dict[key], sd_dict[key])
 
     def generate_payload(work_tuple):
-        key, mo_engagement, sd_employment = work_tuple
-        print("Fixing", key)
+        _, mo_engagement, sd_employment = work_tuple
+        to_date = sd_to_mo_date(
+            sd_employment["EmploymentDepartment"]["DeactivationDate"]
+        )
+        if to_date == mo_engagement["validity"]["to"]:
+            return
         data = {
             "validity": {
                 "from": mo_engagement["validity"]["from"],
-                "to": sd_to_mo_date(
-                    sd_employment["EmploymentDepartment"]["DeactivationDate"]
-                ),
+                "to": to_date,
             },
         }
         payload = sd_payloads.engagement(data, mo_engagement)
@@ -166,7 +168,11 @@ def fixup(ctx, mo_employees):
     # At this point, we have a tuple of items which need to be updated / fixed
 
     # Convert all the remaining tuples to MO payloads
-    payloads = map(generate_payload, work_tuples)
+    payloads = [
+        payload
+        for work_tuple in work_tuples
+        if (payload := generate_payload(work_tuple)) is not None
+    ]
 
     if ctx["dry_run"]:
         print("Dry-run. Would send the following payloads:")
