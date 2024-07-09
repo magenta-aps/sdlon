@@ -24,6 +24,8 @@ from raclients.graph.client import GraphQLClient
 from raclients.graph.client import SyncClientSession
 from tqdm import tqdm
 
+from .date_utils import sd_to_mo_date
+
 from . import sd_payloads
 from .config import get_settings, Settings
 from .log import get_logger
@@ -128,16 +130,16 @@ def fixup(ctx, mo_employees):
         for key in common_keys:
             yield (key, mo_dict[key], sd_dict[key])
 
-    def sd_not_status_0(work_tuple):
-        key, mo_engagement, sd_employment = work_tuple
-        sd_status = sd_employment["EmploymentStatus"]["EmploymentStatusCode"]
-        return sd_status != "0"
-
     def generate_payload(work_tuple):
         key, mo_engagement, sd_employment = work_tuple
         print("Fixing", key)
         data = {
-            "validity": mo_engagement["validity"],
+            "validity": {
+                "from": mo_engagement["validity"]["from"],
+                "to": sd_to_mo_date(
+                    sd_employment["EmploymentDepartment"]["DeactivationDate"]
+                ),
+            },
         }
         payload = sd_payloads.engagement(data, mo_engagement)
         return payload
@@ -152,23 +154,24 @@ def fixup(ctx, mo_employees):
     # First dict is a mapping from employment_id to mo_engagement
     # Second dict is a mapping from employment_id to sd_engagement
     dict_pairs = [
-        x := fetch_pairs(settings, mo_employee)
+        dicts
         for mo_employee in mo_employees
-        if x is not None
+        if (dicts := fetch_pairs(settings, mo_employee)) is not None
     ]
 
     # Convert dict_pairs into an iterator of three tuples:
     # (key, mo_engagement, sd_employment)
     # 'key' is the shared employment_id
     work_tuples = flatten(map(process_tuples, *unzip(dict_pairs)))
-    # Filter all tuples, where the sd_employment has status 0
-    work_tuples = filter(sd_not_status_0, work_tuples)
     # At this point, we have a tuple of items which need to be updated / fixed
 
     # Convert all the remaining tuples to MO payloads
     payloads = map(generate_payload, work_tuples)
 
     if ctx["dry_run"]:
+        print("Dry-run. Would send the following payloads:")
+        for p in payloads:
+            print(p)
         return
 
     for payload in payloads:
@@ -348,6 +351,8 @@ def fixup_leaves(ctx, mox_base):
     """Fix all leaves that are missing a link to an engagement."""
 
     mora_helper = ctx.obj["mora_helper"]
+    settings: Settings = ctx["settings"]
+
     # Find all classes of leave_types
     leave_types, _ = mora_helper.read_classes_in_facet("leave_type")
     leave_type_uuids = map(itemgetter("uuid"), leave_types)
@@ -394,7 +399,7 @@ def fixup_leaves(ctx, mox_base):
         """
         employments = []
         try:
-            employments = fetch_user_employments(cpr=cpr)
+            employments = fetch_user_employments(settings, cpr=cpr)
         except Exception as e:
             click.echo(e)
         # filter leaves

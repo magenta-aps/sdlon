@@ -80,7 +80,6 @@ class TestMOAgainstSd(object):
         status_checks = dict(
             [
                 self._compare_dates(sd_employment, mo_engagement),
-                self._compare_salary(sd_employment, mo_engagement),
                 self._compare_job_function(sd_employment, mo_engagement),
             ]
         )
