@@ -132,8 +132,9 @@ def fixup(ctx, mo_employees):
 
     def generate_payload(work_tuple):
         _, mo_engagement, sd_employment = work_tuple
+        keys = ("EmploymentDepartment", "Profession", "EmploymentStatus", "WorkingTime")
         to_date = sd_to_mo_date(
-            sd_employment["EmploymentDepartment"]["DeactivationDate"]
+            min(sd_employment[key]["DeactivationDate"] for key in keys)
         )
         if to_date == mo_engagement["validity"]["to"]:
             return
