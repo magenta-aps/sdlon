@@ -132,6 +132,19 @@ def fixup(ctx, mo_employees):
 
     def generate_payload(work_tuple):
         _, mo_engagement, sd_employment = work_tuple
+
+        if (
+            EmploymentStatus(sd_employment["EmploymentStatus"]["EmploymentStatusCode"])
+            in EmploymentStatus.let_go()
+        ):
+            if mo_engagement["validity"]["to"] and mo_engagement["validity"][
+                "to"
+            ] > date.today().strftime("%Y.%m.%d"):
+                print(
+                    "Warning. This engagement should have been terminated. This is not handled in this script."
+                )
+            return
+
         keys = ("EmploymentDepartment", "Profession", "EmploymentStatus", "WorkingTime")
         to_date = sd_to_mo_date(
             min(sd_employment[key]["DeactivationDate"] for key in keys)
