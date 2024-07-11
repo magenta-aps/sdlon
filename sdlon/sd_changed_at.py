@@ -346,7 +346,7 @@ class ChangeAtSD:
             "ContactInformationIndicator": str(
                 self.settings.sd_phone_number_id_for_ad_creation
             ).lower(),
-            "PostalAddressIndicator": "false"
+            "PostalAddressIndicator": "false",
             # TODO: Er der kunder, som vil udlæse adresse-information?
         }
         if cpr is not None:
@@ -1401,11 +1401,28 @@ class ChangeAtSD:
 
         if mo_end_date is None:
             return
+        params = {
+            "EmploymentStatusIndicator": True,
+            "StatusPassiveIndicator": True,
+            "EmploymentIdentifier": mo_eng["user_key"],
+            "EffectiveDate": datetime.date.today().strftime("%d.%m.%Y"),
+        }
+        status = sd_lookup(
+            "GetEmployment20111201",
+            self.settings,
+            params=params,
+            dry_run=self.dry_run,
+        )
+
+        if not status.get("Person"):
+            return
+        employment = status["Person"]["Employment"]
+        sd_end_date = employment["EmploymentStatus"]["ActivationDate"]
 
         # Due to the way MOs service API is working, we need to add 1 day to
         # the "last day of work" to get the "first day of non-work", i.e.
         # the first day of the termination period.
-        term_start_date = parse_datetime(mo_end_date).date() + datetime.timedelta(
+        term_start_date = parse_datetime(sd_end_date).date() + datetime.timedelta(
             days=1
         )
         term_start: str = format_date(term_start_date)  # First day of non-work
