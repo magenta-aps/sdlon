@@ -1346,9 +1346,6 @@ class ChangeAtSD:
         employments_changed = filter(
             partial(cpr_env_filter, self.settings), employments_changed
         )
-
-        recalculate_users: Set[UUID] = set()
-
         for employment in employments_changed:
             cpr = employment["PersonCivilRegistrationIdentifier"]
             sd_employments = ensure_list(employment["Employment"])
@@ -1381,9 +1378,6 @@ class ChangeAtSD:
 
             self._refresh_mo_engagements(person_uuid)
             self._update_user_employments(cpr, sd_employments, person_uuid)
-
-            # Re-calculate primary after all updates for user has been performed.
-            recalculate_users.add(person_uuid)
 
     def _re_terminate_engagement(self, mo_eng: dict[str, Any]) -> None:
         """
