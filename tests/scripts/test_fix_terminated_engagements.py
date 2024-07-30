@@ -1,12 +1,33 @@
 from datetime import date
 
+import pytest
 from sdclient.responses import Employment, EmploymentStatus, \
     EmploymentWithLists
 
 from sdlon.scripts.fix_terminated_engagements import get_emp_status_timeline
 
 
-def test_get_emp_status_timeline() -> None:
+@pytest.mark.parametrize(
+    "emp_status_list",
+    [
+        [
+            EmploymentStatus(
+                ActivationDate=date(2001, 1, 1),
+                DeactivationDate=date(2001, 12, 31),
+                EmploymentStatusCode=3
+            ),
+            EmploymentStatus(
+                ActivationDate=date(2002, 1, 1),
+                DeactivationDate=date(9999, 12, 31),
+                EmploymentStatusCode=1
+            )
+        ],
+        [],
+    ]
+)
+def test_get_emp_status_timeline(
+    emp_status_list: list[EmploymentStatus]
+) -> None:
     # Arrange
     employment = Employment(
         EmploymentIdentifier="12345",
@@ -20,18 +41,7 @@ def test_get_emp_status_timeline() -> None:
     )
     employment_changed = EmploymentWithLists(
         EmploymentIdentifier="12345",
-        EmploymentStatus=[
-            EmploymentStatus(
-                ActivationDate=date(2001, 1, 1),
-                DeactivationDate=date(2001, 12, 31),
-                EmploymentStatusCode=3
-            ),
-            EmploymentStatus(
-                ActivationDate=date(2002, 1, 1),
-                DeactivationDate=date(9999, 12, 31),
-                EmploymentStatusCode=1
-            )
-        ]
+        EmploymentStatus=emp_status_list
     )
 
     # Act
@@ -48,15 +58,5 @@ def test_get_emp_status_timeline() -> None:
                 DeactivationDate=date(2000, 12, 31),
                 EmploymentStatusCode=1
             ),
-            EmploymentStatus(
-                ActivationDate=date(2001, 1, 1),
-                DeactivationDate=date(2001, 12, 31),
-                EmploymentStatusCode=3
-            ),
-            EmploymentStatus(
-                ActivationDate=date(2002, 1, 1),
-                DeactivationDate=date(9999, 12, 31),
-                EmploymentStatusCode=1
-            )
-        ]
+        ] + emp_status_list
     )
