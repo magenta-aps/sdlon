@@ -1,8 +1,8 @@
 from datetime import datetime, date
 
 from sdclient.client import SDClient
-from sdclient.requests import GetEmploymentRequest
-from sdclient.responses import GetEmploymentResponse
+from sdclient.requests import GetEmploymentRequest, GetEmploymentChangedRequest
+from sdclient.responses import GetEmploymentResponse, GetEmploymentChangedResponse
 
 
 class SD:
@@ -42,6 +42,48 @@ class SD:
                 StatusPassiveIndicator=status_passive_indicator,
                 EmploymentStatusIndicator=True,
                 DepartmentIndicator=True,
+                UUIDIndicator=True,
+            )
+        )
+        return sd_employments
+
+    def get_sd_employments_changed(
+        self,
+        activation_date: date,
+        deactivation_date: date,
+        cpr: str | None = None,
+        employment_identifier: str | None = None,
+        department_identifier: str | None = None,
+        department_level_identifier: str | None = None,
+    ) -> GetEmploymentChangedResponse:
+        """
+        Get SD "employments changed" from SD via the GetEmploymentChanged
+        endpoint.
+
+        Args:
+            activation_date: SDs ActivationDate
+            deactivation_date: SDs DeactivationDate
+            cpr: CPR-number of the employee
+            employment_identifier: SDs EmploymentIdentifier
+            department_identifier: SDs DepartmentIdentifier
+            department_level_identifier: SDs DepartmentLevelIdentifier
+
+        Returns:
+            The SD employments
+        """
+
+        sd_employments = self.client.get_employment_changed(
+            GetEmploymentChangedRequest(
+                InstitutionIdentifier=self.institution_identifier,
+                PersonCivilRegistrationIdentifier=cpr,
+                EmploymentIdentifier=employment_identifier,
+                DepartmentIdentifier=department_identifier,
+                DepartmentLevelIdentifier=department_level_identifier,
+                ActivationDate=activation_date,
+                DeactivationDate=deactivation_date,
+                DepartmentIndicator=True,
+                EmploymentStatusIndicator=False,
+                ProfessionIndicator=False,
                 UUIDIndicator=True,
             )
         )
