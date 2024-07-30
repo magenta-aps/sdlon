@@ -257,6 +257,12 @@ def has_sd_status8(
     is_flag=True,
     help="Do not perform any changes in MO"
 )
+@click.option(
+    "--i-have-read-the-readme",
+    "readme",
+    is_flag=True,
+    help="Set flag to ensure that you have read the readme"
+)
 def main(
     username: str,
     password: str,
@@ -267,7 +273,12 @@ def main(
     mo_base_url: str,
     use_pickle: bool,
     dry_run: bool,
+    readme: bool,
 ):
+    if not readme:
+        print("Make sure you have read the README.md before running the script")
+        exit(0)
+
     # Get the SD status employments
     if use_pickle:
         pickle_file = "/tmp/sd_employments.bin"

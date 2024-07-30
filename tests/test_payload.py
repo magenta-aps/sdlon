@@ -1,4 +1,4 @@
-from sdlon.scripts.payload import get_sd_persons
+from sdlon.payload import get_sd_persons
 
 
 def test_get_sd_persons():

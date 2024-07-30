@@ -177,14 +177,25 @@ def update_engagement_type(
     is_flag=True,
     help="Do not perform any changes in MO"
 )
+@click.option(
+    "--i-have-read-the-readme",
+    "readme",
+    is_flag=True,
+    help="Set flag to ensure that you have read the readme"
+)
 def main(
         auth_server: str,
         client_id: str,
         client_secret: str,
         mo_base_url: str,
         monthly_hourly_divide: int,
-        dry_run: bool
+        dry_run: bool,
+        readme: bool,
 ):
+    if not readme:
+        print("Make sure you have read the README.md before running the script")
+        exit(0)
+
     gql_client = get_mo_client(
         auth_server, client_id, client_secret, mo_base_url, 5
     )

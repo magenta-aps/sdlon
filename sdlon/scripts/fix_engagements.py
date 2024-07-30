@@ -72,6 +72,12 @@ REGEX_INT = re.compile("[0-9]{5}")
     envvar="MO_URL",
     help="Base URL for calling MO"
 )
+@click.option(
+    "--i-have-read-the-readme",
+    "readme",
+    is_flag=True,
+    help="Set flag to ensure that you have read the readme"
+)
 def main(
     username: str,
     password: str,
@@ -80,7 +86,12 @@ def main(
     client_id: str,
     client_secret: str,
     mo_base_url: str,
+    readme: bool,
 ):
+    if not readme:
+        print("Make sure you have read the README.md before running the script")
+        exit(0)
+
     setup_logging(LogLevel.DEBUG)
 
     sd = SD(username, password, institution_identifier)
