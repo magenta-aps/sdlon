@@ -60,3 +60,33 @@ def test_get_emp_status_timeline(
             ),
         ] + emp_status_list
     )
+
+
+def test_get_emp_status_timeline_holes() -> None:
+    # Arrange
+    employment = Employment(
+        EmploymentIdentifier="12345",
+        EmploymentDate=date(1999, 1, 1),
+        AnniversaryDate=date(1999, 1, 1),
+        EmploymentStatus=EmploymentStatus(
+            ActivationDate=date(2000, 1, 1),
+            DeactivationDate=date(2000, 12, 31),
+            EmploymentStatusCode=1
+        )
+    )
+    employment_changed = EmploymentWithLists(
+        EmploymentIdentifier="12345",
+        EmploymentStatus=[
+            EmploymentStatus(
+                # Hole in timeline here
+                ActivationDate=date(2001, 1, 2),
+                DeactivationDate=date(2001, 12, 31),
+                EmploymentStatusCode=3
+            ),
+        ],
+
+    )
+
+    # Act + Assert
+    with pytest.raises(AssertionError):
+        get_emp_status_timeline(employment, employment_changed)
