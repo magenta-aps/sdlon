@@ -4,6 +4,8 @@ from datetime import timedelta
 
 from sdclient.responses import Employment
 from sdclient.responses import EmploymentWithLists
+from sdclient.responses import GetEmploymentChangedResponse
+from sdclient.responses import GetEmploymentResponse
 
 
 def get_emp_status_timeline(
@@ -43,3 +45,41 @@ def get_emp_status_timeline(
     )
 
     return emp_timeline
+
+
+def get_sd_employment_map(
+    sd_employments: GetEmploymentResponse,
+    sd_employments_changed: GetEmploymentChangedResponse,
+) -> dict[tuple[str, str], EmploymentWithLists]:
+    """
+    Get a map from (cpr, EmploymentIdentifier) to the corresponding employment
+    status timeline.
+
+    Args:
+        sd_employments: the response from SD GetEmployment
+        sd_employments_changed: the response from SD GetEmploymentChanged
+
+    Returns:
+        map from (cpr, EmploymentIdentifier) to the corresponding employment
+        status timeline.
+    """
+
+    sd_emp_map = {
+        (person.PersonCivilRegistrationIdentifier, emp.EmploymentIdentifier): emp
+        for person in sd_employments.Person
+        for emp in person.Employment
+    }
+
+    sd_emp_changed_map = {
+        (
+            person.PersonCivilRegistrationIdentifier,
+            emp_w_lists.EmploymentIdentifier,
+        ): emp_w_lists
+        for person in sd_employments_changed.Person
+        for emp_w_lists in person.Employment
+    }
+
+    return {
+        key: get_emp_status_timeline(emp, sd_emp_changed_map[key])
+        for key, emp in sd_emp_map.items()
+    }
