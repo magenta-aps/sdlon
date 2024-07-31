@@ -2,7 +2,6 @@ from collections import OrderedDict
 from copy import deepcopy
 from datetime import date
 from datetime import datetime
-from requests import Response
 from typing import Dict
 from typing import Optional
 from unittest import mock
@@ -13,6 +12,7 @@ from uuid import uuid4
 
 import pytest
 from os2mo_helpers.mora_helpers import MoraHelper
+from requests import Response
 
 from .test_config import DEFAULT_CHANGED_AT_SETTINGS
 from sdlon.config import Settings

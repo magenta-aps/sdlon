@@ -1,8 +1,11 @@
-from datetime import datetime, date
+from datetime import date
+from datetime import datetime
 
 from sdclient.client import SDClient
-from sdclient.requests import GetEmploymentRequest, GetEmploymentChangedRequest
-from sdclient.responses import GetEmploymentResponse, GetEmploymentChangedResponse
+from sdclient.requests import GetEmploymentChangedRequest
+from sdclient.requests import GetEmploymentRequest
+from sdclient.responses import GetEmploymentChangedResponse
+from sdclient.responses import GetEmploymentResponse
 
 
 class SD:

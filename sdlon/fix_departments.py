@@ -2,8 +2,8 @@ import datetime
 import json
 import uuid
 from typing import Any
-from typing import Optional
 from typing import List
+from typing import Optional
 from typing import OrderedDict
 from uuid import UUID
 from uuid import uuid4
@@ -11,16 +11,14 @@ from uuid import uuid4
 import requests
 from os2mo_helpers.mora_helpers import MoraHelper
 
-from .date_utils import (
-    datetime_to_sd_date,
-    parse_datetime,
-    SD_INFINITY,
-    MO_INFINITY,
-    format_date,
-)
 from . import sd_payloads
-from .config import Settings
 from .config import get_settings
+from .config import Settings
+from .date_utils import datetime_to_sd_date
+from .date_utils import format_date
+from .date_utils import MO_INFINITY
+from .date_utils import parse_datetime
+from .date_utils import SD_INFINITY
 from .exceptions import NoCurrentValdityException
 from .log import get_logger
 from .log import setup_logging

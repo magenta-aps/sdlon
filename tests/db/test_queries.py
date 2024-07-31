@@ -1,11 +1,16 @@
 from datetime import datetime
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
-from sqlalchemy import create_engine, desc, select
+from sqlalchemy import create_engine
+from sqlalchemy import desc
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from db.models import Base, Runs
-from db.queries import get_run_db_from_date, delete_last_run
+from db.models import Base
+from db.models import Runs
+from db.queries import delete_last_run
+from db.queries import get_run_db_from_date
 from db.queries import get_status
 from db.queries import persist_status
 from sdlon.metrics import RunDBState
@@ -27,7 +32,9 @@ def test_persist_and_get_status(mock_get_engine: MagicMock):
     status = get_status()
 
     with Session(engine) as session:
-        statement = select(Runs.from_date, Runs.to_date).order_by(desc(Runs.id)).limit(1)
+        statement = (
+            select(Runs.from_date, Runs.to_date).order_by(desc(Runs.id)).limit(1)
+        )
         actual_from_date, actual_to_date = session.execute(statement).fetchone()
 
     # Assert

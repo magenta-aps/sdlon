@@ -3,13 +3,16 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select, desc, delete
+from sqlalchemy import delete
+from sqlalchemy import desc
+from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
+from db.engine import get_engine
+from db.models import Payload
+from db.models import Runs
 from sdlon.log import get_logger
 from sdlon.metrics import RunDBState
-from db.engine import get_engine
-from db.models import Payload, Runs
 
 logger = get_logger()
 

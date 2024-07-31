@@ -5,7 +5,8 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 
-from sdlon.config import get_settings, Settings
+from sdlon.config import get_settings
+from sdlon.config import Settings
 
 
 def get_db_url(settings: Settings) -> str:

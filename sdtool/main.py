@@ -150,6 +150,7 @@ async def triggers_ou_refresh(payload: MOTriggerPayload, bg_tasks: BackgroundTas
         "msg": f"SD-Tool opdatering påbegyndt {start_time}. Genindlæs siden om nogle minutter."
     }
 
+
 Instrumentator().instrument(app).expose(app)
 
 from structlog.contextvars import merge_contextvars

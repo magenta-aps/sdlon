@@ -6,11 +6,11 @@ from datetime import timedelta
 from itertools import chain
 from itertools import takewhile
 from typing import Any
-from typing import OrderedDict
-from typing import Union
 from typing import Iterator
 from typing import Optional
+from typing import OrderedDict
 from typing import Tuple
+from typing import Union
 
 from more_itertools import pairwise
 from more_itertools import tabulate

@@ -24,10 +24,10 @@ from raclients.graph.client import GraphQLClient
 from raclients.graph.client import SyncClientSession
 from tqdm import tqdm
 
-from .date_utils import sd_to_mo_date
-
 from . import sd_payloads
-from .config import get_settings, Settings
+from .config import get_settings
+from .config import Settings
+from .date_utils import sd_to_mo_date
 from .log import get_logger
 from .sd_changed_at import ChangeAtSD
 from .sd_common import EmploymentStatus

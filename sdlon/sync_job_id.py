@@ -6,13 +6,15 @@ import click
 import requests
 from os2mo_helpers.mora_helpers import MoraHelper
 
-from sdlon.log import get_logger, setup_logging, LogLevel
-from .config import Settings
 from .config import get_settings
+from .config import Settings
 from .models import JobFunction
 from .sd_common import mora_assert
 from .sd_common import sd_lookup
 from .sd_payloads import edit_klasse_title
+from sdlon.log import get_logger
+from sdlon.log import LogLevel
+from sdlon.log import setup_logging
 
 
 logger = get_logger()

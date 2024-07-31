@@ -1,8 +1,9 @@
 from datetime import date
 
 import pytest
-from sdclient.responses import Employment, EmploymentStatus, \
-    EmploymentWithLists
+from sdclient.responses import Employment
+from sdclient.responses import EmploymentStatus
+from sdclient.responses import EmploymentWithLists
 
 from sdlon.scripts.fix_terminated_engagements import get_emp_status_timeline
 
@@ -14,20 +15,18 @@ from sdlon.scripts.fix_terminated_engagements import get_emp_status_timeline
             EmploymentStatus(
                 ActivationDate=date(2001, 1, 1),
                 DeactivationDate=date(2001, 12, 31),
-                EmploymentStatusCode=3
+                EmploymentStatusCode=3,
             ),
             EmploymentStatus(
                 ActivationDate=date(2002, 1, 1),
                 DeactivationDate=date(9999, 12, 31),
-                EmploymentStatusCode=1
-            )
+                EmploymentStatusCode=1,
+            ),
         ],
         [],
-    ]
+    ],
 )
-def test_get_emp_status_timeline(
-    emp_status_list: list[EmploymentStatus]
-) -> None:
+def test_get_emp_status_timeline(emp_status_list: list[EmploymentStatus]) -> None:
     # Arrange
     employment = Employment(
         EmploymentIdentifier="12345",
@@ -36,12 +35,11 @@ def test_get_emp_status_timeline(
         EmploymentStatus=EmploymentStatus(
             ActivationDate=date(2000, 1, 1),
             DeactivationDate=date(2000, 12, 31),
-            EmploymentStatusCode=1
-        )
+            EmploymentStatusCode=1,
+        ),
     )
     employment_changed = EmploymentWithLists(
-        EmploymentIdentifier="12345",
-        EmploymentStatus=emp_status_list
+        EmploymentIdentifier="12345", EmploymentStatus=emp_status_list
     )
 
     # Act
@@ -56,9 +54,10 @@ def test_get_emp_status_timeline(
             EmploymentStatus(
                 ActivationDate=date(2000, 1, 1),
                 DeactivationDate=date(2000, 12, 31),
-                EmploymentStatusCode=1
+                EmploymentStatusCode=1,
             ),
-        ] + emp_status_list
+        ]
+        + emp_status_list,
     )
 
 
@@ -71,8 +70,8 @@ def test_get_emp_status_timeline_holes() -> None:
         EmploymentStatus=EmploymentStatus(
             ActivationDate=date(2000, 1, 1),
             DeactivationDate=date(2000, 12, 31),
-            EmploymentStatusCode=1
-        )
+            EmploymentStatusCode=1,
+        ),
     )
     employment_changed = EmploymentWithLists(
         EmploymentIdentifier="12345",
@@ -81,10 +80,9 @@ def test_get_emp_status_timeline_holes() -> None:
                 # Hole in timeline here
                 ActivationDate=date(2001, 1, 2),
                 DeactivationDate=date(2001, 12, 31),
-                EmploymentStatusCode=3
+                EmploymentStatusCode=3,
             ),
         ],
-
     )
 
     # Act + Assert

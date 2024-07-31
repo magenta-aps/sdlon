@@ -6,9 +6,9 @@ from unittest.mock import patch
 from uuid import UUID
 from uuid import uuid4
 
-from anytree import Node
 import hypothesis.strategies as st
 import pytest
+from anytree import Node
 from hypothesis import given
 from hypothesis import settings
 from os2mo_data_import import ImportHelper
@@ -16,9 +16,9 @@ from os2mo_data_import.mora_data_types import OrganisationUnitType
 from parameterized import parameterized
 from ra_utils.attrdict import attrdict
 
-from sdlon.config import Settings
 from .fixtures import get_department_fixture
 from .fixtures import get_organisation_fixture
+from sdlon.config import Settings
 from sdlon.sd_importer import SdImport
 
 

@@ -2,7 +2,8 @@ import logging
 from typing import Any
 from typing import OrderedDict
 
-from .config import get_settings, Settings
+from .config import get_settings
+from .config import Settings
 from .log import get_logger
 
 logger = get_logger()
