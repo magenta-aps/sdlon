@@ -25,7 +25,11 @@ class MO:
             timeout=timeout,
         )
 
-    def get_engagements(self):
+    def get_engagements(
+        self,
+        from_date: datetime | None,
+        to_date: datetime | None,
+    ):
         """
         Get all current and future engagements
         """
@@ -33,12 +37,13 @@ class MO:
         query = gql(
             """
             query GetEngagements(
-              $from_date: DateTime!,
+              $from_date: DateTime,
+              $to_date: DateTime,
               $cursor: Cursor,
               $limit: int!
             ) {
               engagements(
-                filter: {from_date: $from_date, to_date: null}
+                filter: {from_date: $from_date, to_date: $to_date}
                 cursor: $cursor
                 limit: $limit
               ) {
@@ -81,7 +86,10 @@ class MO:
                 variable_values={
                     "limit": "100",
                     "cursor": cursor,
-                    "from_date": datetime.now().isoformat(),
+                    "from_date": from_date.isoformat()
+                    if from_date is not None
+                    else None,
+                    "to_date": to_date.isoformat() if to_date is not None else None,
                 },
             )
             next_cursor = response["engagements"]["page_info"]["next_cursor"]
