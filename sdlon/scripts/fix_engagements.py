@@ -103,7 +103,6 @@ def main(
 
     now = datetime.now(tz=ZoneInfo("Europe/Copenhagen"))
 
-    sd_employments = sd.get_sd_employments(datetime.now())
     engagements = mo.get_engagements()
 
     for count, eng in enumerate(engagements):

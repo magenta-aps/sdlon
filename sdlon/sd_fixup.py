@@ -1,5 +1,4 @@
 import datetime
-import uuid
 from datetime import date
 from functools import partial
 from operator import itemgetter
@@ -7,6 +6,7 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 from uuid import UUID
+from uuid import uuid4
 
 import click
 import httpx
@@ -53,7 +53,7 @@ def fetch_user_employments(settings: Settings, cpr: str) -> List:
         "SalaryCodeGroupIndicator": "false",
         "EffectiveDate": date.today().strftime("%d.%m.%Y"),
     }
-    request_uuid = uuid.uuid4()
+    request_uuid = uuid4()
     logger.info("fetch_user_employments", request_uuid=request_uuid)
     sd_employments_response = sd_lookup(
         "GetEmployment20111201",
@@ -336,7 +336,7 @@ def fixup_associations(
                     from_date=from_date,
                     correct_association_type_uuid=association_type_uuid,
                 )
-            except:
+            except:  # noqa
                 click.echo(f"Error processing association with {uuid=}")
 
 

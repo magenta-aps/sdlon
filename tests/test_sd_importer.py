@@ -238,7 +238,7 @@ def test_create_employee(create_associations: bool):
     assert engagement.date_to is None
     assert engagement.user_key == "TEST123"
     assert engagement.fraction == 1000000
-    assert engagement.primary_ref == None
+    assert engagement.primary_ref is None
     assert engagement.org_unit_ref == org_unit_uuid
     assert engagement.type_ref == "engagement_typejob_id_123"
     assert engagement.job_function_ref == "job_id_123"
