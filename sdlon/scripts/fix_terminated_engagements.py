@@ -64,20 +64,17 @@ def get_sd_employment_map(
         status timeline.
     """
 
-    sd_emp_map = {
-        (person.PersonCivilRegistrationIdentifier, emp.EmploymentIdentifier): emp
-        for person in sd_employments.Person
-        for emp in person.Employment
-    }
+    def get_map(
+        sd_emp: GetEmploymentResponse | GetEmploymentChangedResponse,
+    ) -> dict[tuple[str, str], Employment | EmploymentWithLists]:
+        return {
+            (person.PersonCivilRegistrationIdentifier, emp.EmploymentIdentifier): emp
+            for person in sd_emp.Person
+            for emp in person.Employment
+        }
 
-    sd_emp_changed_map = {
-        (
-            person.PersonCivilRegistrationIdentifier,
-            emp_w_lists.EmploymentIdentifier,
-        ): emp_w_lists
-        for person in sd_employments_changed.Person
-        for emp_w_lists in person.Employment
-    }
+    sd_emp_map = get_map(sd_employments)
+    sd_emp_changed_map = get_map(sd_employments_changed)
 
     return {
         key: get_emp_status_timeline(emp, sd_emp_changed_map[key])
