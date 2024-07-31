@@ -190,14 +190,14 @@ tz = ["python-dateutil"]
 
 [[package]]
 name = "another-sd-client"
-version = "1.11.0"
+version = "1.11.1"
 description = "Client for communicating with SD Løn"
 category = "main"
 optional = false
 python-versions = "<4.0,>=3.11"
 files = [
-    {file = "another_sd_client-1.11.0-py3-none-any.whl", hash = "sha256:e3b3eed8d161afde20142763643b9a133764a141d595d5e56ae27f2c5ffb6475"},
-    {file = "another_sd_client-1.11.0.tar.gz", hash = "sha256:5650d1c0b36cac97ed976a3d742db7b62a41d39fba95c73893c5c07d155219f1"},
+    {file = "another_sd_client-1.11.1-py3-none-any.whl", hash = "sha256:c91eb1a480ed35ab05d769934bc4f24d5039a958353c15ccc8f832bf71f740d8"},
+    {file = "another_sd_client-1.11.1.tar.gz", hash = "sha256:36f2cb098dbfe05e22d74d7ec395ba3f19fb43ea53ad99b25ae77260234d07e7"},
 ]
 
 [package.dependencies]
@@ -4424,4 +4424,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "3053ec7a8093b7cd63b399dcf9537ee11c257c28d014b8bbbd38215cac73510d"
+content-hash = "a31a6e5f5c120a2c561fe942084d87c3ba79d644f5717b2c1b713715406ac0ef"
