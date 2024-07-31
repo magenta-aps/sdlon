@@ -782,11 +782,12 @@ class ChangeAtSD:
         too_deep = self.settings.sd_import_too_deep
 
         # Effective date for fixing the department must not be before today's date,
-        # since we cannot get SD department parents *with a validity* back in time via the
-        # SD API. It is only possible to get an SD department parent on a specific date.
-        # Calling fix_department with a date argument prior to today's date can therefore
-        # result in an incorrect parent (see more details on this Redmine issue
-        # https://redmine.magenta.dk/issues/58094)
+        # since we cannot get SD department parents *with a validity* back in time via
+        # the SD API. It is only possible to get an SD department parent on a specific
+        # date.
+        # Calling fix_department with a date argument prior to today's date can
+        # therefore result in an incorrect parent (see more details on this Redmine
+        # issue https://redmine.magenta.dk/issues/58094)
         validity_from_date = parse_datetime(validity["from"]).date()
         effective_fix_date = max(validity_from_date, datetime.datetime.now().date())
         effective_fix_date_str = format_date(effective_fix_date)

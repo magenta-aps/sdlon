@@ -219,7 +219,7 @@ def fix_association_types(
                 uuid
             }
         }
-    """
+    """  # noqa
     )
     session.execute(
         query,
@@ -324,7 +324,7 @@ def fixup_associations(
         }
         if ctx.obj["dry_run"]:
             click.echo(
-                f"Found {len(list(filtered_associations))} associations that needs to be changed."
+                f"Found {len(list(filtered_associations))} associations that needs to be changed."  # noqa
             )
             click.echo(filtered_associations.keys())
             return

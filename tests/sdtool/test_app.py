@@ -39,7 +39,7 @@ class AppTests(TestCase):
     def test_ou_edit(self, unit_fixer, mock_datatime):
         mock_datatime.datetime.now.return_value = datetime.datetime(2000, 1, 1, 12, 13)
         expected = {
-            "msg": f"SD-Tool opdatering påbegyndt 12:13. Genindlæs siden om nogle minutter."
+            "msg": f"SD-Tool opdatering påbegyndt 12:13. Genindlæs siden om nogle minutter."  # noqa
         }
         unit_fixer.return_value = expected
 

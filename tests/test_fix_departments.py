@@ -24,8 +24,8 @@ def mock_sd_lookup(service_name, expected_params, response):
         "GetDepartment20111201": {
             "Department": [
                 {
-                    "DepartmentLevelIdentifier": _TestableFixDepartments.MO_CLASS_USER_KEY,
-                    "DepartmentIdentifier": _TestableFixDepartments.SD_DEPARTMENT_SHORTNAME,
+                    "DepartmentLevelIdentifier": _TestableFixDepartments.MO_CLASS_USER_KEY,  # noqa
+                    "DepartmentIdentifier": _TestableFixDepartments.SD_DEPARTMENT_SHORTNAME,  # noqa
                     "DepartmentName": _TestableFixDepartments.SD_DEPARTMENT_NAME,
                     "DepartmentUUIDIdentifier": "99999999-9999-9999-9999-999999999999",
                     "ActivationDate": "2019-01-01",
@@ -138,16 +138,16 @@ class TestFixDepartment(TestCase):
         sd_response = {
             "Department": [
                 {
-                    "DepartmentLevelIdentifier": _TestableFixDepartments.MO_CLASS_USER_KEY,
-                    "DepartmentIdentifier": _TestableFixDepartments.SD_DEPARTMENT_SHORTNAME,
+                    "DepartmentLevelIdentifier": _TestableFixDepartments.MO_CLASS_USER_KEY,  # noqa
+                    "DepartmentIdentifier": _TestableFixDepartments.SD_DEPARTMENT_SHORTNAME,  # noqa
                     "DepartmentUUIDIdentifier": "uuid",
                     "DepartmentName": _TestableFixDepartments.SD_DEPARTMENT_NAME,
                     "ActivationDate": "2019-01-01",
                     "DeactivationDate": "2023-12-31",
                 },
                 {
-                    "DepartmentLevelIdentifier": _TestableFixDepartments.MO_CLASS_USER_KEY,
-                    "DepartmentIdentifier": _TestableFixDepartments.SD_DEPARTMENT_SHORTNAME,
+                    "DepartmentLevelIdentifier": _TestableFixDepartments.MO_CLASS_USER_KEY,  # noqa
+                    "DepartmentIdentifier": _TestableFixDepartments.SD_DEPARTMENT_SHORTNAME,  # noqa
                     "DepartmentUUIDIdentifier": "uuid",
                     "DepartmentName": "new name",
                     "ActivationDate": "2024-01-01",
@@ -240,8 +240,8 @@ class TestFixDepartment(TestCase):
             side_effect=[
                 [
                     {
-                        "DepartmentLevelIdentifier": _TestableFixDepartments.MO_CLASS_USER_KEY,
-                        "DepartmentIdentifier": _TestableFixDepartments.SD_DEPARTMENT_SHORTNAME,
+                        "DepartmentLevelIdentifier": _TestableFixDepartments.MO_CLASS_USER_KEY,  # noqa
+                        "DepartmentIdentifier": _TestableFixDepartments.SD_DEPARTMENT_SHORTNAME,  # noqa
                         "DepartmentUUIDIdentifier": unit_uuid,
                         "DepartmentName": _TestableFixDepartments.SD_DEPARTMENT_NAME,
                         "ActivationDate": "2019-01-01",
@@ -250,7 +250,7 @@ class TestFixDepartment(TestCase):
                 ],
                 [
                     {
-                        "DepartmentLevelIdentifier": _TestableFixDepartments.MO_CLASS_USER_KEY,
+                        "DepartmentLevelIdentifier": _TestableFixDepartments.MO_CLASS_USER_KEY,  # noqa
                         "DepartmentIdentifier": "Parent shortname",
                         "DepartmentUUIDIdentifier": parent_uuid,
                         "DepartmentName": "Parent",
@@ -322,8 +322,8 @@ class TestFixDepartment(TestCase):
             side_effect=[
                 [
                     {
-                        "DepartmentLevelIdentifier": _TestableFixDepartments.MO_CLASS_USER_KEY,
-                        "DepartmentIdentifier": _TestableFixDepartments.SD_DEPARTMENT_SHORTNAME,
+                        "DepartmentLevelIdentifier": _TestableFixDepartments.MO_CLASS_USER_KEY,  # noqa
+                        "DepartmentIdentifier": _TestableFixDepartments.SD_DEPARTMENT_SHORTNAME,  # noqa
                         "DepartmentUUIDIdentifier": unit_uuid,
                         "DepartmentName": _TestableFixDepartments.SD_DEPARTMENT_NAME,
                         "ActivationDate": "2019-01-01",
@@ -332,7 +332,7 @@ class TestFixDepartment(TestCase):
                 ],
                 [
                     {
-                        "DepartmentLevelIdentifier": _TestableFixDepartments.MO_CLASS_USER_KEY,
+                        "DepartmentLevelIdentifier": _TestableFixDepartments.MO_CLASS_USER_KEY,  # noqa
                         "DepartmentIdentifier": "Parent shortname",
                         "DepartmentUUIDIdentifier": parent_uuid,
                         "DepartmentName": "Parent",

@@ -215,7 +215,7 @@ def main(
                 gql_client, eng.eng_uuid, monthly_eng_type_uuid, eng.from_date
             )
         print(
-            f"Updated engagement {eng.eng_uuid} from hourly to monthly from {format_date(eng.from_date)}"
+            f"Updated engagement {eng.eng_uuid} from hourly to monthly from {format_date(eng.from_date)}"  # noqa
         )
 
     monthly_engagements_to_fix = [
@@ -231,7 +231,7 @@ def main(
                 gql_client, eng.eng_uuid, hourly_eng_type_uuid, eng.from_date
             )
         print(
-            f"Updated engagement {eng.eng_uuid} from monthly to hourly from {format_date(eng.from_date)}"
+            f"Updated engagement {eng.eng_uuid} from monthly to hourly from {format_date(eng.from_date)}"  # noqa
         )
 
 

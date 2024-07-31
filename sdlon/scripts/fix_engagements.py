@@ -148,7 +148,7 @@ def main(
                 employment = one(one(sd_emp_resp.Person).Employment)
             except (ValidationError, ValueError):
                 print(
-                    f"{str(mo_emp_uuid)} {anonymize_cpr(cpr)} {user_key} {mo_from_date.isoformat()} {mo_to_date} {mo_ou_uuid} Not found in SD! Terminating"
+                    f"{str(mo_emp_uuid)} {anonymize_cpr(cpr)} {user_key} {mo_from_date.isoformat()} {mo_to_date} {mo_ou_uuid} Not found in SD! Terminating"  # noqa
                 )
                 mo.terminate_engagement(eng_uuid, now)
                 print("Terminated")
@@ -160,7 +160,7 @@ def main(
 
             if not mo_ou_uuid == str(sd_dep_uuid):
                 print(
-                    f"{str(mo_emp_uuid)} {anonymize_cpr(cpr)} {user_key} {mo_from_date.isoformat()} {mo_to_date} {mo_ou_uuid} {sd_from_date} {sd_to_date} {str(sd_dep_uuid)}"
+                    f"{str(mo_emp_uuid)} {anonymize_cpr(cpr)} {user_key} {mo_from_date.isoformat()} {mo_to_date} {mo_ou_uuid} {sd_from_date} {sd_to_date} {str(sd_dep_uuid)}"  # noqa
                 )
                 mo.update_engagement(
                     eng_uuid,

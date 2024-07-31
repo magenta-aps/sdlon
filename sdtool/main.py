@@ -147,7 +147,7 @@ async def triggers_ou_refresh(payload: MOTriggerPayload, bg_tasks: BackgroundTas
 
     start_time = datetime.datetime.now().strftime("%H:%M")
     return {
-        "msg": f"SD-Tool opdatering påbegyndt {start_time}. Genindlæs siden om nogle minutter."
+        "msg": f"SD-Tool opdatering påbegyndt {start_time}. Genindlæs siden om nogle minutter."  # noqa
     }
 
 

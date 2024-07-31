@@ -161,7 +161,7 @@ class FixDepartments:
 
         ou_created = False
         if mo_response.get("status") == 404:
-            # TODO: create_single_department should return the boolean value of ou_created
+            # TODO: create_single_department should return the boolean value of ou_created   # noqa
             self.create_single_department(department, parent_uuid)
             ou_created = True
 
@@ -530,7 +530,8 @@ class FixDepartments:
         :param leaf_uuid: The starting point of the chain, this does not stictly need
         to be a leaf node.
         :validity_date: The validity date of the fix.
-        :return: A list of tuples containing short names and unit uuids sorted from leaf to root.
+        :return: A list of tuples containing short names and unit uuids sorted from
+        leaf to root.
         """
         validity = {
             "from_date": validity_date.strftime("%d.%m.%Y"),
