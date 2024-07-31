@@ -8,7 +8,6 @@ from unittest.mock import call
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
-import click
 import hypothesis.strategies as st
 import pytest
 from hypothesis import given

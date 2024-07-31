@@ -2,30 +2,27 @@
 #
 # SPDX-License-Identifier: MPL-2.0
 import datetime
-import sys
-
-from prometheus_fastapi_instrumentator import Instrumentator
-
-from sdlon.fix_departments import unit_fixer
-
-sys.path.insert(0, "/")
 import json
 from os.path import exists
-from typing import Any, Dict, List
+from typing import Any
+from typing import Dict
+from typing import List
 from uuid import UUID
 
-from fastapi import BackgroundTasks, FastAPI
+from fastapi import BackgroundTasks
+from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from os2mo_fastapi_utils.tracing import setup_logging
-from os2mo_http_trigger_protocol import (
-    EventType,
-    MOTriggerPayload,
-    MOTriggerRegister,
-    RequestType,
-)
-from sdlon.log import get_logger
+from os2mo_http_trigger_protocol import EventType
+from os2mo_http_trigger_protocol import MOTriggerPayload
+from os2mo_http_trigger_protocol import MOTriggerRegister
+from os2mo_http_trigger_protocol import RequestType
+from prometheus_fastapi_instrumentator import Instrumentator
+from structlog.contextvars import merge_contextvars
 from structlog.processors import KeyValueRenderer
 
+from sdlon.fix_departments import unit_fixer
+from sdlon.log import get_logger
 from sdtool.config import get_settings
 
 logger = get_logger()
@@ -153,6 +150,5 @@ async def triggers_ou_refresh(payload: MOTriggerPayload, bg_tasks: BackgroundTas
 
 Instrumentator().instrument(app).expose(app)
 
-from structlog.contextvars import merge_contextvars
 
 setup_logging(processors=[merge_contextvars, KeyValueRenderer()])

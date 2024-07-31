@@ -1,15 +1,9 @@
 # This script adds or re-opens the terminated engagements described
 # in Redmine case #61415.
-from datetime import date
-from datetime import datetime
 from datetime import timedelta
-from zoneinfo import ZoneInfo
 
-import click
 from sdclient.responses import Employment
 from sdclient.responses import EmploymentWithLists
-
-from sdlon.sd import SD
 
 
 def get_emp_status_timeline(

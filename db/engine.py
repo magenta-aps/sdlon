@@ -1,7 +1,5 @@
 # SPDX-FileCopyrightText: Magenta ApS
 # SPDX-License-Identifier: MPL-2.0
-import os
-
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 

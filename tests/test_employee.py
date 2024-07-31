@@ -4,7 +4,6 @@ from uuid import UUID
 from sdlon.employees import get_employee
 from sdlon.employees import QUERY_GET_EMPLOYEE
 from sdlon.models import MOBasePerson
-from tests.fixtures import mock_graphql_client
 
 
 def test_get_employee(mock_graphql_client: MagicMock):

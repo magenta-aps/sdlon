@@ -10,7 +10,6 @@ from sdlon.it_systems import MUTATION_ADD_IT_SYSTEM_TO_EMPLOYEE
 from sdlon.it_systems import QUERY_GET_EMPLOYEE_IT_SYSTEMS
 from sdlon.it_systems import QUERY_GET_SD_TO_AD_IT_SYSTEM_UUID
 from sdlon.models import ITUserSystem
-from tests.fixtures import mock_graphql_client
 
 
 def test_get_sd_to_ad_it_system_uuid(mock_graphql_client: MagicMock) -> None:
