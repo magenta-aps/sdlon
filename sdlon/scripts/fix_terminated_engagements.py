@@ -9,20 +9,25 @@ from sdclient.responses import GetEmploymentResponse
 
 
 def get_emp_status_timeline(
-    employment: Employment, employment_changed: EmploymentWithLists
+    employment: Employment, employment_changed: EmploymentWithLists | None
 ) -> EmploymentWithLists:
     # TODO: for now, we only handle EmploymentStatus. In the future we
     #       should also handle Profession and EmploymentDepartment
 
     # The EmploymentIdentifiers must match
-    assert employment.EmploymentIdentifier == employment_changed.EmploymentIdentifier
+    if employment_changed is not None:
+        assert (
+            employment.EmploymentIdentifier == employment_changed.EmploymentIdentifier
+        )
 
+    future_emp_statuses = (
+        employment_changed.EmploymentStatus if employment_changed is not None else []
+    )
     emp_timeline = EmploymentWithLists(
         EmploymentIdentifier=employment.EmploymentIdentifier,
         EmploymentDate=employment.EmploymentDate,
         AnniversaryDate=employment.AnniversaryDate,
-        EmploymentStatus=[employment.EmploymentStatus]
-        + employment_changed.EmploymentStatus,
+        EmploymentStatus=[employment.EmploymentStatus] + future_emp_statuses,
     )
 
     if len(emp_timeline.EmploymentStatus) <= 1:
@@ -77,6 +82,6 @@ def get_sd_employment_map(
     sd_emp_changed_map = get_map(sd_employments_changed)
 
     return {
-        key: get_emp_status_timeline(emp, sd_emp_changed_map[key])
+        key: get_emp_status_timeline(emp, sd_emp_changed_map.get(key))
         for key, emp in sd_emp_map.items()
     }

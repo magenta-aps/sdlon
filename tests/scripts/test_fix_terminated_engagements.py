@@ -145,3 +145,36 @@ def test_get_sd_employment_map() -> None:
             + FUTURE_EMPLOYMENT_STATUSES,
         )
     }
+
+
+def test_get_sd_employment_map_empty_future() -> None:
+    # Arrange
+    sd_employments = GetEmploymentResponse(
+        Person=[
+            Person(
+                PersonCivilRegistrationIdentifier="0101011234",
+                Employment=[CURRENT_EMPLOYMENT_STATUS],
+            )
+        ]
+    )
+
+    # Act
+    emp_map = get_sd_employment_map(
+        sd_employments, GetEmploymentChangedResponse()  # Nothing in the future
+    )
+
+    # Assert
+    assert emp_map == {
+        ("0101011234", "12345"): EmploymentWithLists(
+            EmploymentIdentifier="12345",
+            EmploymentDate=date(1999, 1, 1),
+            AnniversaryDate=date(1999, 1, 1),
+            EmploymentStatus=[
+                EmploymentStatus(
+                    ActivationDate=date(2000, 1, 1),
+                    DeactivationDate=date(2000, 12, 31),
+                    EmploymentStatusCode=1,
+                ),
+            ],
+        )
+    }
