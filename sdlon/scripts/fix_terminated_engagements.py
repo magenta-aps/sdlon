@@ -30,7 +30,10 @@ def get_emp_status_timeline(
     if len(emp_timeline.EmploymentStatus) <= 1:
         return emp_timeline
 
-    # Make sure there are no holes in the timeline
+    # Make sure there are no holes in the timeline, i.e. we make sure that
+    # the DeactivationDate for EmploymentStatus object number n is exactly
+    # one day earlier than the ActivationDate for EmploymentStatus object
+    # number n + 1
     activation_dates = (
         emp_status.ActivationDate
         for emp_status in emp_timeline.EmploymentStatus[1:]
