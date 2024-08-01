@@ -102,7 +102,7 @@ def main(
     mo = MO(auth_server, client_id, client_secret, mo_base_url)
 
     now = datetime.now(tz=ZoneInfo("Europe/Copenhagen"))
-    engagements = mo.get_engagements(now, None)
+    engagements = mo.get_engagements(now, None, include_org_unit=True)
 
     for count, eng in enumerate(engagements):
         # if count % 100 == 0:

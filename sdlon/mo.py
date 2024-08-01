@@ -29,10 +29,30 @@ class MO:
         self,
         from_date: datetime | None,
         to_date: datetime | None,
+        include_org_unit: bool = False,
     ):
         """
         Get all current and future engagements
         """
+
+        # I know - this is ugly...
+        ou_part = (
+            """
+                    org_unit {
+                      uuid
+                      user_key
+                      name
+                      managers {
+                        employee {
+                          uuid
+                          name
+                        }
+                      }
+                    }
+        """
+            if include_org_unit
+            else ""
+        )
 
         query = gql(
             """
@@ -53,17 +73,9 @@ class MO:
                       cpr_number
                       uuid
                     }
-                    org_unit {
-                      uuid
-                      user_key
-                      name
-                      managers {
-                        employee {
-                          uuid
-                          name
-                        }
-                      }
-                    }
+            """
+            + ou_part
+            + """
                     validity {
                       from
                       to
