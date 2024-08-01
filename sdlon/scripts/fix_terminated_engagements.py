@@ -1,11 +1,17 @@
 # This script adds or re-opens the terminated engagements described
 # in Redmine case #61415.
+from datetime import date
 from datetime import timedelta
 
+from more_itertools import first
+from more_itertools import last
+from more_itertools import one
 from sdclient.responses import Employment
 from sdclient.responses import EmploymentWithLists
 from sdclient.responses import GetEmploymentChangedResponse
 from sdclient.responses import GetEmploymentResponse
+
+from sdlon.mo import MO
 
 
 def get_emp_status_timeline(
@@ -85,3 +91,29 @@ def get_sd_employment_map(
         key: get_emp_status_timeline(emp, sd_emp_changed_map.get(key))
         for key, emp in sd_emp_map.items()
     }
+
+
+def get_mo_eng_validity_map(mo: MO) -> dict[tuple[str, str], dict[str, date | None]]:
+    """
+    Get the validity of the last validity in the list of the engagement
+    validities in the GraphQL response from MO.
+    """
+    eng_objs = mo.get_engagements(None, None)
+
+    mo_eng_map = dict()
+    for obj in eng_objs:
+        validities = obj["validities"]
+
+        persons = first(validities)["person"]
+        cpr = one(persons)["cpr_number"]
+        emp_id = first(validities)["user_key"]
+
+        from_ = last(validities)["from"]
+        to = last(validities)["to"]
+
+        mo_eng_map[(cpr, emp_id)] = {
+            "from": date.fromisoformat(from_),
+            "to": date.fromisoformat(to) if to is not None else None,
+        }
+
+    return mo_eng_map
