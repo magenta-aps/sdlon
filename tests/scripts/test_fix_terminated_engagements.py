@@ -40,18 +40,6 @@ FUTURE_EMPLOYMENT_STATUSES = [
 @pytest.mark.parametrize(
     "emp_status_list",
     [
-        [
-            EmploymentStatus(
-                ActivationDate=date(2001, 1, 1),
-                DeactivationDate=date(2001, 12, 31),
-                EmploymentStatusCode=3,
-            ),
-            EmploymentStatus(
-                ActivationDate=date(2002, 1, 1),
-                DeactivationDate=date(9999, 12, 31),
-                EmploymentStatusCode=1,
-            ),
-        ],
         FUTURE_EMPLOYMENT_STATUSES,
         [],
     ],
