@@ -37,10 +37,10 @@ class AppTests(TestCase):
     @patch("sdtool.main.datetime")
     @patch("sdtool.main.unit_fixer")
     def test_ou_edit(self, unit_fixer, mock_datatime):
-        mock_datatime.datetime.now.return_value = datetime.datetime(
-            2000, 1, 1, 12, 13
-        )
-        expected = {"msg": f"SD-Tool opdatering påbegyndt 12:13. Genindlæs siden om nogle minutter."}
+        mock_datatime.datetime.now.return_value = datetime.datetime(2000, 1, 1, 12, 13)
+        expected = {
+            "msg": f"SD-Tool opdatering påbegyndt 12:13. Genindlæs siden om nogle minutter."  # noqa
+        }
         unit_fixer.return_value = expected
 
         uuid = "fb2d158f-114e-5f67-8365-2c520cf10b58"

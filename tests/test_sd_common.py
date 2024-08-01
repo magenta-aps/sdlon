@@ -3,7 +3,8 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import date
 from typing import Any
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
 from pytest import MonkeyPatch

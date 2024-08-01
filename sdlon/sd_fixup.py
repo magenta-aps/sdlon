@@ -1,5 +1,4 @@
 import datetime
-import uuid
 from datetime import date
 from functools import partial
 from operator import itemgetter
@@ -7,6 +6,7 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 from uuid import UUID
+from uuid import uuid4
 
 import click
 import httpx
@@ -24,10 +24,10 @@ from raclients.graph.client import GraphQLClient
 from raclients.graph.client import SyncClientSession
 from tqdm import tqdm
 
-from .date_utils import sd_to_mo_date
-
 from . import sd_payloads
-from .config import get_settings, Settings
+from .config import get_settings
+from .config import Settings
+from .date_utils import sd_to_mo_date
 from .log import get_logger
 from .sd_changed_at import ChangeAtSD
 from .sd_common import EmploymentStatus
@@ -53,7 +53,7 @@ def fetch_user_employments(settings: Settings, cpr: str) -> List:
         "SalaryCodeGroupIndicator": "false",
         "EffectiveDate": date.today().strftime("%d.%m.%Y"),
     }
-    request_uuid = uuid.uuid4()
+    request_uuid = uuid4()
     logger.info("fetch_user_employments", request_uuid=request_uuid)
     sd_employments_response = sd_lookup(
         "GetEmployment20111201",
@@ -219,7 +219,7 @@ def fix_association_types(
                 uuid
             }
         }
-    """
+    """  # noqa
     )
     session.execute(
         query,
@@ -324,7 +324,7 @@ def fixup_associations(
         }
         if ctx.obj["dry_run"]:
             click.echo(
-                f"Found {len(list(filtered_associations))} associations that needs to be changed."
+                f"Found {len(list(filtered_associations))} associations that needs to be changed."  # noqa
             )
             click.echo(filtered_associations.keys())
             return
@@ -336,7 +336,7 @@ def fixup_associations(
                     from_date=from_date,
                     correct_association_type_uuid=association_type_uuid,
                 )
-            except:
+            except:  # noqa
                 click.echo(f"Error processing association with {uuid=}")
 
 

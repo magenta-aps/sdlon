@@ -26,7 +26,7 @@ DEFAULT_EXPECTED_SETTINGS: Dict[str, Any] = {
     "mox_base": "http://mo-service:5000/lora",
     "municipality_code": 740,
     "municipality_name": "Kolding Kommune",
-    "cpr_uuid_map_path": "/opt/dipex/os2mo-data-import-and-export/settings/cpr_uuid_map.csv",
+    "cpr_uuid_map_path": "/opt/dipex/os2mo-data-import-and-export/settings/cpr_uuid_map.csv",  # noqa
     "sd_employment_field": "extension_1",
     "sd_global_from_date": "2022-01-09",
     "sd_import_too_deep": [],
@@ -51,7 +51,7 @@ DEFAULT_EXPECTED_SETTINGS: Dict[str, Any] = {
         "auth_server": "http://keycloak:8080/auth",
         "client_id": "dipex",
         "client_secret": None,
-        "log_format": "%(levelname)s %(asctime)s %(filename)s:%(lineno)d:%(name)s: %(message)s",
+        "log_format": "%(levelname)s %(asctime)s %(filename)s:%(lineno)d:%(name)s: %(message)s",  # noqa
         "log_level": "ERROR",
         "mora_base": "http://mo:5000",
         "sentry_dsn": None,

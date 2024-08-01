@@ -1,7 +1,10 @@
-from datetime import datetime, timezone
+from datetime import datetime
+from datetime import timezone
 
 import click
-from sqlalchemy import create_engine, select, insert
+from sqlalchemy import create_engine
+from sqlalchemy import insert
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from db.engine import get_engine
@@ -14,7 +17,9 @@ def read_from_sqlite():
         statement = select(Runs.from_date, Runs.to_date, Runs.status).order_by(Runs.id)
         rows = session.execute(statement).fetchall()
         for from_date, to_date, status in rows:
-            yield from_date.replace(tzinfo=timezone.utc), to_date.replace(tzinfo=timezone.utc), status
+            yield from_date.replace(tzinfo=timezone.utc), to_date.replace(
+                tzinfo=timezone.utc
+            ), status
 
 
 def write_to_postgres(from_date: datetime, to_date: datetime, status: str):
@@ -26,7 +31,9 @@ def write_to_postgres(from_date: datetime, to_date: datetime, status: str):
     else:
         return
     with Session(engine) as session:
-        statement = insert(Runs).values(from_date=from_date, to_date=to_date, status=status)
+        statement = insert(Runs).values(
+            from_date=from_date, to_date=to_date, status=status
+        )
         session.execute(statement)
         session.commit()
 

@@ -3,9 +3,10 @@
 import uuid
 from unittest.mock import Mock
 
+from pytest import MonkeyPatch
+
 import db.models
 import db.queries
-from pytest import MonkeyPatch
 
 
 def test_log_payload(monkeypatch: MonkeyPatch) -> None:

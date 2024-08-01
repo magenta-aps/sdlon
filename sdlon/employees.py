@@ -3,6 +3,7 @@ from uuid import UUID
 from gql import gql
 from more_itertools import one
 from raclients.graph.client import GraphQLClient
+
 from sdlon.models import MOBasePerson
 
 QUERY_GET_EMPLOYEE = gql(

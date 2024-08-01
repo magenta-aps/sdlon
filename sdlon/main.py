@@ -8,13 +8,14 @@ from fastapi import Response
 from prometheus_fastapi_instrumentator import Instrumentator
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 
-from db.queries import get_status, delete_last_run
 from .config import get_settings
 from .fix_departments import FixDepartments
 from .log import get_logger
 from .metrics import dipex_last_success_timestamp
 from .metrics import sd_changed_at_state
 from .sd_changed_at import changed_at
+from db.queries import delete_last_run
+from db.queries import get_status
 
 
 logger = get_logger()

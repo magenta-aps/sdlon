@@ -1,10 +1,17 @@
 # SPDX-FileCopyrightText: Magenta ApS
 #
 # SPDX-License-Identifier: MPL-2.0
-from typing import Any, Dict, List, Optional
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 from uuid import UUID
 
-from pydantic import AnyHttpUrl, BaseSettings, HttpUrl, SecretStr, root_validator
+from pydantic import AnyHttpUrl
+from pydantic import BaseSettings
+from pydantic import HttpUrl
+from pydantic import root_validator
+from pydantic import SecretStr
 from pydantic.tools import parse_obj_as
 
 

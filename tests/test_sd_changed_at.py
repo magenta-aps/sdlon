@@ -8,7 +8,6 @@ from unittest.mock import call
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
-import click
 import hypothesis.strategies as st
 import pytest
 from hypothesis import given
@@ -16,16 +15,18 @@ from parameterized import parameterized
 from ra_utils.attrdict import attrdict
 from ra_utils.generate_uuid import uuid_generator
 
-from sdlon.date_utils import format_date
-from sdlon.metrics import RunDBState
-from sdlon.models import MOBasePerson, ITUserSystem
-from sdlon.it_systems import MUTATION_ADD_IT_SYSTEM_TO_EMPLOYEE
 from .fixtures import get_employment_fixture
 from .fixtures import get_read_employment_changed_fixture
 from .fixtures import get_sd_person_fixture
 from .fixtures import read_employment_fixture
 from sdlon.config import Settings
-from sdlon.sd_changed_at import ChangeAtSD, changed_at
+from sdlon.date_utils import format_date
+from sdlon.it_systems import MUTATION_ADD_IT_SYSTEM_TO_EMPLOYEE
+from sdlon.metrics import RunDBState
+from sdlon.models import ITUserSystem
+from sdlon.models import MOBasePerson
+from sdlon.sd_changed_at import ChangeAtSD
+from sdlon.sd_changed_at import changed_at
 
 
 class ChangeAtSDTest(ChangeAtSD):

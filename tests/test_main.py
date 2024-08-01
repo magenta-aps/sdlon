@@ -1,5 +1,6 @@
 from datetime import datetime
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 from uuid import uuid4
 
 from fastapi.testclient import TestClient

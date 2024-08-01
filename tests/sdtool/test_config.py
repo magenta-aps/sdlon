@@ -7,47 +7,40 @@ from uuid import uuid4
 import pytest
 from more_itertools import one
 from parameterized import parameterized
-from pydantic import SecretStr, ValidationError
+from pydantic import SecretStr
+from pydantic import ValidationError
 
 from sdtool.config import Settings
 
 MANDATORY_SETTINGS = {
     "sd_user": "username",
     "sd_password": "password",
-    "sd_institution_identifier": "institution"
+    "sd_institution_identifier": "institution",
 }
 
 
 @parameterized.expand(
     [
         (
-            {
-                "saml_token": str(uuid4()),
-                "client_secret": "client_secret"
-            },
-            "SAML and OIDC cannot be used simultaneously"
+            {"saml_token": str(uuid4()), "client_secret": "client_secret"},
+            "SAML and OIDC cannot be used simultaneously",
         ),
         (
-            {
-                "client_secret": "client_secret"
-            },
-            "The following ENVs are missing: auth_server, auth_realm, client_id"
+            {"client_secret": "client_secret"},
+            "The following ENVs are missing: auth_server, auth_realm, client_id",
         ),
         (
-            {
-                "client_secret": "client_secret",
-                "client_id": "client_id"
-            },
-            "The following ENVs are missing: auth_server, auth_realm"
+            {"client_secret": "client_secret", "client_id": "client_id"},
+            "The following ENVs are missing: auth_server, auth_realm",
         ),
         (
             {
                 "client_secret": "client_secret",
                 "client_id": "client_id",
-                "auth_realm": "auth_realm"
+                "auth_realm": "auth_realm",
             },
-            "The following ENVs are missing: auth_server"
-        )
+            "The following ENVs are missing: auth_server",
+        ),
     ]
 )
 def test_root_validator(settings_updates, msg):
@@ -65,7 +58,7 @@ def test_auth_server_must_be_url():
             "client_secret": "client_secret",
             "client_id": "client_id",
             "auth_realm": "auth_realm",
-            "auth_server": "Not a URL"
+            "auth_server": "Not a URL",
         }
     )
     with pytest.raises(ValidationError):
@@ -84,7 +77,7 @@ def test_value_error_not_raised_when_keycloak_settings_ok():
             "client_secret": "client_secret",
             "client_id": "client_id",
             "auth_realm": "auth_realm",
-            "auth_server": "http://keycloak-service:8080/auth"
+            "auth_server": "http://keycloak-service:8080/auth",
         }
     )
     assert Settings.parse_obj(settings)
@@ -94,7 +87,7 @@ def test_set_envs_from_salt_settings():
     salt_settings = {
         "sd_username": "username",
         "sd_password": "password",
-        "sd_institution": "institution"
+        "sd_institution": "institution",
     }
     settings = Settings.parse_obj(salt_settings)
     assert settings.sd_user == "username"
