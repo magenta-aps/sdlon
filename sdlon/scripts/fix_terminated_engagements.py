@@ -127,10 +127,10 @@ def get_mo_eng_validity_map(mo: MO) -> dict[tuple[str, str], dict[str, Any]]:
 
         mo_eng_map[(cpr, emp_id)] = {
             "eng_uuid": obj["uuid"],
-            "from": datetime.fromisoformat(from_).date(),
-            "to": datetime.fromisoformat(to).date()
+            "from": datetime.fromisoformat(from_),
+            "to": datetime.fromisoformat(to)
             if to is not None
-            else date(9999, 12, 31),
+            else datetime(9999, 12, 31),
         }
 
     return mo_eng_map
@@ -156,22 +156,23 @@ def update_engagements(
         if cpr_emp_id not in mo_map:
             continue
 
-        sd_end_date = last(emp_w_lists.EmploymentStatus).DeactivationDate
-        mo_end_date = mo_map[cpr_emp_id]["to"]
+        sd_end_date: date = last(emp_w_lists.EmploymentStatus).DeactivationDate
+        mo_end_date: datetime = mo_map[cpr_emp_id]["to"]
+        eng_uuid = UUID(mo_map[cpr_emp_id]["eng_uuid"])
 
-        if sd_end_date == mo_end_date:
+        if sd_end_date == mo_end_date.date():
             continue
 
         # Print CPR, EmploymentIdentifier, sd_end_date, mo_end_date
-        print(cpr_emp_id[0], cpr_emp_id[1], sd_end_date, mo_end_date)
+        print(cpr_emp_id[0], cpr_emp_id[1], sd_end_date, mo_end_date.date())
 
-        if sd_end_date < mo_end_date:
+        if sd_end_date < mo_end_date.date():
             # Terminate engagement in MO
             mo.terminate_engagement(
-                UUID(mo_map[cpr_emp_id]["eng_uuid"]),
+                eng_uuid,
                 datetime(sd_end_date.year, sd_end_date.month, sd_end_date.day, 0, 0, 0),
             )
-        elif sd_end_date > mo_end_date:
+        elif sd_end_date > mo_end_date.date():
             # Update engagement in MO
             pass
 
