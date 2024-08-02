@@ -41,8 +41,9 @@ def get_emp_status_timeline(
         )
 
     future_emp_statuses = (
-        employment_changed.EmploymentStatus or []
+        employment_changed.EmploymentStatus
         if employment_changed is not None
+        and employment_changed.EmploymentStatus is not None
         else []
     )
     # Only include active SD employments
