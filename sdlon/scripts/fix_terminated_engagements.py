@@ -1,8 +1,11 @@
 # This script adds or re-opens the terminated engagements described
 # in Redmine case #61415.
 from datetime import date
+from datetime import datetime
 from datetime import timedelta
+from zoneinfo import ZoneInfo
 
+import click
 from more_itertools import first
 from more_itertools import last
 from more_itertools import one
@@ -11,7 +14,10 @@ from sdclient.responses import EmploymentWithLists
 from sdclient.responses import GetEmploymentChangedResponse
 from sdclient.responses import GetEmploymentResponse
 
+from sdlon.date_utils import format_date
+from sdlon.date_utils import SD_INFINITY
 from sdlon.mo import MO
+from sdlon.sd import SD
 
 
 def get_emp_status_timeline(
@@ -117,3 +123,105 @@ def get_mo_eng_validity_map(mo: MO) -> dict[tuple[str, str], dict[str, date | No
         }
 
     return mo_eng_map
+
+
+def update_engagements(
+    sd_map: dict[tuple[str, str], EmploymentWithLists],
+    mo_map: dict[tuple[str, str], dict[str, date | None]],
+) -> None:
+    """
+    Fixes the engagements in MO that have been terminated by mistake.
+
+    Args:
+        sd_map: the SD EmploymentWithLists map (from get_sd_employment_map)
+        mo_map: the MO end date map (from get_mo_eng_end_date_map)
+
+    """
+
+    # sd_end_dates = dict()
+    for cpr_emp_id, emp_w_lists in sd_map.items():
+        if cpr_emp_id not in mo_map:
+            continue
+
+        sd_end_date = last(emp_w_lists.EmploymentStatus).DeactivationDate
+        sd_end_date: date | None = (
+            sd_end_date if not format_date(sd_end_date) == SD_INFINITY else None
+        )
+
+        if not sd_end_date == mo_map[cpr_emp_id]["to"]:
+            print(cpr_emp_id, sd_end_date, mo_map[cpr_emp_id]["to"])
+
+
+@click.command()
+@click.option("--username", envvar="SD_USER", required=True, help="SD username")
+@click.option("--password", envvar="SD_PASSWORD", required=True, help="SD password")
+@click.option(
+    "--institution-identifier",
+    envvar="SD_INSTITUTION_IDENTIFIER",
+    required=True,
+    help="SD institution identifier",
+)
+@click.option(
+    "--auth-server",
+    envvar="AUTH_SERVER",
+    default="http://keycloak:8080/auth",
+    help="Keycloak auth server URL",
+)
+@click.option(
+    "--client-id", default="developer", help="Keycloak client id"
+)
+@click.option(
+    "--client-secret",
+    required=True,
+    help="Keycloak client secret for the 'developer' client",
+)
+@click.option(
+    "--mo-base-url",
+    default="http://mo:5000",
+    envvar="MO_URL",
+    help="Base URL for calling MO",
+)
+@click.option(
+    "--i-have-read-the-readme",
+    "readme",
+    is_flag=True,
+    help="Set flag to ensure that you have read the readme",
+)
+def main(
+    username: str,
+    password: str,
+    institution_identifier: str,
+    auth_server: str,
+    client_id: str,
+    client_secret: str,
+    mo_base_url: str,
+    readme: bool,
+):
+    if not readme:
+        print(
+            "Make sure you have read the sdlon/scripts/README.md before "
+            "running this script"
+        )
+        exit(0)
+
+    # setup_logging(LogLevel.DEBUG)
+
+    sd = SD(username, password, institution_identifier)
+    mo = MO(auth_server, client_id, client_secret, mo_base_url)
+
+    now = datetime.now(tz=ZoneInfo("Europe/Copenhagen")).date()
+
+    sd_employments = sd.get_sd_employments(now)
+    sd_employments_changed = sd.get_sd_employments_changed(
+        activation_date=now,
+        deactivation_date=date(9999, 12, 31),
+    )
+
+    sd_emp_map = get_sd_employment_map(sd_employments, sd_employments_changed)
+    mo_eng_validity_map = get_mo_eng_validity_map(mo)
+
+    update_engagements(sd_emp_map, mo_eng_validity_map)
+
+
+if __name__ == "__main__":
+    main()
