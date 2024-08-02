@@ -45,6 +45,13 @@ def get_emp_status_timeline(
         if employment_changed is not None
         else []
     )
+    # Only include active SD employments
+    future_emp_statuses = [
+        emp_status
+        for emp_status in future_emp_statuses
+        if emp_status.EmploymentStatusCode in ("0", "1", "3")
+    ]
+
     emp_timeline = EmploymentWithLists(
         EmploymentIdentifier=employment.EmploymentIdentifier,
         EmploymentDate=employment.EmploymentDate,
