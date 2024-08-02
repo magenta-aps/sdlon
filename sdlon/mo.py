@@ -180,3 +180,40 @@ class MO:
                 "org_unit": str(org_unit),
             },
         )
+
+    def update_engagement_dates(
+        self,
+        eng_uuid: UUID,
+        from_date: datetime,
+        to_date: datetime | None,
+    ) -> None:
+        mutation = gql(
+            """
+            mutation UpdateEngagement(
+              $uuid: UUID!,
+              $from: DateTime!,
+              $to: DateTime
+            ) {
+              engagement_update(
+                input: {
+                  uuid: $uuid,
+                  validity: {
+                    from: $from,
+                    to: $to
+                  }
+                }
+              ) {
+                uuid
+              }
+            }
+            """
+        )
+
+        self.client.execute(
+            mutation,
+            {
+                "uuid": str(eng_uuid),
+                "from": from_date.isoformat(),
+                "to": to_date.isoformat() if to_date is not None else None,
+            },
+        )

@@ -178,7 +178,7 @@ def update_engagements(
             )
         elif sd_end_date > mo_end_date.date():
             # Update engagement in MO
-            mo.update_engagement(
+            mo.update_engagement_dates(
                 eng_uuid,
                 mo_map[cpr_emp_id]["from"],
                 datetime(sd_end_date.year, sd_end_date.month, sd_end_date.day, 0, 0, 0),
