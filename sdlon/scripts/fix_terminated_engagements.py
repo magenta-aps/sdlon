@@ -3,6 +3,8 @@
 from datetime import date
 from datetime import datetime
 from datetime import timedelta
+from typing import Any
+from uuid import UUID
 from zoneinfo import ZoneInfo
 
 import click
@@ -105,7 +107,7 @@ def get_sd_employment_map(
     }
 
 
-def get_mo_eng_validity_map(mo: MO) -> dict[tuple[str, str], dict[str, date]]:
+def get_mo_eng_validity_map(mo: MO) -> dict[tuple[str, str], dict[str, Any]]:
     """
     Get the validity of the last validity in the list of the engagement
     validities in the GraphQL response from MO.
@@ -124,6 +126,7 @@ def get_mo_eng_validity_map(mo: MO) -> dict[tuple[str, str], dict[str, date]]:
         to = last(validities)["validity"]["to"]
 
         mo_eng_map[(cpr, emp_id)] = {
+            "eng_uuid": obj["uuid"],
             "from": datetime.fromisoformat(from_).date(),
             "to": datetime.fromisoformat(to).date()
             if to is not None
@@ -134,13 +137,15 @@ def get_mo_eng_validity_map(mo: MO) -> dict[tuple[str, str], dict[str, date]]:
 
 
 def update_engagements(
+    mo: MO,
     sd_map: dict[tuple[str, str], EmploymentWithLists],
-    mo_map: dict[tuple[str, str], dict[str, date]],
+    mo_map: dict[tuple[str, str], dict[str, Any]],
 ) -> None:
     """
     Fixes the engagements in MO that have been terminated by mistake.
 
     Args:
+        mo: the MO client
         sd_map: the SD EmploymentWithLists map (from get_sd_employment_map)
         mo_map: the MO end date map (from get_mo_eng_end_date_map)
 
@@ -152,9 +157,23 @@ def update_engagements(
             continue
 
         sd_end_date = last(emp_w_lists.EmploymentStatus).DeactivationDate
+        mo_end_date = mo_map[cpr_emp_id]["to"]
 
-        if not sd_end_date == mo_map[cpr_emp_id]["to"]:
-            print(cpr_emp_id, sd_end_date, mo_map[cpr_emp_id]["to"])
+        if sd_end_date == mo_end_date:
+            continue
+
+        # Print CPR, EmploymentIdentifier, sd_end_date, mo_end_date
+        print(cpr_emp_id[0], cpr_emp_id[1], sd_end_date, mo_end_date)
+
+        if sd_end_date < mo_end_date:
+            # Terminate engagement in MO
+            mo.terminate_engagement(
+                UUID(mo_map[cpr_emp_id]["eng_uuid"]),
+                datetime(sd_end_date.year, sd_end_date.month, sd_end_date.day, 0, 0, 0),
+            )
+        elif sd_end_date > mo_end_date:
+            # Update engagement in MO
+            pass
 
 
 @click.command()
@@ -225,7 +244,7 @@ def main(
     print("Get MO engagements and validities")
     mo_eng_validity_map = get_mo_eng_validity_map(mo)
 
-    update_engagements(sd_emp_map, mo_eng_validity_map)
+    update_engagements(mo, sd_emp_map, mo_eng_validity_map)
 
 
 if __name__ == "__main__":
