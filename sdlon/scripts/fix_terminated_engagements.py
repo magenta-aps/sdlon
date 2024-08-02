@@ -16,8 +16,14 @@ from sdclient.responses import GetEmploymentResponse
 
 from sdlon.date_utils import format_date
 from sdlon.date_utils import SD_INFINITY
+from sdlon.log import get_logger
+from sdlon.log import LogLevel
+from sdlon.log import setup_logging
 from sdlon.mo import MO
 from sdlon.sd import SD
+
+
+logger = get_logger()
 
 
 def get_emp_status_timeline(
@@ -33,7 +39,9 @@ def get_emp_status_timeline(
         )
 
     future_emp_statuses = (
-        employment_changed.EmploymentStatus if employment_changed is not None else []
+        employment_changed.EmploymentStatus or []
+        if employment_changed is not None
+        else []
     )
     emp_timeline = EmploymentWithLists(
         EmploymentIdentifier=employment.EmploymentIdentifier,
@@ -114,12 +122,12 @@ def get_mo_eng_validity_map(mo: MO) -> dict[tuple[str, str], dict[str, date | No
         cpr = one(persons)["cpr_number"]
         emp_id = first(validities)["user_key"]
 
-        from_ = last(validities)["from"]
-        to = last(validities)["to"]
+        from_ = last(validities)["validity"]["from"]
+        to = last(validities)["validity"]["to"]
 
         mo_eng_map[(cpr, emp_id)] = {
-            "from": date.fromisoformat(from_),
-            "to": date.fromisoformat(to) if to is not None else None,
+            "from": datetime.fromisoformat(from_).date(),
+            "to": datetime.fromisoformat(to).date() if to is not None else None,
         }
 
     return mo_eng_map
@@ -167,9 +175,7 @@ def update_engagements(
     default="http://keycloak:8080/auth",
     help="Keycloak auth server URL",
 )
-@click.option(
-    "--client-id", default="developer", help="Keycloak client id"
-)
+@click.option("--client-id", default="developer", help="Keycloak client id")
 @click.option(
     "--client-secret",
     required=True,
@@ -204,13 +210,14 @@ def main(
         )
         exit(0)
 
-    # setup_logging(LogLevel.DEBUG)
+    setup_logging(LogLevel.DEBUG)
 
     sd = SD(username, password, institution_identifier)
     mo = MO(auth_server, client_id, client_secret, mo_base_url)
 
     now = datetime.now(tz=ZoneInfo("Europe/Copenhagen")).date()
 
+    print("Get SD employments")
     sd_employments = sd.get_sd_employments(now)
     sd_employments_changed = sd.get_sd_employments_changed(
         activation_date=now,
@@ -218,6 +225,7 @@ def main(
     )
 
     sd_emp_map = get_sd_employment_map(sd_employments, sd_employments_changed)
+    print("Get MO engagements and validities")
     mo_eng_validity_map = get_mo_eng_validity_map(mo)
 
     update_engagements(sd_emp_map, mo_eng_validity_map)
