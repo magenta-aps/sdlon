@@ -14,8 +14,6 @@ from sdclient.responses import EmploymentWithLists
 from sdclient.responses import GetEmploymentChangedResponse
 from sdclient.responses import GetEmploymentResponse
 
-from sdlon.date_utils import format_date
-from sdlon.date_utils import SD_INFINITY
 from sdlon.log import get_logger
 from sdlon.log import LogLevel
 from sdlon.log import setup_logging
@@ -107,7 +105,7 @@ def get_sd_employment_map(
     }
 
 
-def get_mo_eng_validity_map(mo: MO) -> dict[tuple[str, str], dict[str, date | None]]:
+def get_mo_eng_validity_map(mo: MO) -> dict[tuple[str, str], dict[str, date]]:
     """
     Get the validity of the last validity in the list of the engagement
     validities in the GraphQL response from MO.
@@ -127,7 +125,9 @@ def get_mo_eng_validity_map(mo: MO) -> dict[tuple[str, str], dict[str, date | No
 
         mo_eng_map[(cpr, emp_id)] = {
             "from": datetime.fromisoformat(from_).date(),
-            "to": datetime.fromisoformat(to).date() if to is not None else None,
+            "to": datetime.fromisoformat(to).date()
+            if to is not None
+            else date(9999, 12, 31),
         }
 
     return mo_eng_map
@@ -135,7 +135,7 @@ def get_mo_eng_validity_map(mo: MO) -> dict[tuple[str, str], dict[str, date | No
 
 def update_engagements(
     sd_map: dict[tuple[str, str], EmploymentWithLists],
-    mo_map: dict[tuple[str, str], dict[str, date | None]],
+    mo_map: dict[tuple[str, str], dict[str, date]],
 ) -> None:
     """
     Fixes the engagements in MO that have been terminated by mistake.
@@ -152,9 +152,6 @@ def update_engagements(
             continue
 
         sd_end_date = last(emp_w_lists.EmploymentStatus).DeactivationDate
-        sd_end_date: date | None = (
-            sd_end_date if not format_date(sd_end_date) == SD_INFINITY else None
-        )
 
         if not sd_end_date == mo_map[cpr_emp_id]["to"]:
             print(cpr_emp_id, sd_end_date, mo_map[cpr_emp_id]["to"])
