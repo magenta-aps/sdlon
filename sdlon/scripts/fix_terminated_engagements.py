@@ -140,6 +140,7 @@ def update_engagements(
     mo: MO,
     sd_map: dict[tuple[str, str], EmploymentWithLists],
     mo_map: dict[tuple[str, str], dict[str, Any]],
+    dry_run: bool,
 ) -> None:
     """
     Fixes the engagements in MO that have been terminated by mistake.
@@ -148,7 +149,7 @@ def update_engagements(
         mo: the MO client
         sd_map: the SD EmploymentWithLists map (from get_sd_employment_map)
         mo_map: the MO end date map (from get_mo_eng_end_date_map)
-
+        dry_run: if True, do not perform any changes in MO
     """
 
     # sd_end_dates = dict()
@@ -165,6 +166,9 @@ def update_engagements(
 
         # Print CPR, EmploymentIdentifier, sd_end_date, mo_end_date
         print(cpr_emp_id[0], cpr_emp_id[1], sd_end_date, mo_end_date.date())
+
+        if dry_run:
+            continue
 
         if sd_end_date < mo_end_date.date():
             # Terminate engagement in MO
@@ -209,6 +213,11 @@ def update_engagements(
     help="Base URL for calling MO",
 )
 @click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Do not perform any changes is MO",
+)
+@click.option(
     "--i-have-read-the-readme",
     "readme",
     is_flag=True,
@@ -222,6 +231,7 @@ def main(
     client_id: str,
     client_secret: str,
     mo_base_url: str,
+    dry_run: bool,
     readme: bool,
 ):
     if not readme:
@@ -249,7 +259,7 @@ def main(
     print("Get MO engagements and validities")
     mo_eng_validity_map = get_mo_eng_validity_map(mo)
 
-    update_engagements(mo, sd_emp_map, mo_eng_validity_map)
+    update_engagements(mo, sd_emp_map, mo_eng_validity_map, dry_run)
 
 
 if __name__ == "__main__":
