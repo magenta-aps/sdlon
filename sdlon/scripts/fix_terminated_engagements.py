@@ -16,6 +16,8 @@ from sdclient.responses import EmploymentWithLists
 from sdclient.responses import GetEmploymentChangedResponse
 from sdclient.responses import GetEmploymentResponse
 
+from sdlon.date_utils import format_date
+from sdlon.date_utils import SD_INFINITY
 from sdlon.log import get_logger
 from sdlon.log import LogLevel
 from sdlon.log import setup_logging
@@ -181,7 +183,9 @@ def update_engagements(
             mo.update_engagement_dates(
                 eng_uuid,
                 mo_map[cpr_emp_id]["from"],
-                datetime(sd_end_date.year, sd_end_date.month, sd_end_date.day, 0, 0, 0),
+                datetime(sd_end_date.year, sd_end_date.month, sd_end_date.day, 0, 0, 0)
+                if not format_date(sd_end_date) == SD_INFINITY
+                else None,
             )
 
 
