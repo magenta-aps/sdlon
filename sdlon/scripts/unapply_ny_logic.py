@@ -1,15 +1,67 @@
 # This script "un-applies" the NY-logic, i.e. it will move the engagements
 # from MO from their elevations in the NY-levels and back down to the
 # "afdelingsniveaer" (see Redmine case #61426)
-
-from datetime import datetime, date
+from datetime import date
+from datetime import datetime
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import click
+from more_itertools import first
+from more_itertools import one
 
-from sdlon.log import setup_logging, LogLevel
+from sdlon.log import LogLevel
+from sdlon.log import setup_logging
 from sdlon.mo import MO
+from sdlon.scripts.fix_terminated_engagements import get_sd_employment_map
 from sdlon.sd import SD
+
+
+def get_mo_eng_validity_map(
+    mo: MO,
+    from_date: datetime | None,
+    to_date: datetime | None,
+    include_org_unit: bool = False,
+) -> dict[tuple[str, str], dict[dict[str, datetime], dict[str, Any]]]:
+    """
+    Get a map like this for the MO engagements:
+
+    {
+        (cpr, EmploymentIdentifier): {
+            {
+                "from": datetime(...),
+                "to": datetime(...)
+            }: {
+                "eng_uuid": ...,
+                "ou_uuid": ...
+            }
+        },
+        ...
+    }
+
+    where the SD EmploymentIdentifier is the same as the engagement user_key
+    and the key of the inner map is the engagement validity.
+    """
+
+    eng_objs = mo.get_engagements(from_date, to_date, include_org_unit=include_org_unit)
+
+    mo_eng_map = dict()
+    for obj in eng_objs:
+        validities = obj["validities"]
+
+        persons = first(validities)["person"]
+        cpr = one(persons)["cpr_number"]
+        emp_id = first(validities)["user_key"]
+
+        mo_eng_map[(cpr, emp_id)] = {
+            validity["validity"]: {
+                "eng_uuid": obj["uuid"],
+                "ou_uuid": one(validity["org_unit"])["uuid"],
+            }
+            for validity in validities
+        }
+
+    return mo_eng_map
 
 
 @click.command()
@@ -73,13 +125,19 @@ def main(
     sd = SD(username, password, institution_identifier)
     mo = MO(auth_server, client_id, client_secret, mo_base_url)
 
-    now = datetime.now(tz=ZoneInfo("Europe/Copenhagen")).date()
+    now = datetime.now(tz=ZoneInfo("Europe/Copenhagen"))
 
     print("Get SD employments")
-    sd_employments = sd.get_sd_employments(now)
+    sd_employments = sd.get_sd_employments(now.date())
     sd_employments_changed = sd.get_sd_employments_changed(
         activation_date=now,
         deactivation_date=date(9999, 12, 31),
+    )
+    sd_emp_map = get_sd_employment_map(sd_employments, sd_employments_changed)
+
+    print("Get MO engagements and validities")
+    mo_eng_validity_map = get_mo_eng_validity_map(
+        mo=mo, from_date=now, to_date=None, include_org_unit=True
     )
 
 
