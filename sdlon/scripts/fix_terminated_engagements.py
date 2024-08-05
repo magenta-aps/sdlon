@@ -12,6 +12,8 @@ from more_itertools import first
 from more_itertools import last
 from more_itertools import one
 from sdclient.responses import Employment
+from sdclient.responses import EmploymentDepartment
+from sdclient.responses import EmploymentStatus
 from sdclient.responses import EmploymentWithLists
 from sdclient.responses import GetEmploymentChangedResponse
 from sdclient.responses import GetEmploymentResponse
@@ -35,18 +37,23 @@ def get_emp_status_timeline(
     # TODO: for now, we only handle EmploymentStatus. In the future we
     #       should also handle Profession
 
+    def get_future_emp_attrs(
+        attr: str,
+    ) -> list[EmploymentStatus | EmploymentDepartment]:
+        return (
+            getattr(employment_changed, attr)
+            if employment_changed is not None
+            and getattr(employment_changed, attr) is not None
+            else []
+        )
+
     # The EmploymentIdentifiers must match
     if employment_changed is not None:
         assert (
             employment.EmploymentIdentifier == employment_changed.EmploymentIdentifier
         )
 
-    future_emp_statuses = (
-        employment_changed.EmploymentStatus
-        if employment_changed is not None
-        and employment_changed.EmploymentStatus is not None
-        else []
-    )
+    future_emp_statuses = get_future_emp_attrs("EmploymentStatus")
     # Only include active SD employments
     future_emp_statuses = [
         emp_status
@@ -55,12 +62,7 @@ def get_emp_status_timeline(
         in (status.value for status in EmploymentStatusEnum.employeed())
     ]
 
-    future_emp_departments = (
-        employment_changed.EmploymentDepartment
-        if employment_changed is not None
-        and employment_changed.EmploymentDepartment is not None
-        else []
-    )
+    future_emp_departments = get_future_emp_attrs("EmploymentDepartment")
 
     emp_timeline = EmploymentWithLists(
         EmploymentIdentifier=employment.EmploymentIdentifier,
