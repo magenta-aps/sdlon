@@ -2,6 +2,7 @@ from datetime import date
 
 import pytest
 from sdclient.responses import Employment
+from sdclient.responses import EmploymentDepartment
 from sdclient.responses import EmploymentStatus
 from sdclient.responses import EmploymentWithLists
 from sdclient.responses import GetEmploymentChangedResponse
@@ -20,6 +21,12 @@ CURRENT_EMPLOYMENT_STATUS = Employment(
         ActivationDate=date(2000, 1, 1),
         DeactivationDate=date(2000, 12, 31),
         EmploymentStatusCode=1,
+    ),
+    EmploymentDepartment=EmploymentDepartment(
+        ActivationDate=date(2000, 1, 1),
+        DeactivationDate=date(2000, 12, 31),
+        DepartmentIdentifier="ABCD",
+        DepartmentUUIDIdentifier="6220a7b8-db38-46d6-9a36-e1f432db2726",
     ),
 )
 
@@ -68,6 +75,14 @@ def test_get_emp_status_timeline(emp_status_list: list[EmploymentStatus]) -> Non
             ),
         ]
         + emp_status_list,
+        EmploymentDepartment=[
+            EmploymentDepartment(
+                ActivationDate=date(2000, 1, 1),
+                DeactivationDate=date(2000, 12, 31),
+                DepartmentIdentifier="ABCD",
+                DepartmentUUIDIdentifier="6220a7b8-db38-46d6-9a36-e1f432db2726",
+            )
+        ],
     )
 
 
@@ -132,6 +147,14 @@ def test_get_emp_status_timeline_status8() -> None:
             ),
         ]
         + emp_status_list[:-1],
+        EmploymentDepartment=[
+            EmploymentDepartment(
+                ActivationDate=date(2000, 1, 1),
+                DeactivationDate=date(2000, 12, 31),
+                DepartmentIdentifier="ABCD",
+                DepartmentUUIDIdentifier="6220a7b8-db38-46d6-9a36-e1f432db2726",
+            )
+        ],
     )
 
 
@@ -176,6 +199,14 @@ def test_get_sd_employment_map() -> None:
                 ),
             ]
             + FUTURE_EMPLOYMENT_STATUSES,
+            EmploymentDepartment=[
+                EmploymentDepartment(
+                    ActivationDate=date(2000, 1, 1),
+                    DeactivationDate=date(2000, 12, 31),
+                    DepartmentIdentifier="ABCD",
+                    DepartmentUUIDIdentifier="6220a7b8-db38-46d6-9a36-e1f432db2726",
+                )
+            ],
         )
     }
 
@@ -208,6 +239,14 @@ def test_get_sd_employment_map_empty_future() -> None:
                     DeactivationDate=date(2000, 12, 31),
                     EmploymentStatusCode=1,
                 ),
+            ],
+            EmploymentDepartment=[
+                EmploymentDepartment(
+                    ActivationDate=date(2000, 1, 1),
+                    DeactivationDate=date(2000, 12, 31),
+                    DepartmentIdentifier="ABCD",
+                    DepartmentUUIDIdentifier="6220a7b8-db38-46d6-9a36-e1f432db2726",
+                )
             ],
         )
     }

@@ -31,8 +31,9 @@ logger = get_logger()
 def get_emp_status_timeline(
     employment: Employment, employment_changed: EmploymentWithLists | None
 ) -> EmploymentWithLists:
+    # TODO: rename function (to be done later due to upcoming rebase...)
     # TODO: for now, we only handle EmploymentStatus. In the future we
-    #       should also handle Profession and EmploymentDepartment
+    #       should also handle Profession
 
     # The EmploymentIdentifiers must match
     if employment_changed is not None:
@@ -54,11 +55,19 @@ def get_emp_status_timeline(
         in (status.value for status in EmploymentStatusEnum.employeed())
     ]
 
+    future_emp_departments = (
+        employment_changed.EmploymentDepartment
+        if employment_changed is not None
+        and employment_changed.EmploymentDepartment is not None
+        else []
+    )
+
     emp_timeline = EmploymentWithLists(
         EmploymentIdentifier=employment.EmploymentIdentifier,
         EmploymentDate=employment.EmploymentDate,
         AnniversaryDate=employment.AnniversaryDate,
         EmploymentStatus=[employment.EmploymentStatus] + future_emp_statuses,
+        EmploymentDepartment=[employment.EmploymentDepartment] + future_emp_departments,
     )
 
     if len(emp_timeline.EmploymentStatus) <= 1:
