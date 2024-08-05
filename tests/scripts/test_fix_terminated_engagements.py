@@ -43,6 +43,21 @@ FUTURE_EMPLOYMENT_STATUSES = [
     ),
 ]
 
+FUTURE_EMPLOYMENT_DEPARTMENTS = [
+    EmploymentDepartment(
+        ActivationDate=date(2001, 1, 1),
+        DeactivationDate=date(2005, 12, 31),
+        DepartmentIdentifier="BCDE",
+        DepartmentUUIDIdentifier="123457b8-db38-46d6-9a36-e1f432db2726",
+    ),
+    EmploymentDepartment(
+        ActivationDate=date(2006, 1, 1),
+        DeactivationDate=date(9999, 12, 31),
+        DepartmentIdentifier="ABCD",
+        DepartmentUUIDIdentifier="6220a7b8-db38-46d6-9a36-e1f432db2726",
+    ),
+]
+
 
 @pytest.mark.parametrize(
     "emp_status_list",
@@ -54,7 +69,9 @@ FUTURE_EMPLOYMENT_STATUSES = [
 def test_get_emp_status_timeline(emp_status_list: list[EmploymentStatus]) -> None:
     # Arrange
     employment_changed = EmploymentWithLists(
-        EmploymentIdentifier="12345", EmploymentStatus=emp_status_list
+        EmploymentIdentifier="12345",
+        EmploymentStatus=emp_status_list,
+        EmploymentDepartment=FUTURE_EMPLOYMENT_DEPARTMENTS,
     )
 
     # Act
@@ -82,7 +99,8 @@ def test_get_emp_status_timeline(emp_status_list: list[EmploymentStatus]) -> Non
                 DepartmentIdentifier="ABCD",
                 DepartmentUUIDIdentifier="6220a7b8-db38-46d6-9a36-e1f432db2726",
             )
-        ],
+        ]
+        + FUTURE_EMPLOYMENT_DEPARTMENTS,
     )
 
 
@@ -98,6 +116,7 @@ def test_get_emp_status_timeline_holes() -> None:
                 EmploymentStatusCode=3,
             ),
         ],
+        EmploymentDepartment=FUTURE_EMPLOYMENT_DEPARTMENTS,
     )
 
     # Act + Assert
@@ -126,7 +145,9 @@ def test_get_emp_status_timeline_status8() -> None:
     ]
 
     employment_changed = EmploymentWithLists(
-        EmploymentIdentifier="12345", EmploymentStatus=emp_status_list
+        EmploymentIdentifier="12345",
+        EmploymentStatus=emp_status_list,
+        EmploymentDepartment=FUTURE_EMPLOYMENT_DEPARTMENTS,
     )
 
     # Act
@@ -154,7 +175,8 @@ def test_get_emp_status_timeline_status8() -> None:
                 DepartmentIdentifier="ABCD",
                 DepartmentUUIDIdentifier="6220a7b8-db38-46d6-9a36-e1f432db2726",
             )
-        ],
+        ]
+        + FUTURE_EMPLOYMENT_DEPARTMENTS,
     )
 
 
@@ -176,6 +198,7 @@ def test_get_sd_employment_map() -> None:
                     EmploymentWithLists(
                         EmploymentIdentifier="12345",
                         EmploymentStatus=FUTURE_EMPLOYMENT_STATUSES,
+                        EmploymentDepartment=FUTURE_EMPLOYMENT_DEPARTMENTS,
                     )
                 ],
             )
@@ -206,7 +229,8 @@ def test_get_sd_employment_map() -> None:
                     DepartmentIdentifier="ABCD",
                     DepartmentUUIDIdentifier="6220a7b8-db38-46d6-9a36-e1f432db2726",
                 )
-            ],
+            ]
+            + FUTURE_EMPLOYMENT_DEPARTMENTS,
         )
     }
 
