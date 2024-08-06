@@ -31,11 +31,13 @@ logger = get_logger()
 
 
 def get_emp_status_timeline(
-    employment: Employment, employment_changed: EmploymentWithLists | None
+    employment: Employment | None, employment_changed: EmploymentWithLists | None
 ) -> EmploymentWithLists:
     # TODO: rename function (to be done later due to upcoming rebase...)
     # TODO: for now, we only handle EmploymentStatus. In the future we
     #       should also handle Profession
+
+    assert employment is not None or employment_changed is not None
 
     def get_future_emp_attrs(
         attr: str,
@@ -48,7 +50,7 @@ def get_emp_status_timeline(
         )
 
     # The EmploymentIdentifiers must match
-    if employment_changed is not None:
+    if employment is not None and employment_changed is not None:
         assert (
             employment.EmploymentIdentifier == employment_changed.EmploymentIdentifier
         )
@@ -64,13 +66,23 @@ def get_emp_status_timeline(
 
     future_emp_departments = get_future_emp_attrs("EmploymentDepartment")
 
-    emp_timeline = EmploymentWithLists(
-        EmploymentIdentifier=employment.EmploymentIdentifier,
-        EmploymentDate=employment.EmploymentDate,
-        AnniversaryDate=employment.AnniversaryDate,
-        EmploymentStatus=[employment.EmploymentStatus] + future_emp_statuses,
-        EmploymentDepartment=[employment.EmploymentDepartment] + future_emp_departments,
-    )
+    if employment is not None:
+        emp_timeline = EmploymentWithLists(
+            EmploymentIdentifier=employment.EmploymentIdentifier,
+            EmploymentDate=employment.EmploymentDate,
+            AnniversaryDate=employment.AnniversaryDate,
+            EmploymentStatus=[employment.EmploymentStatus] + future_emp_statuses,
+            EmploymentDepartment=[employment.EmploymentDepartment]
+            + future_emp_departments,
+        )
+    else:
+        emp_timeline = EmploymentWithLists(
+            EmploymentIdentifier=employment_changed.EmploymentIdentifier,
+            EmploymentDate=employment_changed.EmploymentDate,
+            AnniversaryDate=employment_changed.AnniversaryDate,
+            EmploymentStatus=future_emp_statuses,
+            EmploymentDepartment=future_emp_departments,
+        )
 
     if len(emp_timeline.EmploymentStatus) <= 1:
         return emp_timeline

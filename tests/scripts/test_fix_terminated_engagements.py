@@ -180,6 +180,25 @@ def test_get_emp_status_timeline_status8() -> None:
     )
 
 
+def test_get_emp_status_timeline_no_current_employment() -> None:
+    # Arrange
+    employment_changed = EmploymentWithLists(
+        EmploymentIdentifier="12345",
+        EmploymentStatus=FUTURE_EMPLOYMENT_STATUSES,
+        EmploymentDepartment=FUTURE_EMPLOYMENT_DEPARTMENTS,
+    )
+
+    # Act
+    emp_timeline = get_emp_status_timeline(None, employment_changed)
+
+    # Assert
+    assert emp_timeline == EmploymentWithLists(
+        EmploymentIdentifier="12345",
+        EmploymentStatus=FUTURE_EMPLOYMENT_STATUSES,
+        EmploymentDepartment=FUTURE_EMPLOYMENT_DEPARTMENTS,
+    )
+
+
 def test_get_sd_employment_map() -> None:
     # Arrange
     sd_employments = GetEmploymentResponse(
