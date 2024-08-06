@@ -174,27 +174,41 @@ def update_engagements(
         if sd_end_date == mo_end_date.date():
             continue
 
-        # Print CPR, EmploymentIdentifier, sd_end_date, mo_end_date
-        print(cpr_emp_id[0], cpr_emp_id[1], sd_end_date, mo_end_date.date())
-
-        if dry_run:
-            continue
-
         if sd_end_date < mo_end_date.date():
             # Terminate engagement in MO
-            mo.terminate_engagement(
-                eng_uuid,
-                datetime(sd_end_date.year, sd_end_date.month, sd_end_date.day, 0, 0, 0),
+            print(
+                cpr_emp_id[0],
+                cpr_emp_id[1],
+                sd_end_date,
+                mo_end_date.date(),
+                "Terminate engagement",
             )
+            if not dry_run:
+                mo.terminate_engagement(
+                    eng_uuid,
+                    datetime(
+                        sd_end_date.year, sd_end_date.month, sd_end_date.day, 0, 0, 0
+                    ),
+                )
         elif sd_end_date > mo_end_date.date():
             # Update engagement in MO
-            mo.update_engagement_dates(
-                eng_uuid,
-                mo_map[cpr_emp_id]["from"],
-                datetime(sd_end_date.year, sd_end_date.month, sd_end_date.day, 0, 0, 0)
-                if not format_date(sd_end_date) == SD_INFINITY
-                else None,
+            print(
+                cpr_emp_id[0],
+                cpr_emp_id[1],
+                sd_end_date,
+                mo_end_date.date(),
+                "Update engagement",
             )
+            if not dry_run:
+                mo.update_engagement_dates(
+                    eng_uuid,
+                    mo_map[cpr_emp_id]["from"],
+                    datetime(
+                        sd_end_date.year, sd_end_date.month, sd_end_date.day, 0, 0, 0
+                    )
+                    if not format_date(sd_end_date) == SD_INFINITY
+                    else None,
+                )
 
 
 @click.command()
