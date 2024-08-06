@@ -23,7 +23,7 @@ from sdlon.log import LogLevel
 from sdlon.log import setup_logging
 from sdlon.mo import MO
 from sdlon.sd import SD
-
+from sdlon.sd_common import EmploymentStatus as EmploymentStatusEnum
 
 logger = get_logger()
 
@@ -50,7 +50,8 @@ def get_emp_status_timeline(
     future_emp_statuses = [
         emp_status
         for emp_status in future_emp_statuses
-        if emp_status.EmploymentStatusCode in ("0", "1", "3")
+        if emp_status.EmploymentStatusCode
+        in (status.value for status in EmploymentStatusEnum.employeed())
     ]
 
     emp_timeline = EmploymentWithLists(
