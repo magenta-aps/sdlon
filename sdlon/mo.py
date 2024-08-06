@@ -25,20 +25,25 @@ class MO:
             timeout=timeout,
         )
 
-    def get_engagements(self):
+    def get_engagements(
+        self,
+        from_date: datetime | None,
+        to_date: datetime | None,
+        include_org_unit: bool = False,
+    ):
         """
         Get all current and future engagements
         """
 
-        query = gql(
-            """
+        query_with_ou = """
             query GetEngagements(
-              $from_date: DateTime!,
+              $from_date: DateTime,
+              $to_date: DateTime,
               $cursor: Cursor,
               $limit: int!
             ) {
               engagements(
-                filter: {from_date: $from_date, to_date: null}
+                filter: {from_date: $from_date, to_date: $to_date}
                 cursor: $cursor
                 limit: $limit
               ) {
@@ -73,7 +78,41 @@ class MO:
               }
             }
             """
-        )
+
+        query_without_ou = """
+            query GetEngagements(
+              $from_date: DateTime,
+              $to_date: DateTime,
+              $cursor: Cursor,
+              $limit: int!
+            ) {
+              engagements(
+                filter: {from_date: $from_date, to_date: $to_date}
+                cursor: $cursor
+                limit: $limit
+              ) {
+                objects {
+                  validities {
+                    person {
+                      cpr_number
+                      uuid
+                    }
+                    validity {
+                      from
+                      to
+                    }
+                    user_key
+                  }
+                  uuid
+                }
+                page_info {
+                  next_cursor
+                }
+              }
+            }
+            """
+
+        query = gql(query_with_ou if include_org_unit else query_without_ou)
 
         def execute(cursor: str | None, objects: list[dict]) -> str:
             response = self.client.execute(
@@ -81,7 +120,10 @@ class MO:
                 variable_values={
                     "limit": "100",
                     "cursor": cursor,
-                    "from_date": datetime.now().isoformat(),
+                    "from_date": from_date.isoformat()
+                    if from_date is not None
+                    else None,
+                    "to_date": to_date.isoformat() if to_date is not None else None,
                 },
             )
             next_cursor = response["engagements"]["page_info"]["next_cursor"]
@@ -158,5 +200,42 @@ class MO:
                 "from": from_date.isoformat(),
                 "to": to_date.isoformat() if to_date is not None else None,
                 "org_unit": str(org_unit),
+            },
+        )
+
+    def update_engagement_dates(
+        self,
+        eng_uuid: UUID,
+        from_date: datetime,
+        to_date: datetime | None,
+    ) -> None:
+        mutation = gql(
+            """
+            mutation UpdateEngagement(
+              $uuid: UUID!,
+              $from: DateTime!,
+              $to: DateTime
+            ) {
+              engagement_update(
+                input: {
+                  uuid: $uuid,
+                  validity: {
+                    from: $from,
+                    to: $to
+                  }
+                }
+              ) {
+                uuid
+              }
+            }
+            """
+        )
+
+        self.client.execute(
+            mutation,
+            {
+                "uuid": str(eng_uuid),
+                "from": from_date.isoformat(),
+                "to": to_date.isoformat() if to_date is not None else None,
             },
         )

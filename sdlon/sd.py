@@ -84,8 +84,8 @@ class SD:
                 ActivationDate=activation_date,
                 DeactivationDate=deactivation_date,
                 DepartmentIndicator=True,
-                EmploymentStatusIndicator=False,
-                ProfessionIndicator=False,
+                EmploymentStatusIndicator=True,
+                ProfessionIndicator=True,
                 UUIDIndicator=True,
             )
         )
