@@ -35,27 +35,7 @@ class MO:
         Get all current and future engagements
         """
 
-        # I know - this is ugly...
-        ou_part = (
-            """
-                    org_unit {
-                      uuid
-                      user_key
-                      name
-                      managers {
-                        employee {
-                          uuid
-                          name
-                        }
-                      }
-                    }
-        """
-            if include_org_unit
-            else ""
-        )
-
-        query = gql(
-            """
+        query_with_ou = """
             query GetEngagements(
               $from_date: DateTime,
               $to_date: DateTime,
@@ -73,9 +53,17 @@ class MO:
                       cpr_number
                       uuid
                     }
-            """
-            + ou_part
-            + """
+                    org_unit {
+                      uuid
+                      user_key
+                      name
+                      managers {
+                        employee {
+                          uuid
+                          name
+                        }
+                      }
+                    }
                     validity {
                       from
                       to
@@ -90,7 +78,41 @@ class MO:
               }
             }
             """
-        )
+
+        query_without_ou = """
+            query GetEngagements(
+              $from_date: DateTime,
+              $to_date: DateTime,
+              $cursor: Cursor,
+              $limit: int!
+            ) {
+              engagements(
+                filter: {from_date: $from_date, to_date: $to_date}
+                cursor: $cursor
+                limit: $limit
+              ) {
+                objects {
+                  validities {
+                    person {
+                      cpr_number
+                      uuid
+                    }
+                    validity {
+                      from
+                      to
+                    }
+                    user_key
+                  }
+                  uuid
+                }
+                page_info {
+                  next_cursor
+                }
+              }
+            }
+            """
+
+        query = gql(query_with_ou if include_org_unit else query_without_ou)
 
         def execute(cursor: str | None, objects: list[dict]) -> str:
             response = self.client.execute(
