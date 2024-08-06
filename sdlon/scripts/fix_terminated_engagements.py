@@ -140,7 +140,7 @@ def get_mo_eng_validity_map(mo: MO) -> dict[tuple[str, str], dict[str, Any]]:
             "from": datetime.fromisoformat(from_),
             "to": datetime.fromisoformat(to)
             if to is not None
-            else datetime(9999, 12, 31),
+            else date.max,  # 9999-12-31
         }
 
     return mo_eng_map
