@@ -1,5 +1,6 @@
 import base64
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from gql import gql
@@ -130,7 +131,7 @@ class MO:
             objects.extend(response["engagements"]["objects"])
             return next_cursor
 
-        objects = []
+        objects: list[dict[str, Any]] = []
         next_cursor = execute(None, objects)
         while next_cursor:
             print(base64.b64decode(next_cursor.split(":")[1]))
