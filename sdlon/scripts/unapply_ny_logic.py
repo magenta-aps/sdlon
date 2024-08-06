@@ -3,12 +3,13 @@
 # "afdelingsniveaer" (see Redmine case #61426)
 from datetime import date
 from datetime import datetime
-from typing import Any
+from uuid import UUID
 from zoneinfo import ZoneInfo
 
 import click
 from more_itertools import first
 from more_itertools import one
+from sdclient.responses import EmploymentWithLists
 
 from sdlon.log import LogLevel
 from sdlon.log import setup_logging
@@ -22,7 +23,7 @@ def get_mo_eng_validity_map(
     from_date: datetime | None,
     to_date: datetime | None,
     include_org_unit: bool = False,
-) -> dict[tuple[str, str], dict[dict[str, datetime], dict[str, Any]]]:
+) -> dict[tuple[str, str], dict[dict[str, datetime], dict[str, str]]]:
     """
     Get a map like this for the MO engagements:
 
@@ -62,6 +63,58 @@ def get_mo_eng_validity_map(
         }
 
     return mo_eng_map
+
+
+def update_engs_ou(
+    mo: MO,
+    sd_map: dict[tuple[str, str], EmploymentWithLists],
+    mo_map: dict[tuple[str, str], dict[dict[str, datetime], dict[str, str]]],
+    dry_run: bool,
+) -> None:
+    """
+    Update (if necessary) the engagement OUs in MO according to department
+    in SD, i.e. we move the engagements back to the SD "afdelingsniveauer"
+    from the "NY-levels" in MO.
+
+    Args:
+        mo: the MO client
+        sd_map: the SD EmploymentWithLists map (from get_sd_employment_map)
+        mo_map: the MO end date map (from get_mo_eng_end_date_map)
+        dry_run: if True, do not perform any changes in MO
+    """
+
+    for cpr_empID, validity_map in mo_map.items():
+        sd_emp = sd_map.get(cpr_empID)
+        if sd_emp is None:
+            print("Could not find employment in SD")
+            continue
+        for validity, eng_data in validity_map.items():
+            # Assumption: the MO intervals *should* be contained in the
+            # SD intervals
+            sd_department = one(
+                [
+                    dep
+                    for dep in sd_emp.EmploymentDepartment
+                    if dep.ActivationDate <= validity["from"].date()
+                    and dep.DeactivationDate >= validity["to"].date()
+                ]
+            )
+
+            ou_uuid = UUID(eng_data["ou_uuid"])
+            eng_uuid = UUID(eng_data["eng_uuid"])
+
+            if not sd_department.DepartmentUUIDIdentifier == ou_uuid:
+                print(
+                    f"{cpr_empID[0]}, {cpr_empID[1]}, "
+                    f"{str(sd_department.DepartmentUUIDIdentifier)}, {str(ou_uuid)}"
+                )
+                if not dry_run:
+                    mo.update_engagement(
+                        eng_uuid=eng_uuid,
+                        from_date=validity["from"],
+                        to_date=validity["to"],
+                        org_unit=sd_department.DepartmentUUIDIdentifier,
+                    )
 
 
 @click.command()
@@ -138,6 +191,13 @@ def main(
     print("Get MO engagements and validities")
     mo_eng_validity_map = get_mo_eng_validity_map(
         mo=mo, from_date=now, to_date=None, include_org_unit=True
+    )
+
+    update_engs_ou(
+        mo=mo,
+        sd_map=sd_emp_map,
+        mo_map=mo_eng_validity_map,
+        dry_run=dry_run,
     )
 
 
