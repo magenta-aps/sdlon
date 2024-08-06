@@ -34,8 +34,8 @@ def get_emp_status_timeline(
     employment: Employment | None, employment_changed: EmploymentWithLists | None
 ) -> EmploymentWithLists:
     # TODO: rename function (to be done later due to upcoming rebase...)
-    # TODO: for now, we only handle EmploymentStatus. In the future we
-    #       should also handle Profession
+    # TODO: for now, we only handle EmploymentStatus and EmploymentDepartment.
+    #       In the future we should also handle Profession
 
     assert employment is not None or employment_changed is not None
 
