@@ -1,6 +1,7 @@
 # This script "un-applies" the NY-logic, i.e. it will move the engagements
 # from MO from their elevations in the NY-levels and back down to the
 # "afdelingsniveaer" (see Redmine case #61426)
+from collections import namedtuple
 from datetime import date
 from datetime import datetime
 from uuid import UUID
@@ -18,21 +19,23 @@ from sdlon.scripts.fix_terminated_engagements import get_sd_employment_map
 from sdlon.sd import SD
 
 
+# We use a named tuple over a Pydantic model since the former is hashable
+# (to be used as a dictionary key)
+Validity = namedtuple("Validity", ["from_", "to"])
+
+
 def get_mo_eng_validity_map(
     mo: MO,
     from_date: datetime | None,
     to_date: datetime | None,
     include_org_unit: bool = False,
-) -> dict[tuple[str, str], dict[dict[str, datetime], dict[str, str]]]:
+) -> dict[tuple[str, str], dict[Validity, dict[str, str]]]:
     """
     Get a map like this for the MO engagements:
 
     {
         (cpr, EmploymentIdentifier): {
-            {
-                "from": datetime(...),
-                "to": datetime(...)
-            }: {
+            Validity(from_=datetime(...), to=datetime(...)): {
                 "eng_uuid": ...,
                 "ou_uuid": ...
             }
@@ -55,7 +58,12 @@ def get_mo_eng_validity_map(
         emp_id = first(validities)["user_key"]
 
         mo_eng_map[(cpr, emp_id)] = {
-            validity["validity"]: {
+            Validity(
+                datetime.fromisoformat(validity["validity"]["from"]),
+                datetime.fromisoformat(validity["validity"]["to"])
+                if validity["validity"]["to"] is not None
+                else datetime.max,
+            ): {
                 "eng_uuid": obj["uuid"],
                 "ou_uuid": one(validity["org_unit"])["uuid"],
             }
@@ -68,7 +76,7 @@ def get_mo_eng_validity_map(
 def update_engs_ou(
     mo: MO,
     sd_map: dict[tuple[str, str], EmploymentWithLists],
-    mo_map: dict[tuple[str, str], dict[dict[str, datetime], dict[str, str]]],
+    mo_map: dict[tuple[str, str], dict[Validity, dict[str, str]]],
     dry_run: bool,
 ) -> None:
     """
@@ -95,8 +103,8 @@ def update_engs_ou(
                 [
                     dep
                     for dep in sd_emp.EmploymentDepartment
-                    if dep.ActivationDate <= validity["from"].date()
-                    and dep.DeactivationDate >= validity["to"].date()
+                    if dep.ActivationDate <= validity.from_.date()
+                    and dep.DeactivationDate >= validity.to.date()
                 ]
             )
 
@@ -111,8 +119,10 @@ def update_engs_ou(
                 if not dry_run:
                     mo.update_engagement(
                         eng_uuid=eng_uuid,
-                        from_date=validity["from"],
-                        to_date=validity["to"],
+                        from_date=validity.from_,
+                        to_date=validity.to
+                        if not validity.to.date() == date.max
+                        else None,
                         org_unit=sd_department.DepartmentUUIDIdentifier,
                     )
 
