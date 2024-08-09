@@ -98,10 +98,15 @@ def get_emp_status_timeline(
         emp_status.DeactivationDate for emp_status in emp_timeline.EmploymentStatus[:-1]
     )
     date_pairs = zip(activation_dates, deactivation_dates)
-    assert all(
-        deactivation_date + timedelta(days=1) == activation_date
-        for activation_date, deactivation_date in date_pairs
-    )
+
+    try:
+        assert all(
+            deactivation_date + timedelta(days=1) == activation_date
+            for activation_date, deactivation_date in date_pairs
+        )
+    except AssertionError as error:
+        print(emp_timeline)
+        raise error
 
     return emp_timeline
 
@@ -320,7 +325,7 @@ def main(
     print("Get SD employments")
     sd_employments = sd.get_sd_employments(now)
     sd_employments_changed = sd.get_sd_employments_changed(
-        activation_date=now,
+        activation_date=now + timedelta(days=1),
         deactivation_date=date(9999, 12, 31),
     )
 

@@ -261,7 +261,7 @@ def main(
     print("Get SD employments")
     sd_employments = sd.get_sd_employments(now.date())
     sd_employments_changed = sd.get_sd_employments_changed(
-        activation_date=now,
+        activation_date=now + timedelta(days=1),
         deactivation_date=date(9999, 12, 31),
     )
     sd_emp_map = get_sd_employment_map(sd_employments, sd_employments_changed)
