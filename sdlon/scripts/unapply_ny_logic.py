@@ -4,6 +4,7 @@
 from collections import namedtuple
 from datetime import date
 from datetime import datetime
+from datetime import timedelta
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -73,6 +74,27 @@ def get_mo_eng_validity_map(
     return mo_eng_map
 
 
+def get_missing_departments(
+    sd: SD,
+    cpr_empID: tuple[str, str],
+    mo_start: datetime,
+    sd_emp: EmploymentWithLists,
+) -> None:
+    sd_start_date = mo_start.date()
+    first_know_start_date = first(sd_emp.EmploymentDepartment).ActivationDate
+
+    while sd_start_date < first_know_start_date:
+        emp = sd.get_sd_employments(
+            sd_start_date,
+            cpr_empID[0],  # CPR
+            cpr_empID[1],  # EmploymentIdentifier
+        )
+        department = one(one(emp.Person).Employment).EmploymentDepartment
+        assert department is not None
+        sd_emp.EmploymentDepartment.insert(0, department)
+        sd_start_date = department.DeactivationDate + timedelta(days=1)
+
+
 def get_update_interval(
     mo_validity: Validity,
     sd_activation_date: date,
@@ -134,7 +156,10 @@ def update_engs_ou(
             print("Could not find employment in SD")
             continue
         for validity, eng_data in validity_map.items():
-            if validity.from_.date() < first(sd_emp.EmploymentDepartment).ActivationDate:
+            if (
+                validity.from_.date()
+                < first(sd_emp.EmploymentDepartment).ActivationDate
+            ):
                 # Get missing SD intervals
                 pass
 

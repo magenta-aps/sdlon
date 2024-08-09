@@ -12,6 +12,8 @@ from sdlon.scripts.unapply_ny_logic import Validity
     [
         # MO --------==============================>
         # SD ------+------------------------------->
+        # Returns:
+        #            +----------------------------->
         (
             Validity(datetime(2000, 1, 1), datetime.max),
             date(1999, 1, 1),
@@ -21,6 +23,8 @@ from sdlon.scripts.unapply_ny_logic import Validity
         ),
         # MO --------==============================>
         # SD --------+----------------------------->
+        # Returns:
+        #            +----------------------------->
         (
             Validity(datetime(2000, 1, 1), datetime.max),
             date(2000, 1, 1),
@@ -30,6 +34,8 @@ from sdlon.scripts.unapply_ny_logic import Validity
         ),
         # MO --------==============================>
         # SD ----+------------+-------------------->
+        # Returns:
+        #            +--------+
         (
             Validity(datetime(2000, 1, 1), datetime.max),
             date(1999, 1, 1),
@@ -39,14 +45,12 @@ from sdlon.scripts.unapply_ny_logic import Validity
         ),
         # MO --------==================------------>
         # SD ----+--------------------------------->
+        # Returns:
+        #            +----------------+
         (
             Validity(
                 datetime(2000, 1, 1),
-                datetime(
-                    2010,
-                    1,
-                    1,
-                ),
+                datetime(2010, 1, 1),
             ),
             date(1999, 1, 1),
             date.max,
@@ -55,14 +59,12 @@ from sdlon.scripts.unapply_ny_logic import Validity
         ),
         # MO --------==================------------>
         # SD ----+-----------+--------------------->
+        # Returns:
+        #            +-------+
         (
             Validity(
                 datetime(2000, 1, 1),
-                datetime(
-                    2010,
-                    1,
-                    1,
-                ),
+                datetime(2010, 1, 1),
             ),
             date(1999, 1, 1),
             date(2005, 1, 1),
