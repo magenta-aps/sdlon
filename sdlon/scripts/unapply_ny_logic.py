@@ -9,10 +9,11 @@ from uuid import UUID
 from zoneinfo import ZoneInfo
 
 import click
-from more_itertools import first
+from more_itertools import first, only
 from more_itertools import one
 from sdclient.responses import EmploymentWithLists
 
+from sdlon.date_utils import format_date
 from sdlon.log import LogLevel
 from sdlon.log import setup_logging
 from sdlon.mo import MO
@@ -81,7 +82,10 @@ def get_missing_departments(
     sd_emp: EmploymentWithLists,
 ) -> None:
     sd_start_date = mo_start.date()
-    first_know_start_date = first(sd_emp.EmploymentDepartment).ActivationDate
+    try:
+        first_know_start_date = first(sd_emp.EmploymentDepartment).ActivationDate
+    except ValueError as error:
+        return
 
     while sd_start_date < first_know_start_date:
         emp = sd.get_sd_employments(
@@ -120,7 +124,8 @@ def update_eng_ou(
     dry_run: bool,
 ) -> None:
     if not sd_ou == mo_ou:
-        print(f"{cpr_empid[0]}, {cpr_empid[1]}, {str(sd_ou)}, {str(mo_ou)}")
+        print(f"{cpr_empid[0]}, {cpr_empid[1]}, {str(sd_ou)}, {str(mo_ou)}, "
+              f"{format_date(update_from)}, {format_date(update_to) if update_to is not None else 'None'}")
         if not dry_run:
             mo.update_engagement(
                 eng_uuid=engagement,
@@ -153,7 +158,7 @@ def update_engs_ou(
     for cpr_empID, validity_map in mo_map.items():
         sd_emp = sd_map.get(cpr_empID)
         if sd_emp is None:
-            print("Could not find employment in SD")
+            print(f"Could not find employment in SD for {cpr_empID}")
             continue
         for validity, eng_data in validity_map.items():
             # Add missing SD departments prior to the MO validity from date
@@ -167,15 +172,20 @@ def update_engs_ou(
             # Ensure the OU in MO is correct in the entire validity interval
             current_validity = validity
             while current_validity.from_.date() <= validity.from_.date():
-                dep = one(
-                    [
-                        dep
-                        for dep in sd_emp.EmploymentDepartment
-                        if dep.ActivationDate
-                        <= current_validity.from_.date()
-                        <= dep.DeactivationDate
-                    ]
-                )
+                try:
+                    dep = one(
+                        [
+                            dep
+                            for dep in sd_emp.EmploymentDepartment
+                            if dep.ActivationDate
+                            <= current_validity.from_.date()
+                            <= dep.DeactivationDate
+                        ]
+                    )
+                except ValueError:
+                    print(f"No EmploymentDepartment found for {cpr_empID}")
+                    break
+
                 update_from, update_to = get_update_interval(
                     validity, dep.ActivationDate, dep.DeactivationDate
                 )
