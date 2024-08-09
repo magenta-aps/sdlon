@@ -156,12 +156,43 @@ def update_engs_ou(
             print("Could not find employment in SD")
             continue
         for validity, eng_data in validity_map.items():
-            if (
-                validity.from_.date()
-                < first(sd_emp.EmploymentDepartment).ActivationDate
-            ):
-                # Get missing SD intervals
-                pass
+            # Add missing SD departments prior to the MO validity from date
+            get_missing_departments(
+                sd=sd,
+                cpr_empID=cpr_empID,
+                mo_start=validity.from_,
+                sd_emp=sd_emp,
+            )
+
+            # Ensure the OU in MO is correct in the entire validity interval
+            current_validity = validity
+            while current_validity.from_.date() <= validity.from_.date():
+                dep = one(
+                    [
+                        dep
+                        for dep in sd_emp.EmploymentDepartment
+                        if dep.ActivationDate
+                        <= current_validity.from_.date()
+                        <= dep.DeactivationDate
+                    ]
+                )
+                update_from, update_to = get_update_interval(
+                    validity, dep.ActivationDate, dep.DeactivationDate
+                )
+                update_eng_ou(
+                    mo=mo,
+                    sd_ou=dep.DepartmentUUIDIdentifier,
+                    mo_ou=UUID(eng_data["ou_uuid"]),
+                    cpr_empid=cpr_empID,
+                    engagement=UUID(eng_data["eng_uuid"]),
+                    update_from=update_from,
+                    update_to=update_to,
+                    dry_run=dry_run,
+                )
+                current_validity = Validity(
+                    update_from + timedelta(days=1),
+                    validity.to,
+                )
 
 
 @click.command()
