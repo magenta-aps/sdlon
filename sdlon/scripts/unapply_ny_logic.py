@@ -9,10 +9,11 @@ from uuid import UUID
 from zoneinfo import ZoneInfo
 
 import click
-from more_itertools import first
+from more_itertools import first, only
 from more_itertools import one
 from sdclient.responses import EmploymentWithLists
 
+from sdlon.date_utils import format_date
 from sdlon.log import LogLevel
 from sdlon.log import setup_logging
 from sdlon.mo import MO
@@ -81,7 +82,10 @@ def get_missing_departments(
     sd_emp: EmploymentWithLists,
 ) -> None:
     sd_start_date = mo_start.date()
-    first_know_start_date = first(sd_emp.EmploymentDepartment).ActivationDate
+    try:
+        first_know_start_date = first(sd_emp.EmploymentDepartment).ActivationDate
+    except ValueError as error:
+        return
 
     while sd_start_date < first_know_start_date:
         emp = sd.get_sd_employments(
@@ -100,7 +104,7 @@ def get_update_interval(
     sd_activation_date: date,
     sd_deactivation_date: date,
 ) -> tuple[datetime, datetime | None]:
-    assert sd_activation_date <= mo_validity.from_.date()
+    assert sd_activation_date <= mo_validity.from_.date(), f"{format_date(sd_activation_date)} {format_date(mo_validity.from_.date())}"
 
     end_date: date = min(mo_validity.to.date(), sd_deactivation_date)
     end = datetime(end_date.year, end_date.month, end_date.day)
@@ -119,8 +123,10 @@ def update_eng_ou(
     update_to: datetime,
     dry_run: bool,
 ) -> None:
+    assert update_from.date() < update_to.date()
     if not sd_ou == mo_ou:
-        print(f"{cpr_empid[0]}, {cpr_empid[1]}, {str(sd_ou)}, {str(mo_ou)}")
+        print(f"{cpr_empid[0]}, {cpr_empid[1]}, {str(sd_ou)}, {str(mo_ou)}, "
+              f"{format_date(update_from)}, {format_date(update_to) if update_to is not None else 'None'}")
         if not dry_run:
             mo.update_engagement(
                 eng_uuid=engagement,
@@ -135,6 +141,7 @@ def update_engs_ou(
     mo: MO,
     sd_map: dict[tuple[str, str], EmploymentWithLists],
     mo_map: dict[tuple[str, str], dict[Validity, dict[str, str]]],
+    cpr: str | None,
     dry_run: bool,
 ) -> None:
     """
@@ -151,9 +158,11 @@ def update_engs_ou(
     """
 
     for cpr_empID, validity_map in mo_map.items():
+        if cpr is not None and cpr_empID[0] != cpr:
+            continue
         sd_emp = sd_map.get(cpr_empID)
         if sd_emp is None:
-            print("Could not find employment in SD")
+            print(f"Could not find employment in SD for {cpr_empID}")
             continue
         for validity, eng_data in validity_map.items():
             # Add missing SD departments prior to the MO validity from date
@@ -163,21 +172,30 @@ def update_engs_ou(
                 mo_start=validity.from_,
                 sd_emp=sd_emp,
             )
+            if cpr is not None:
+                print("sd_emp", sd_emp)
 
             # Ensure the OU in MO is correct in the entire validity interval
             current_validity = validity
-            while current_validity.from_.date() <= validity.from_.date():
-                dep = one(
-                    [
-                        dep
-                        for dep in sd_emp.EmploymentDepartment
-                        if dep.ActivationDate
-                        <= current_validity.from_.date()
-                        <= dep.DeactivationDate
-                    ]
-                )
+            while current_validity.from_.date() <= validity.to.date():
+                if cpr is not None:
+                    print("current_validity", current_validity)
+                try:
+                    dep = one(
+                        [
+                            dep
+                            for dep in sd_emp.EmploymentDepartment
+                            if dep.ActivationDate
+                            <= current_validity.from_.date()
+                            <= dep.DeactivationDate
+                        ]
+                    )
+                except ValueError:
+                    print(f"No EmploymentDepartment found for {cpr_empID}")
+                    break
+
                 update_from, update_to = get_update_interval(
-                    validity, dep.ActivationDate, dep.DeactivationDate
+                    current_validity, dep.ActivationDate, dep.DeactivationDate
                 )
                 update_eng_ou(
                     mo=mo,
@@ -189,8 +207,12 @@ def update_engs_ou(
                     update_to=update_to,
                     dry_run=dry_run,
                 )
+
+                if update_to is None:
+                    break
+
                 current_validity = Validity(
-                    update_from + timedelta(days=1),
+                    update_to + timedelta(days=1),
                     validity.to,
                 )
 
@@ -223,6 +245,10 @@ def update_engs_ou(
     help="Base URL for calling MO",
 )
 @click.option(
+    "--cpr",
+    help="Only process engagements belonging to this CPR"
+)
+@click.option(
     "--dry-run",
     is_flag=True,
     help="Do not perform any changes is MO",
@@ -241,6 +267,7 @@ def main(
     client_id: str,
     client_secret: str,
     mo_base_url: str,
+    cpr: str | None,
     dry_run: bool,
     readme: bool,
 ):
@@ -276,6 +303,7 @@ def main(
         mo=mo,
         sd_map=sd_emp_map,
         mo_map=mo_eng_validity_map,
+        cpr=cpr,
         dry_run=dry_run,
     )
 
