@@ -129,7 +129,8 @@ def update_eng_ou(
     if not sd_ou == mo_ou:
         print(
             f"{cpr_empid[0]}, {cpr_empid[1]}, {str(sd_ou)}, {str(mo_ou)}, "
-            f"{format_date(update_from)}, {format_date(update_to) if update_to is not None else 'None'}"  # noqa: E501
+            f"{format_date(update_from)}, "
+            f"{format_date(update_to) if update_to is not None else 'None'}"
         )
         if not dry_run:
             mo.update_engagement(
