@@ -9,7 +9,7 @@ from uuid import UUID
 from zoneinfo import ZoneInfo
 
 import click
-from more_itertools import first, only
+from more_itertools import first
 from more_itertools import one
 from sdclient.responses import EmploymentWithLists
 
@@ -84,7 +84,7 @@ def get_missing_departments(
     sd_start_date = mo_start.date()
     try:
         first_know_start_date = first(sd_emp.EmploymentDepartment).ActivationDate
-    except ValueError as error:
+    except ValueError:
         return
 
     while sd_start_date < first_know_start_date:
@@ -104,7 +104,9 @@ def get_update_interval(
     sd_activation_date: date,
     sd_deactivation_date: date,
 ) -> tuple[datetime, datetime | None]:
-    assert sd_activation_date <= mo_validity.from_.date(), f"{format_date(sd_activation_date)} {format_date(mo_validity.from_.date())}"
+    assert (
+        sd_activation_date <= mo_validity.from_.date()
+    ), f"{format_date(sd_activation_date)} {format_date(mo_validity.from_.date())}"
 
     end_date: date = min(mo_validity.to.date(), sd_deactivation_date)
     end = datetime(end_date.year, end_date.month, end_date.day)
@@ -125,8 +127,10 @@ def update_eng_ou(
 ) -> None:
     assert update_from.date() < update_to.date()
     if not sd_ou == mo_ou:
-        print(f"{cpr_empid[0]}, {cpr_empid[1]}, {str(sd_ou)}, {str(mo_ou)}, "
-              f"{format_date(update_from)}, {format_date(update_to) if update_to is not None else 'None'}")
+        print(
+            f"{cpr_empid[0]}, {cpr_empid[1]}, {str(sd_ou)}, {str(mo_ou)}, "
+            f"{format_date(update_from)}, {format_date(update_to) if update_to is not None else 'None'}"  # noqa: E501
+        )
         if not dry_run:
             mo.update_engagement(
                 eng_uuid=engagement,
@@ -244,10 +248,7 @@ def update_engs_ou(
     envvar="MO_URL",
     help="Base URL for calling MO",
 )
-@click.option(
-    "--cpr",
-    help="Only process engagements belonging to this CPR"
-)
+@click.option("--cpr", help="Only process engagements belonging to this CPR")
 @click.option(
     "--dry-run",
     is_flag=True,
