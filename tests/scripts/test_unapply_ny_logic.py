@@ -1,15 +1,24 @@
 from datetime import date
 from datetime import datetime
 from datetime import timedelta
+from unittest.mock import call
 from unittest.mock import MagicMock
+from uuid import UUID
 
 import pytest
+from sdclient.responses import Employment
+from sdclient.responses import EmploymentDepartment
+from sdclient.responses import EmploymentStatus
+from sdclient.responses import EmploymentWithLists
+from sdclient.responses import GetEmploymentResponse
+from sdclient.responses import Person
 
 from sdlon.mo import MO
 from sdlon.scripts.unapply_ny_logic import get_mo_eng_validity_map
 from sdlon.scripts.unapply_ny_logic import get_update_interval
+from sdlon.scripts.unapply_ny_logic import update_engs_ou
 from sdlon.scripts.unapply_ny_logic import Validity
-
+from sdlon.sd import SD
 
 MO_GET_ENGAGEMENT_RESPONSE = [
     {
@@ -198,3 +207,121 @@ def test_get_mo_eng_validity_map():
             },
         }
     }
+
+
+def test_update_engs_ou():
+    # Arrange
+    sd_map = {
+        ("0101011234", "12345"): EmploymentWithLists(
+            EmploymentIdentifier="12345",
+            EmploymentDate=date(2024, 3, 1),
+            AnniversaryDate=date(2024, 3, 1),
+            EmploymentStatus=[
+                EmploymentStatus(
+                    ActivationDate=date(2024, 3, 1),
+                    DeactivationDate=date(9999, 12, 31),
+                    EmploymentStatusCode="1",
+                )
+            ],
+            EmploymentDepartment=[
+                EmploymentDepartment(
+                    ActivationDate=date(2024, 7, 1),
+                    DeactivationDate=date(9999, 12, 31),
+                    DepartmentIdentifier="EFGH",
+                    DepartmentUUIDIdentifier=UUID(
+                        "12f4213d-7915-4a44-b9a4-537dcd322e8a"
+                    ),
+                )
+            ],
+        )
+    }
+
+    mo_map = {
+        ("0101011234", "12345"): {
+            Validity(from_=datetime(2024, 3, 1), to=datetime(2024, 8, 31),): {
+                "eng_uuid": "b1423aa5-5a3d-47bc-9e6e-971543132b22",
+                "ou_uuid": "a2816b16-5df8-42ff-99a5-b2fca14ae172",
+            },
+            Validity(from_=datetime(2024, 9, 1), to=datetime(2025, 6, 30)): {
+                "eng_uuid": "b1423aa5-5a3d-47bc-9e6e-971543132b22",
+                "ou_uuid": "38c6c343-806d-45e9-bff9-e7f29136c613",
+            },
+            Validity(from_=datetime(2025, 7, 1), to=datetime.max): {
+                "eng_uuid": "b1423aa5-5a3d-47bc-9e6e-971543132b22",
+                "ou_uuid": "915d314d-fec7-40b8-b9fb-fe96630664e2",
+            },
+        }
+    }
+
+    mock_sd = MagicMock(spec=SD)
+    mock_sd.get_sd_employments.return_value = GetEmploymentResponse(
+        Person=[
+            Person(
+                PersonCivilRegistrationIdentifier="0101011234",
+                Employment=[
+                    Employment(
+                        EmploymentIdentifier="12345",
+                        EmploymentDate=date(2000, 1, 1),
+                        AnniversaryDate=date(2000, 1, 1),
+                        EmploymentStatus=EmploymentStatus(
+                            ActivationDate=date(2024, 3, 1),
+                            DeactivationDate=date(9999, 12, 31),
+                            EmploymentStatusCode="1",
+                        ),
+                        EmploymentDepartment=EmploymentDepartment(
+                            ActivationDate=date(2024, 3, 1),
+                            DeactivationDate=date(2024, 6, 30),
+                            DepartmentIdentifier="ABCD",
+                            DepartmentUUIDIdentifier=UUID(
+                                "a9a96a34-b569-48f8-9ef7-8031b53a3bdf"
+                            ),
+                        ),
+                    )
+                ],
+            )
+        ]
+    )
+
+    mock_mo = MagicMock(spec=MO)
+
+    # Act
+    update_engs_ou(
+        sd=mock_sd,
+        mo=mock_mo,
+        sd_map=sd_map,
+        mo_map=mo_map,
+        cpr=None,
+        dry_run=False,
+    )
+
+    # Assert
+    calls = mock_mo.update_engagement.call_args_list
+    assert len(calls) == 4
+
+    assert calls[0] == call(
+        eng_uuid=UUID("b1423aa5-5a3d-47bc-9e6e-971543132b22"),
+        from_date=datetime(2024, 3, 1),
+        to_date=datetime(2024, 6, 30),
+        org_unit=UUID("a9a96a34-b569-48f8-9ef7-8031b53a3bdf"),
+    )
+
+    assert calls[1] == call(
+        eng_uuid=UUID("b1423aa5-5a3d-47bc-9e6e-971543132b22"),
+        from_date=datetime(2024, 7, 1),
+        to_date=datetime(2024, 8, 31),
+        org_unit=UUID("12f4213d-7915-4a44-b9a4-537dcd322e8a"),
+    )
+
+    assert calls[2] == call(
+        eng_uuid=UUID("b1423aa5-5a3d-47bc-9e6e-971543132b22"),
+        from_date=datetime(2024, 9, 1),
+        to_date=datetime(2025, 6, 30),
+        org_unit=UUID("12f4213d-7915-4a44-b9a4-537dcd322e8a"),
+    )
+
+    assert calls[3] == call(
+        eng_uuid=UUID("b1423aa5-5a3d-47bc-9e6e-971543132b22"),
+        from_date=datetime(2025, 7, 1),
+        to_date=None,
+        org_unit=UUID("12f4213d-7915-4a44-b9a4-537dcd322e8a"),
+    )

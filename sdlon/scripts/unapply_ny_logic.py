@@ -122,10 +122,10 @@ def update_eng_ou(
     cpr_empid: tuple[str, str],
     engagement: UUID,
     update_from: datetime,
-    update_to: datetime,
+    update_to: datetime | None,
     dry_run: bool,
 ) -> None:
-    assert update_from.date() < update_to.date()
+    assert update_from.date() < update_to.date() if update_to is not None else date.max
     if not sd_ou == mo_ou:
         print(
             f"{cpr_empid[0]}, {cpr_empid[1]}, {str(sd_ou)}, {str(mo_ou)}, "
@@ -136,7 +136,7 @@ def update_eng_ou(
             mo.update_engagement(
                 eng_uuid=engagement,
                 from_date=update_from,
-                to_date=update_to if not update_to.date() == date.max else None,
+                to_date=update_to,
                 org_unit=sd_ou,
             )
 
