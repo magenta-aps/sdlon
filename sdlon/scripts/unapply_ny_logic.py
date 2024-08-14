@@ -55,8 +55,9 @@ def get_mo_eng_validity_map(
     for obj in eng_objs:
         validities = obj["validities"]
 
-        persons = first(validities)["person"]
-        cpr = one(persons)["cpr_number"]
+        person = one(first(validities)["person"])
+        cpr = person["cpr_number"]
+        person_uuid = person["uuid"]
         emp_id = first(validities)["user_key"]
 
         mo_eng_map[(cpr, emp_id)] = {
@@ -68,6 +69,9 @@ def get_mo_eng_validity_map(
             ): {
                 "eng_uuid": obj["uuid"],
                 "ou_uuid": one(validity["org_unit"])["uuid"],
+                "person_uuid": person_uuid,
+                "cpr": cpr,
+                "emp_id": emp_id,
             }
             for validity in validities
         }
@@ -118,23 +122,26 @@ def get_update_interval(
 def update_eng_ou(
     mo: MO,
     sd_ou: UUID,
-    mo_ou: UUID,
-    cpr_empid: tuple[str, str],
-    engagement: UUID,
+    eng_data: dict[str, str],
     update_from: datetime,
     update_to: datetime | None,
     dry_run: bool,
 ) -> None:
     assert update_from.date() < update_to.date() if update_to is not None else date.max
+
+    mo_ou = UUID(eng_data["ou_uuid"])
+    emp_id = eng_data["emp_id"]
+    person_uuid = eng_data["person_uuid"]
+
     if not sd_ou == mo_ou:
         print(
-            f"{cpr_empid[0]}, {cpr_empid[1]}, {str(sd_ou)}, {str(mo_ou)}, "
+            f"{person_uuid}, {emp_id}, {str(sd_ou)}, {str(mo_ou)}, "
             f"{format_date(update_from)}, "
             f"{format_date(update_to) if update_to is not None else 'None'}"
         )
         if not dry_run:
             mo.update_engagement(
-                eng_uuid=engagement,
+                eng_uuid=UUID(eng_data["eng_uuid"]),
                 from_date=update_from,
                 to_date=update_to,
                 org_unit=sd_ou,
@@ -159,6 +166,7 @@ def update_engs_ou(
         mo: the MO client
         sd_map: the SD EmploymentWithLists map (from get_sd_employment_map)
         mo_map: the MO end date map (from get_mo_eng_end_date_map)
+        cpr: the CPR number
         dry_run: if True, do not perform any changes in MO
     """
 
@@ -205,9 +213,7 @@ def update_engs_ou(
                 update_eng_ou(
                     mo=mo,
                     sd_ou=dep.DepartmentUUIDIdentifier,
-                    mo_ou=UUID(eng_data["ou_uuid"]),
-                    cpr_empid=cpr_empID,
-                    engagement=UUID(eng_data["eng_uuid"]),
+                    eng_data=eng_data,
                     update_from=update_from,
                     update_to=update_to,
                     dry_run=dry_run,
