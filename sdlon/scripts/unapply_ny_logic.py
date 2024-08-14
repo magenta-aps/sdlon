@@ -14,6 +14,7 @@ from more_itertools import one
 from sdclient.responses import EmploymentWithLists
 
 from sdlon.date_utils import format_date
+from sdlon.log import anonymize_cpr
 from sdlon.log import LogLevel
 from sdlon.log import setup_logging
 from sdlon.mo import MO
@@ -131,12 +132,13 @@ def update_eng_ou(
 
     mo_ou = UUID(eng_data["ou_uuid"])
     emp_id = eng_data["emp_id"]
+    cpr = eng_data["cpr"]
     person_uuid = eng_data["person_uuid"]
 
     if not sd_ou == mo_ou:
         print(
-            f"{person_uuid}, {emp_id}, {str(sd_ou)}, {str(mo_ou)}, "
-            f"{format_date(update_from)}, "
+            f"{anonymize_cpr(cpr)}, {emp_id}, {person_uuid}, "
+            f"{str(sd_ou)}, {str(mo_ou)}, {format_date(update_from)}, "
             f"{format_date(update_to) if update_to is not None else 'None'}"
         )
         if not dry_run:
@@ -174,8 +176,12 @@ def update_engs_ou(
         if cpr is not None and cpr_empID[0] != cpr:
             continue
         sd_emp = sd_map.get(cpr_empID)
+        _validity_eng_data = validity_map[first(validity_map)]
         if sd_emp is None:
-            print(f"Could not find employment in SD for {cpr_empID}")
+            print(
+                f"{anonymize_cpr(cpr_empID[0])}, {cpr_empID[1]}, "
+                f"{_validity_eng_data['person_uuid']}, Could not find employment in SD"
+            )
             continue
         for validity, eng_data in validity_map.items():
             # Add missing SD departments prior to the MO validity from date
@@ -204,7 +210,11 @@ def update_engs_ou(
                         ]
                     )
                 except ValueError:
-                    print(f"No EmploymentDepartment found for {cpr_empID}")
+                    print(
+                        f"{anonymize_cpr(cpr_empID[0])}, {cpr_empID[1]}, "
+                        f"{_validity_eng_data['person_uuid']}, "
+                        f"No EmploymentDepartment found for interval {current_validity}"
+                    )
                     break
 
                 update_from, update_to = get_update_interval(
