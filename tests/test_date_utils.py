@@ -70,6 +70,10 @@ class TestSdToMoDate:
         with pytest.raises(AssertionError):
             sd_to_mo_date("2021-12-32")
 
+    def test_conversion(self):
+        assert sd_to_mo_date("2000-01-01") == "2000-01-01"
+        assert sd_to_mo_date("9999-12-31") is None
+
 
 @pytest.mark.parametrize(
     "from_,to,expected",

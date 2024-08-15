@@ -113,10 +113,10 @@ def get_employment_datetimes(employment: OrderedDict) -> Tuple[datetime, datetim
 
 def sd_to_mo_date(sd_date: str) -> Optional[str]:
     """
-    Convert SD termination date to MO termination date.
+    Convert SD date to MO date.
 
     Args:
-        sd_date: SD termination date formatted as "YYYY-MM-DD"
+        sd_date: SD date formatted as "YYYY-MM-DD"
 
     Returns:
         MO termination date formatted as "YYYY-MM-DD"
