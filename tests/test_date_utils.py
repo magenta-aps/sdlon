@@ -23,6 +23,7 @@ from sdlon.date_utils import is_midnight
 from sdlon.date_utils import sd_to_mo_date
 from sdlon.date_utils import sd_to_mo_validity
 from sdlon.date_utils import to_midnight
+from sdlon.exceptions import InconsistentValiditiesError
 
 
 @given(st.dates())
@@ -228,6 +229,42 @@ def test_get_engagement_edit_validity(
 
     # Assert
     assert expected == actual
+
+
+@pytest.mark.parametrize(
+    "sd_from, sd_to, mo_from, mo_to",
+    [
+        # SD --=====-----------------------------
+        # MO -----------=========================
+        (
+            date(2000, 1, 1),
+            date(2010, 1, 1),
+            date(2020, 1, 1),
+            date.max,
+        ),
+        # SD --------------==============--------
+        # MO --========--------------------------
+        (
+            date(2010, 1, 1),
+            date(2020, 1, 1),
+            date(1990, 1, 1),
+            date(1995, 1, 1),
+        ),
+    ],
+)
+def test_get_engagement_edit_validity_exception(
+    sd_from: date,
+    sd_to: date,
+    mo_from: date,
+    mo_to: date,
+) -> None:
+    # Arrange
+    sd_validity = {"from": sd_from, "to": sd_to}
+    mo_validity = {"from": mo_from, "to": mo_to}
+
+    # Act + Assert
+    with pytest.raises(InconsistentValiditiesError):
+        get_engagement_edit_validity(sd_validity, mo_validity)
 
 
 @pytest.mark.parametrize(

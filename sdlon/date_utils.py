@@ -14,6 +14,7 @@ from typing import Union
 from more_itertools import pairwise
 from more_itertools import tabulate
 
+from .exceptions import InconsistentValiditiesError
 from .log import get_logger
 from .sd_common import EmploymentStatus
 
@@ -219,6 +220,12 @@ def get_engagement_edit_validity(
          InconsistentValiditiesError if the SD and MO validity intervals do
          not overlap.
     """
+
+    if (
+        sd_validity["to"] < mo_validity["from"]
+        or mo_validity["to"] < sd_validity["from"]
+    ):
+        raise InconsistentValiditiesError("SD and MO validity intervals do not overlap")
 
     return {
         "from": format_date(max(sd_validity["from"], mo_validity["from"])),

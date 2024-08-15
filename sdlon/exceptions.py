@@ -4,3 +4,7 @@ class NoCurrentValdityException(Exception):
 
 class PreviousRunNotCompletedError(Exception):
     pass
+
+
+class InconsistentValiditiesError(Exception):
+    pass
