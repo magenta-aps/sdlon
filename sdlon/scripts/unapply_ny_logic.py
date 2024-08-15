@@ -177,9 +177,12 @@ def update_engs_ou(
             continue
         sd_emp = sd_map.get(cpr_empID)
         _validity_eng_data = validity_map[first(validity_map)]
+        anonymized_cpr = (
+            anonymize_cpr(cpr_empID[0]) if cpr_empID[0] is not None else "None"
+        )
         if sd_emp is None:
             print(
-                f"{anonymize_cpr(cpr_empID[0])}, {cpr_empID[1]}, "
+                f"{anonymized_cpr}, {cpr_empID[1]}, "
                 f"{_validity_eng_data['person_uuid']}, Could not find employment in SD"
             )
             continue
@@ -211,9 +214,11 @@ def update_engs_ou(
                     )
                 except ValueError:
                     print(
-                        f"{anonymize_cpr(cpr_empID[0])}, {cpr_empID[1]}, "
+                        f"{anonymized_cpr}, {cpr_empID[1]}, "
                         f"{_validity_eng_data['person_uuid']}, "
-                        f"No EmploymentDepartment found for interval {current_validity}"
+                        f"No EmploymentDepartment found for interval "
+                        f"[{format_date(current_validity.from_)}, "
+                        f"{format_date(current_validity.to)}]"
                     )
                     break
 
