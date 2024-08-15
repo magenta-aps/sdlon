@@ -2,6 +2,7 @@ from collections import OrderedDict
 from datetime import date
 from datetime import datetime
 from datetime import timedelta
+from uuid import uuid4
 
 import pytest
 from hypothesis import given
@@ -15,6 +16,7 @@ from sdlon.date_utils import format_date
 from sdlon.date_utils import gen_cut_dates
 from sdlon.date_utils import gen_date_intervals
 from sdlon.date_utils import get_employment_datetimes
+from sdlon.date_utils import get_mo_validity
 from sdlon.date_utils import get_sd_validity
 from sdlon.date_utils import is_midnight
 from sdlon.date_utils import sd_to_mo_date
@@ -67,6 +69,38 @@ class TestSdToMoDate:
             sd_to_mo_date("2021-13-01")
         with pytest.raises(AssertionError):
             sd_to_mo_date("2021-12-32")
+
+
+@pytest.mark.parametrize(
+    "from_,to,expected",
+    [
+        (
+            "2000-01-01",
+            "2010-01-01",
+            {"from": date(2000, 1, 1), "to": date(2010, 1, 1)},
+        ),
+        ("2000-01-01", None, {"from": date(2000, 1, 1), "to": date.max}),
+    ],
+)
+def test_get_mo_validity(
+    from_: str,
+    to: str | None,
+    expected: dict[str, str | None],
+) -> None:
+    # Arrange
+    mo_eng = {
+        "uuid": uuid4(),
+        "validity": {
+            "from": from_,
+            "to": to,
+        },
+    }
+
+    # Act
+    actual = get_mo_validity(mo_eng)
+
+    # Assert
+    assert expected == actual
 
 
 @pytest.mark.parametrize(
