@@ -952,6 +952,9 @@ class ChangeAtSD:
         return True
 
     def edit_engagement_department(self, engagement, mo_eng, person_uuid):
+        # This function may cause incorrect data in MO, since mo_eng is only the latest
+        # engagement in MO. We should instead loop over all (GraphQL) engagement
+        # validities and update each validity interval one at a time.
         employment_id, engagement_info = engagement_components(engagement)
         for department in engagement_info["departments"]:
             logger.info("Change department of engagement", employment_id=employment_id)
@@ -1046,6 +1049,9 @@ class ChangeAtSD:
         return self._fetch_engagement_type(job_position)
 
     def edit_engagement_type(self, engagement, mo_eng):
+        # This function may cause incorrect data in MO, since mo_eng is only the latest
+        # engagement in MO. We should instead loop over all (GraphQL) engagement
+        # validities and update each validity interval one at a time.
         employment_id, engagement_info = engagement_components(engagement)
         for profession_info in engagement_info["professions"]:
             logger.info(
@@ -1068,6 +1074,9 @@ class ChangeAtSD:
                 mora_assert(response)
 
     def edit_engagement_profession(self, engagement, mo_eng):
+        # This function may cause incorrect data in MO, since mo_eng is only the latest
+        # engagement in MO. We should instead loop over all (GraphQL) engagement
+        # validities and update each validity interval one at a time.
         employment_id, engagement_info = engagement_components(engagement)
         for profession_info in engagement_info["professions"]:
             logger.info("Change profession of engagement", employment_id=employment_id)
@@ -1122,6 +1131,9 @@ class ChangeAtSD:
                     mora_assert(response)
 
     def edit_engagement_worktime(self, engagement, mo_eng):
+        # This function may cause incorrect data in MO, since mo_eng is only the latest
+        # engagement in MO. We should instead loop over all (GraphQL) engagement
+        # validities and update each validity interval one at a time.
         employment_id, engagement_info = engagement_components(engagement)
         for worktime_info in engagement_info["working_time"]:
             logger.info(
