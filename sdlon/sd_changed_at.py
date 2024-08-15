@@ -1019,8 +1019,6 @@ class ChangeAtSD:
                 response = self.helper._mo_post("details/edit", payload)
                 mora_assert(response)
 
-            self._re_terminate_engagement(mo_eng)
-
     def determine_engagement_type(self, engagement, job_position):
         split = self.settings.sd_monthly_hourly_divide
         employment_id = calc_employment_id(engagement)
@@ -1068,8 +1066,6 @@ class ChangeAtSD:
             if not self.dry_run:
                 response = self.helper._mo_post("details/edit", payload)
                 mora_assert(response)
-
-            self._re_terminate_engagement(mo_eng)
 
     def edit_engagement_profession(self, engagement, mo_eng):
         employment_id, engagement_info = engagement_components(engagement)
@@ -1125,8 +1121,6 @@ class ChangeAtSD:
                     response = self.helper._mo_post("details/edit", payload)
                     mora_assert(response)
 
-                self._re_terminate_engagement(mo_eng)
-
     def edit_engagement_worktime(self, engagement, mo_eng):
         employment_id, engagement_info = engagement_components(engagement)
         for worktime_info in engagement_info["working_time"]:
@@ -1143,8 +1137,6 @@ class ChangeAtSD:
             if not self.dry_run:
                 response = self.helper._mo_post("details/edit", payload)
                 mora_assert(response)
-
-            self._re_terminate_engagement(mo_eng)
 
     def edit_engagement(self, engagement, person_uuid):
         """
@@ -1385,37 +1377,6 @@ class ChangeAtSD:
 
             # Re-calculate primary after all updates for user has been performed.
             recalculate_users.add(person_uuid)
-
-    def _re_terminate_engagement(self, mo_eng: dict[str, Any]) -> None:
-        """
-        We re-terminate an engagement, if it was terminated before an edit
-        operation, since the edit operation re-opens any previously terminated
-        engagements (since we are no longer using "cut" dates when generating
-        the MO validity). See details here:
-        https://redmine.magenta.dk/issues/60402#note-16
-
-        Args:
-            mo_eng: the MO engagement
-        """
-
-        mo_end_date: str | None = mo_eng["validity"]["to"]  # Last day of work
-
-        if mo_end_date is None:
-            return
-
-        # Due to the way MOs service API is working, we need to add 1 day to
-        # the "last day of work" to get the "first day of non-work", i.e.
-        # the first day of the termination period.
-        term_start_date = parse_datetime(mo_end_date).date() + datetime.timedelta(
-            days=1
-        )
-        term_start: str = format_date(term_start_date)  # First day of non-work
-        logger.debug(
-            "Re-terminate engagement",
-            eng_uuid=mo_eng["uuid"],
-            term_start_date=term_start,
-        )
-        self._terminate_eng_from_uuid(mo_eng["uuid"], term_start)
 
 
 def initialize_changed_at(from_date):
