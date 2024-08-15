@@ -131,6 +131,42 @@ def sd_to_mo_date(sd_date: str) -> Optional[str]:
     return sd_date
 
 
+def get_sd_validity(engagement_info: dict[str, Any]) -> dict[str, date]:
+    """
+    Convert the SD validity (ActivationDate and DeactivationDate) to a MO
+    validity.
+
+    Args:
+        engagement_info: the "engagement_info" object, e.g.
+        {
+            "ActivationDate": "1999-01-01",
+            "DeactivationDate": "9999-12-31",
+            "DepartmentIdentifier": "dep1",
+            "DepartmentLevelIdentifier": "NY1-niveau",
+            "DepartmentName": "Department 1",
+            "DepartmentUUIDIdentifier": "eb25d197-d278-41ac-abc1-cc7802093130",
+            "PostalAddress": {
+                "StandardAddressIdentifier": "Paradisæblevej 13",
+                "PostalCode": 1000,
+                "DistrictName": "Andeby",
+            },
+            "ProductionUnitIdentifier": 1234567890,
+        }
+
+    Returns:
+        The MO validity, e.g.
+        {
+            "from": "1999-01-01",
+            "to": "9999-12-31"
+        }
+        for the example above.
+    """
+    return {
+        "from": parse_datetime(engagement_info["ActivationDate"]).date(),
+        "to": parse_datetime(engagement_info["DeactivationDate"]).date(),
+    }
+
+
 def sd_to_mo_validity(engagement_info: dict[str, Any]) -> dict[str, str | None]:
     """
     Convert the SD validity (ActivationDate and DeactivationDate) to a MO
