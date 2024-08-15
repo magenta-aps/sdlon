@@ -40,6 +40,8 @@ from .config import Settings
 from .date_utils import date_to_datetime
 from .date_utils import format_date
 from .date_utils import gen_date_intervals
+from .date_utils import get_mo_validity
+from .date_utils import get_sd_validity
 from .date_utils import parse_datetime
 from .date_utils import sd_to_mo_date
 from .date_utils import sd_to_mo_validity
@@ -960,7 +962,9 @@ class ChangeAtSD:
             logger.info("Change department of engagement", employment_id=employment_id)
             logger.debug("Department object", department=department)
 
-            validity = sd_to_mo_validity(department)
+            # TODO: status 8?
+            sd_validity = get_sd_validity(department)
+            mo_validity = get_mo_validity(mo_eng)
 
             logger.debug("Validity of this department change", validity=validity)
             org_unit = department["DepartmentUUIDIdentifier"]

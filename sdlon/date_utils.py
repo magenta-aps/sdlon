@@ -201,6 +201,31 @@ def get_sd_validity(engagement_info: dict[str, Any]) -> dict[str, date]:
     }
 
 
+def get_engagement_edit_validity(
+    sd_validity: dict[str, date],
+    mo_validity: dict[str, date],
+) -> dict[str, str | None]:
+    """
+    Get the edit engagement payload validity (service API compatible).
+
+    Args:
+        sd_validity: the SD validity
+        mo_validity: the MO validity
+
+    Returns:
+        The edit engagement payload validity to be consumed bt the service API.
+
+    Raises:
+         InconsistentValiditiesError if the SD and MO validity intervals do
+         not overlap.
+    """
+
+    return {
+        "from": format_date(max(sd_validity["from"], mo_validity["from"])),
+        "to": sd_to_mo_date(format_date(min(sd_validity["to"], mo_validity["to"]))),
+    }
+
+
 def sd_to_mo_validity(engagement_info: dict[str, Any]) -> dict[str, str | None]:
     """
     Convert the SD validity (ActivationDate and DeactivationDate) to a MO

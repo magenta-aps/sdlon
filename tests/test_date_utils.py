@@ -16,6 +16,7 @@ from sdlon.date_utils import format_date
 from sdlon.date_utils import gen_cut_dates
 from sdlon.date_utils import gen_date_intervals
 from sdlon.date_utils import get_employment_datetimes
+from sdlon.date_utils import get_engagement_edit_validity
 from sdlon.date_utils import get_mo_validity
 from sdlon.date_utils import get_sd_validity
 from sdlon.date_utils import is_midnight
@@ -156,6 +157,74 @@ def test_sd_to_mo_validity(
 
     # Act
     actual = sd_to_mo_validity(engagement_info)
+
+    # Assert
+    assert expected == actual
+
+
+@pytest.mark.parametrize(
+    "sd_from, sd_to, mo_from, mo_to, expected",
+    [
+        # SD -----------------===================
+        # MO -----------=========================
+        (
+            date(2000, 1, 1),
+            date.max,
+            date(1999, 1, 1),
+            date.max,
+            {"from": "2000-01-01", "to": None},
+        ),
+        # SD -----===============================
+        # MO -----------=========================
+        (
+            date(1999, 1, 1),
+            date.max,
+            date(2000, 1, 1),
+            date.max,
+            {"from": "2000-01-01", "to": None},
+        ),
+        # SD -----------------=========----------
+        # MO -----------=========================
+        (
+            date(2000, 1, 1),
+            date(2010, 1, 1),
+            date(1999, 1, 1),
+            date.max,
+            {"from": "2000-01-01", "to": "2010-01-01"},
+        ),
+        # SD -----------------=========----------
+        # MO -----------===========--------------
+        (
+            date(2000, 1, 1),
+            date(2010, 1, 1),
+            date(1999, 1, 1),
+            date(2005, 1, 1),
+            {"from": "2000-01-01", "to": "2005-01-01"},
+        ),
+        # SD -----------------=========----------
+        # MO -----------=======------------------
+        (
+            date(2000, 1, 1),
+            date(2010, 1, 1),
+            date(1999, 1, 1),
+            date(2000, 1, 1),
+            {"from": "2000-01-01", "to": "2000-01-01"},
+        ),
+    ],
+)
+def test_get_engagement_edit_validity(
+    sd_from: date,
+    sd_to: date,
+    mo_from: date,
+    mo_to: date,
+    expected: dict[str, str | None],
+) -> None:
+    # Arrange
+    sd_validity = {"from": sd_from, "to": sd_to}
+    mo_validity = {"from": mo_from, "to": mo_to}
+
+    # Act
+    actual = get_engagement_edit_validity(sd_validity, mo_validity)
 
     # Assert
     assert expected == actual
