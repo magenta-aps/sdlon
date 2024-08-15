@@ -40,6 +40,7 @@ from .config import Settings
 from .date_utils import date_to_datetime
 from .date_utils import format_date
 from .date_utils import gen_date_intervals
+from .date_utils import get_engagement_edit_validity
 from .date_utils import get_mo_validity
 from .date_utils import get_sd_validity
 from .date_utils import parse_datetime
@@ -68,6 +69,7 @@ from db.queries import get_run_db_from_date
 from db.queries import get_status
 from db.queries import persist_status
 from sdlon.employees import get_employee
+from sdlon.exceptions import InconsistentValiditiesError
 from sdlon.exceptions import PreviousRunNotCompletedError
 from sdlon.graphql import get_mo_client
 from sdlon.it_systems import add_it_system_to_employee
@@ -965,6 +967,15 @@ class ChangeAtSD:
             # TODO: status 8?
             sd_validity = get_sd_validity(department)
             mo_validity = get_mo_validity(mo_eng)
+            try:
+                validity = get_engagement_edit_validity(sd_validity, mo_validity)
+            except InconsistentValiditiesError:
+                logger.warning(
+                    "SD and MO validities do not overlap",
+                    sd_validity=sd_validity,
+                    mo_validity=mo_validity,
+                )
+                continue
 
             logger.debug("Validity of this department change", validity=validity)
             org_unit = department["DepartmentUUIDIdentifier"]

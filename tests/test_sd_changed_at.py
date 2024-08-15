@@ -993,7 +993,10 @@ class Test_sd_changed_at(unittest.TestCase):
             {
                 "user_key": employment_id,
                 "uuid": "mo_engagement_uuid",
-                "validity": {"to": None},
+                "validity": {
+                    "from": "2020-11-10",
+                    "to": None,
+                },
             }
         ]
 
@@ -1763,7 +1766,7 @@ class TestEditEngagementX:
 
         # Assert
         sd_updater.apply_NY_logic.assert_called_once_with(
-            org_unit_afd_level, "12345", {"from": "1999-01-01", "to": None}, person_uuid
+            org_unit_afd_level, "12345", {"from": "2000-01-01", "to": None}, person_uuid
         )
 
         mock_mo_post.assert_called_once_with(
@@ -1773,7 +1776,7 @@ class TestEditEngagementX:
                 "uuid": eng_uuid,
                 "data": {
                     "org_unit": {"uuid": org_unit_ny_level},
-                    "validity": {"from": "1999-01-01", "to": None},
+                    "validity": {"from": "2000-01-01", "to": None},
                 },
             },
         )
