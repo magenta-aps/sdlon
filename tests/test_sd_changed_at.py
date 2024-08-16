@@ -993,7 +993,7 @@ class Test_sd_changed_at(unittest.TestCase):
             {
                 "user_key": employment_id,
                 "uuid": "mo_engagement_uuid",
-                "validity": {"to": None},
+                "validity": {"from": "2020-11-10", "to": None},
             }
         ]
 
@@ -2160,12 +2160,89 @@ class TestEditEngagementX:
             },
         )
 
-    def test_edit_engagement_worktime_eng_not_terminated(self) -> None:
+    @pytest.mark.parametrize(
+        "emp_status_deactivation_date, mo_eng_end_date, expected_end_date",
+        [
+            ("9999-12-31", None, None),
+            ("2025-12-31", None, "2025-12-31"),
+            ("2025-12-31", "2030-12-31", "2025-12-31"),
+            ("2025-12-31", "2025-12-31", "2025-12-31"),
+        ],
+    )
+    def test_edit_engagement_worktime_eng_not_terminated(
+        self,
+        emp_status_deactivation_date: str,
+        mo_eng_end_date: str | None,
+        expected_end_date: str | None,
+    ) -> None:
         """
         We test the case where the worktime of an engagement
-        (which does not already have an end date) change.
+        (which does not already have an end date) change. In this test we verify that
+        the engagement is not re-terminated in the case where the SD payload
+        DeactivationDate is smaller than the MO engagement end date.
 
-        (see https://redmine.magenta.dk/issues/60402#note-16)
+        See https://redmine.magenta.dk/issues/60402#note-16
+        and https://redmine.magenta.dk/issues/61683
+        """
+
+        # Arrange
+        eng_uuid = str(uuid.uuid4())
+
+        sd_updater = setup_sd_changed_at()
+        mock_mo_post = MagicMock(
+            return_value=attrdict({"status_code": 200, "text": "response text"}),
+        )
+        sd_updater.morahelper_mock._mo_post = mock_mo_post
+
+        sd_payload_fragment = {
+            "EmploymentIdentifier": "12345",
+            "WorkingTime": {
+                "ActivationDate": "1999-01-01",
+                "DeactivationDate": emp_status_deactivation_date,
+                "OccupationRate": "0.8765",
+            },
+        }
+
+        mo_eng = {
+            "uuid": eng_uuid,
+            "validity": {
+                "from": "2000-01-01",
+                "to": mo_eng_end_date,
+            },
+        }
+
+        # Act
+        sd_updater.edit_engagement_worktime(sd_payload_fragment, mo_eng)
+
+        # Assert
+        mock_mo_post.assert_called_once_with(
+            "details/edit",
+            {
+                "type": "engagement",
+                "uuid": eng_uuid,
+                "data": {
+                    "fraction": 876500,
+                    "validity": {"from": "1999-01-01", "to": expected_end_date},
+                },
+            },
+        )
+
+    @pytest.mark.parametrize(
+        "emp_status_deactivation_date, expected_term_from_date",
+        [
+            ("2029-12-31", "2030-01-01"),
+            ("2023-12-31", "2026-01-01"),
+        ],
+    )
+    def test_edit_engagement_eng_terminated_when_payload_has_status_changes(
+        self, emp_status_deactivation_date: str, expected_term_from_date: str
+    ) -> None:
+        """
+        We test the case where the SD payload contains status changes and the
+        worktime of an engagement (which already has an end date) change.
+
+        See https://redmine.magenta.dk/issues/60402#note-16
+        and https://redmine.magenta.dk/issues/61683
         """
 
         # Arrange
@@ -2184,13 +2261,20 @@ class TestEditEngagementX:
                 "DeactivationDate": "9999-12-31",
                 "OccupationRate": "0.8765",
             },
+            "EmploymentStatus": [
+                {
+                    "ActivationDate": "2000-01-01",
+                    "DeactivationDate": emp_status_deactivation_date,
+                    "EmploymentStatusCode": "1",
+                },
+            ],
         }
 
         mo_eng = {
             "uuid": eng_uuid,
             "validity": {
                 "from": "2000-01-01",
-                "to": None,
+                "to": "2025-12-31",
             },
         }
 
@@ -2198,7 +2282,10 @@ class TestEditEngagementX:
         sd_updater.edit_engagement_worktime(sd_payload_fragment, mo_eng)
 
         # Assert
-        mock_mo_post.assert_called_once_with(
+        calls = mock_mo_post.call_args_list
+        assert len(calls) == 2
+
+        assert calls[0] == call(
             "details/edit",
             {
                 "type": "engagement",
@@ -2206,6 +2293,78 @@ class TestEditEngagementX:
                 "data": {
                     "fraction": 876500,
                     "validity": {"from": "1999-01-01", "to": None},
+                },
+            },
+        )
+
+        assert calls[1] == call(
+            "details/terminate",
+            {
+                "type": "engagement",
+                "uuid": eng_uuid,
+                "validity": {"from": expected_term_from_date, "to": None},
+            },
+        )
+
+    def test_edit_engagement_eng_terminated_when_payload_has_status_changes_no_term(
+        self,
+    ) -> None:
+        """
+        We test the case where the SD payload contains status changes and the
+        worktime of an engagement (which already has an end date) change.
+
+        See https://redmine.magenta.dk/issues/60402#note-16
+        and https://redmine.magenta.dk/issues/61683
+        """
+
+        # Arrange
+        eng_uuid = str(uuid.uuid4())
+
+        sd_updater = setup_sd_changed_at()
+        mock_mo_post = MagicMock(
+            return_value=attrdict({"status_code": 200, "text": "response text"}),
+        )
+        sd_updater.morahelper_mock._mo_post = mock_mo_post
+
+        sd_payload_fragment = {
+            "EmploymentIdentifier": "12345",
+            "WorkingTime": {
+                "ActivationDate": "1999-01-01",
+                "DeactivationDate": "2023-12-31",
+                "OccupationRate": "0.8765",
+            },
+            "EmploymentStatus": [
+                {
+                    "ActivationDate": "2000-01-01",
+                    "DeactivationDate": "2025-12-31",
+                    "EmploymentStatusCode": "1",
+                },
+            ],
+        }
+
+        mo_eng = {
+            "uuid": eng_uuid,
+            "validity": {
+                "from": "2000-01-01",
+                "to": "2025-12-31",
+            },
+        }
+
+        # Act
+        sd_updater.edit_engagement_worktime(sd_payload_fragment, mo_eng)
+
+        # Assert
+        calls = mock_mo_post.call_args_list
+        assert len(calls) == 1
+
+        assert calls[0] == call(
+            "details/edit",
+            {
+                "type": "engagement",
+                "uuid": eng_uuid,
+                "data": {
+                    "fraction": 876500,
+                    "validity": {"from": "1999-01-01", "to": "2023-12-31"},
                 },
             },
         )

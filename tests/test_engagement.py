@@ -1,6 +1,7 @@
 import unittest.mock
 from collections import OrderedDict
 from copy import deepcopy
+from datetime import date
 
 import pytest
 from more_itertools import one
@@ -9,6 +10,7 @@ from .fixtures import get_read_employment_changed_fixture
 from sdlon.engagement import _is_external
 from sdlon.engagement import create_engagement
 from sdlon.engagement import filtered_professions
+from sdlon.engagement import get_last_day_of_sd_work
 from sdlon.engagement import is_employment_id_and_no_salary_minimum_consistent
 
 
@@ -132,3 +134,50 @@ def test_filter_single_professions():
             "Profession": [{"JobPositionIdentifier": "3"}],
         }
     )
+
+
+@pytest.mark.parametrize(
+    "emp_status_list, expected",
+    [
+        ([], None),
+        (
+            [
+                {
+                    "ActivationDate": "2000-01-01",
+                    "DeactivationDate": "2000-12-31",
+                    "EmploymentStatusCode": "1",
+                },
+                {
+                    "ActivationDate": "2001-01-01",
+                    "DeactivationDate": "2001-12-31",
+                    "EmploymentStatusCode": "3",
+                },
+                {
+                    "ActivationDate": "2002-01-01",
+                    "DeactivationDate": "9999-12-31",
+                    "EmploymentStatusCode": "8",
+                },
+            ],
+            date(2001, 12, 31),
+        ),
+        (
+            [
+                {
+                    "ActivationDate": "2002-01-01",
+                    "DeactivationDate": "9999-12-31",
+                    "EmploymentStatusCode": "8",
+                },
+            ],
+            date(2001, 12, 31),
+        ),
+    ],
+)
+def test_get_last_day_of_sd_work(
+    emp_status_list: list[dict[str, str]],
+    expected: date | None,
+) -> None:
+    # Act
+    last_day_of_work = get_last_day_of_sd_work(emp_status_list)
+
+    # Assert
+    assert last_day_of_work == expected

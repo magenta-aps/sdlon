@@ -113,10 +113,10 @@ def get_employment_datetimes(employment: OrderedDict) -> Tuple[datetime, datetim
 
 def sd_to_mo_date(sd_date: str) -> Optional[str]:
     """
-    Convert SD termination date to MO termination date.
+    Convert SD date to MO date.
 
     Args:
-        sd_date: SD termination date formatted as "YYYY-MM-DD"
+        sd_date: SD date formatted as "YYYY-MM-DD"
 
     Returns:
         MO termination date formatted as "YYYY-MM-DD"
@@ -129,6 +129,77 @@ def sd_to_mo_date(sd_date: str) -> Optional[str]:
         return MO_INFINITY
 
     return sd_date
+
+
+def get_mo_validity(mo_eng: dict[str, Any]) -> dict[str, date]:
+    """
+    Get the MO engagement validity from an engagement dictionary.
+    "None" is converted to date(9999, 12, 31) to ease comparisons
+    with SD dates.
+
+    Args:
+        mo_eng: the MO engagement dict, e.g.
+        {
+            "uuid": "9bef2405-9527-4e28-85cf-de4139782987",
+            "validity": {
+                "from": "2000-01-01",
+                "to": None
+            }
+        }
+
+    Returns:
+        The MO validity, e.g.
+        {
+            "from": date(2000, 1, 1),
+            "to": date(9999, 12, 31)
+        }
+        for the example above.
+    """
+    validity = mo_eng["validity"]
+    from_ = validity["from"]
+    to = validity["to"]
+
+    return {
+        "from": parse_datetime(from_).date(),
+        "to": parse_datetime(to).date() if to is not None else date.max,
+    }
+
+
+def get_sd_validity(engagement_info_obj: dict[str, Any]) -> dict[str, date]:
+    """
+    Convert the SD validity (ActivationDate and DeactivationDate) to a MO
+    validity.
+
+    Args:
+        engagement_info_obj: the "engagement_info" object, e.g. in the case of a
+                             department:
+        {
+            "ActivationDate": "1999-01-01",
+            "DeactivationDate": "9999-12-31",
+            "DepartmentIdentifier": "dep1",
+            "DepartmentLevelIdentifier": "NY1-niveau",
+            "DepartmentName": "Department 1",
+            "DepartmentUUIDIdentifier": "eb25d197-d278-41ac-abc1-cc7802093130",
+            "PostalAddress": {
+                "StandardAddressIdentifier": "Paradisæblevej 13",
+                "PostalCode": 1000,
+                "DistrictName": "Andeby",
+            },
+            "ProductionUnitIdentifier": 1234567890,
+        }
+
+    Returns:
+        The SD validity, e.g.
+        {
+            "from": "1999-01-01",
+            "to": "9999-12-31"
+        }
+        for the example above.
+    """
+    return {
+        "from": parse_datetime(engagement_info_obj["ActivationDate"]).date(),
+        "to": parse_datetime(engagement_info_obj["DeactivationDate"]).date(),
+    }
 
 
 def sd_to_mo_validity(engagement_info: dict[str, Any]) -> dict[str, str | None]:

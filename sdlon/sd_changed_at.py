@@ -40,12 +40,15 @@ from .config import Settings
 from .date_utils import date_to_datetime
 from .date_utils import format_date
 from .date_utils import gen_date_intervals
+from .date_utils import get_mo_validity
+from .date_utils import get_sd_validity
 from .date_utils import parse_datetime
 from .date_utils import sd_to_mo_date
 from .date_utils import sd_to_mo_validity
 from .engagement import create_engagement
 from .engagement import engagement_components
 from .engagement import filtered_professions
+from .engagement import get_last_day_of_sd_work
 from .engagement import (
     is_employment_id_and_no_salary_minimum_consistent,
 )
@@ -952,6 +955,9 @@ class ChangeAtSD:
         return True
 
     def edit_engagement_department(self, engagement, mo_eng, person_uuid):
+        # This function may cause incorrect data in MO, since mo_eng is only the latest
+        # engagement in MO. We should instead loop over all (GraphQL) engagement
+        # validities and update each validity interval one at a time.
         employment_id, engagement_info = engagement_components(engagement)
         for department in engagement_info["departments"]:
             logger.info("Change department of engagement", employment_id=employment_id)
@@ -1019,7 +1025,9 @@ class ChangeAtSD:
                 response = self.helper._mo_post("details/edit", payload)
                 mora_assert(response)
 
-            self._re_terminate_engagement(mo_eng)
+            self._re_terminate_engagement(
+                mo_eng, department, engagement_info["status_list"]
+            )
 
     def determine_engagement_type(self, engagement, job_position):
         split = self.settings.sd_monthly_hourly_divide
@@ -1048,6 +1056,9 @@ class ChangeAtSD:
         return self._fetch_engagement_type(job_position)
 
     def edit_engagement_type(self, engagement, mo_eng):
+        # This function may cause incorrect data in MO, since mo_eng is only the latest
+        # engagement in MO. We should instead loop over all (GraphQL) engagement
+        # validities and update each validity interval one at a time.
         employment_id, engagement_info = engagement_components(engagement)
         for profession_info in engagement_info["professions"]:
             logger.info(
@@ -1069,9 +1080,14 @@ class ChangeAtSD:
                 response = self.helper._mo_post("details/edit", payload)
                 mora_assert(response)
 
-            self._re_terminate_engagement(mo_eng)
+            self._re_terminate_engagement(
+                mo_eng, profession_info, engagement_info["status_list"]
+            )
 
     def edit_engagement_profession(self, engagement, mo_eng):
+        # This function may cause incorrect data in MO, since mo_eng is only the latest
+        # engagement in MO. We should instead loop over all (GraphQL) engagement
+        # validities and update each validity interval one at a time.
         employment_id, engagement_info = engagement_components(engagement)
         for profession_info in engagement_info["professions"]:
             logger.info("Change profession of engagement", employment_id=employment_id)
@@ -1125,9 +1141,14 @@ class ChangeAtSD:
                     response = self.helper._mo_post("details/edit", payload)
                     mora_assert(response)
 
-                self._re_terminate_engagement(mo_eng)
+                self._re_terminate_engagement(
+                    mo_eng, profession_info, engagement_info["status_list"]
+                )
 
     def edit_engagement_worktime(self, engagement, mo_eng):
+        # This function may cause incorrect data in MO, since mo_eng is only the latest
+        # engagement in MO. We should instead loop over all (GraphQL) engagement
+        # validities and update each validity interval one at a time.
         employment_id, engagement_info = engagement_components(engagement)
         for worktime_info in engagement_info["working_time"]:
             logger.info(
@@ -1144,7 +1165,9 @@ class ChangeAtSD:
                 response = self.helper._mo_post("details/edit", payload)
                 mora_assert(response)
 
-            self._re_terminate_engagement(mo_eng)
+            self._re_terminate_engagement(
+                mo_eng, worktime_info, engagement_info["status_list"]
+            )
 
     def edit_engagement(self, engagement, person_uuid):
         """
@@ -1386,36 +1409,61 @@ class ChangeAtSD:
             # Re-calculate primary after all updates for user has been performed.
             recalculate_users.add(person_uuid)
 
-    def _re_terminate_engagement(self, mo_eng: dict[str, Any]) -> None:
+    def _re_terminate_engagement(
+        self,
+        mo_eng: dict[str, Any],
+        eng_info_obj: dict[str, Any],
+        emp_status_list: list[dict[str, str]],
+    ) -> None:
         """
         We re-terminate an engagement, if it was terminated before an edit
         operation, since the edit operation re-opens any previously terminated
         engagements (since we are no longer using "cut" dates when generating
         the MO validity). See details here:
-        https://redmine.magenta.dk/issues/60402#note-16
+        https://redmine.magenta.dk/issues/60402#note-16 and
+        https://redmine.magenta.dk/issues/61683
 
         Args:
             mo_eng: the MO engagement
+            eng_info_obj: the engagement_info object
+            emp_status_list: the SD payload EmploymentStatus objects
         """
 
-        mo_end_date: str | None = mo_eng["validity"]["to"]  # Last day of work
+        def terminate_eng(eng_end: datetime.date) -> None:
+            # We need to add 1 day to the "last day of work" to get the "first day of
+            # non-work", i.e. the first day of the termination period.
+            term_start_date = eng_end + datetime.timedelta(days=1)
+            term_start: str = format_date(term_start_date)
 
-        if mo_end_date is None:
+            logger.debug(
+                "Re-terminate engagement",
+                eng_uuid=mo_eng["uuid"],
+                term_start_date=term_start,
+            )
+
+            self._terminate_eng_from_uuid(mo_eng["uuid"], term_start)
+
+        # The MO engagement validity of the (time line wise) latest engagement.
+        mo_validity = get_mo_validity(mo_eng)
+        # The SD payload validity
+        sd_validity = get_sd_validity(eng_info_obj)
+
+        last_day_of_sd_work = get_last_day_of_sd_work(emp_status_list)
+        if last_day_of_sd_work is not None:
+            # If we enter this if-block, the SD payload contains one or more
+            # EmploymentStatus objects and hence the validity of the engagement in MO
+            # could have changed.
+            eng_end_date = max(mo_validity["to"], last_day_of_sd_work)
+            logger.debug(
+                "EmploymentStatus changes - we may need to terminate",
+                eng_end_date=format_date(eng_end_date),
+            )
+            if sd_validity["to"] > eng_end_date:
+                terminate_eng(eng_end_date)
             return
 
-        # Due to the way MOs service API is working, we need to add 1 day to
-        # the "last day of work" to get the "first day of non-work", i.e.
-        # the first day of the termination period.
-        term_start_date = parse_datetime(mo_end_date).date() + datetime.timedelta(
-            days=1
-        )
-        term_start: str = format_date(term_start_date)  # First day of non-work
-        logger.debug(
-            "Re-terminate engagement",
-            eng_uuid=mo_eng["uuid"],
-            term_start_date=term_start,
-        )
-        self._terminate_eng_from_uuid(mo_eng["uuid"], term_start)
+        if sd_validity["to"] > mo_validity["to"]:
+            terminate_eng(mo_validity["to"])
 
 
 def initialize_changed_at(from_date):
