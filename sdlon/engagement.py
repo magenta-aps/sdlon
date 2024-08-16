@@ -1,5 +1,7 @@
 import re
+from datetime import date
 from datetime import datetime
+from datetime import timedelta
 from operator import itemgetter
 from typing import Any
 from typing import Dict
@@ -8,6 +10,12 @@ from typing import Optional
 from typing import OrderedDict
 from typing import Tuple
 
+from integrations.SD_Lon.sdlon.sd_common import EmploymentStatus
+from more_itertools import last
+from more_itertools import one
+from more_itertools import partition
+
+from .date_utils import parse_datetime
 from .sd_common import ensure_list
 from .sd_common import read_employment_at
 from .skip import skip_job_position_id
@@ -145,3 +153,33 @@ def filtered_professions(
     ]
 
     return sd_employment
+
+
+def get_last_day_of_sd_work(emp_status_list: list[dict[str, str]]) -> date | None:
+    def has_active_status(emp_status: dict[str, str]) -> bool:
+        return emp_status["EmploymentStatusCode"] in (
+            status.value for status in EmploymentStatus.employeed()
+        )
+
+    inactive_emp_statuses_gen, active_emp_statuses_gen = partition(
+        has_active_status, emp_status_list
+    )
+    active_emp_statuses = list(active_emp_statuses_gen)
+    inactive_emp_statuses = list(inactive_emp_statuses_gen)
+
+    if active_emp_statuses:
+        # This will not handle the (possible but unlikely) situation where active
+        # (status 0, 1 and 3) and passive (status 8, 9 and S) SD statuses are mixed,
+        # e.g.
+        # |------ 1 ------|--- 8 ---|---- 1 ----|----- 8 -----
+        return parse_datetime(last(active_emp_statuses)["DeactivationDate"]).date()
+
+    if inactive_emp_statuses:
+        # First day of non-work (e.g. retirement (status 8))
+        activation_date = parse_datetime(
+            one(inactive_emp_statuses)["ActivationDate"]
+        ).date()
+        # Last day of work
+        return activation_date - timedelta(days=1)
+
+    return None
