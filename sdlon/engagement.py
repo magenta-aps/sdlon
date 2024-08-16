@@ -10,7 +10,7 @@ from typing import Optional
 from typing import OrderedDict
 from typing import Tuple
 
-from integrations.SD_Lon.sdlon.sd_common import EmploymentStatus
+from integrations.SD_Lon.sdlon.sd_common import EmploymentStatus as EmploymentStatusEnum
 from more_itertools import last
 from more_itertools import one
 from more_itertools import partition
@@ -155,12 +155,13 @@ def filtered_professions(
     return sd_employment
 
 
-def get_last_day_of_sd_work(emp_status_list: list[dict[str, str]]) -> date | None:
-    def has_active_status(emp_status: dict[str, str]) -> bool:
-        return emp_status["EmploymentStatusCode"] in (
-            status.value for status in EmploymentStatus.employeed()
-        )
+def has_active_status(emp_status: dict[str, str]) -> bool:
+    return emp_status["EmploymentStatusCode"] in (
+        status.value for status in EmploymentStatusEnum.employeed()
+    )
 
+
+def get_last_day_of_sd_work(emp_status_list: list[dict[str, str]]) -> date | None:
     inactive_emp_statuses_gen, active_emp_statuses_gen = partition(
         has_active_status, emp_status_list
     )
