@@ -2209,3 +2209,145 @@ class TestEditEngagementX:
                 },
             },
         )
+
+    @pytest.mark.parametrize(
+        "emp_status_deactivation_date, expected_term_from_date",
+        [
+            ("2029-12-31", "2030-01-01"),
+            ("2023-12-31", "2026-01-01"),
+        ],
+    )
+    def test_edit_engagement_eng_terminated_when_payload_has_status_changes(
+        self, emp_status_deactivation_date: str, expected_term_from_date: str
+    ) -> None:
+        """
+        We test the case where the SD payload contains status changes and the
+        worktime of an engagement (which already has an end date) change.
+
+        See https://redmine.magenta.dk/issues/60402#note-16
+        and https://redmine.magenta.dk/issues/61683
+        """
+
+        # Arrange
+        eng_uuid = str(uuid.uuid4())
+
+        sd_updater = setup_sd_changed_at()
+        mock_mo_post = MagicMock(
+            return_value=attrdict({"status_code": 200, "text": "response text"}),
+        )
+        sd_updater.morahelper_mock._mo_post = mock_mo_post
+
+        sd_payload_fragment = {
+            "EmploymentIdentifier": "12345",
+            "WorkingTime": {
+                "ActivationDate": "1999-01-01",
+                "DeactivationDate": "9999-12-31",
+                "OccupationRate": "0.8765",
+            },
+            "EmploymentStatus": [
+                {
+                    "ActivationDate": "2000-01-01",
+                    "DeactivationDate": emp_status_deactivation_date,
+                    "EmploymentStatusCode": "1",
+                },
+            ],
+        }
+
+        mo_eng = {
+            "uuid": eng_uuid,
+            "validity": {
+                "from": "2000-01-01",
+                "to": "2025-12-31",
+            },
+        }
+
+        # Act
+        sd_updater.edit_engagement_worktime(sd_payload_fragment, mo_eng)
+
+        # Assert
+        calls = mock_mo_post.call_args_list
+        assert len(calls) == 2
+
+        assert calls[0] == call(
+            "details/edit",
+            {
+                "type": "engagement",
+                "uuid": eng_uuid,
+                "data": {
+                    "fraction": 876500,
+                    "validity": {"from": "1999-01-01", "to": None},
+                },
+            },
+        )
+
+        assert calls[1] == call(
+            "details/terminate",
+            {
+                "type": "engagement",
+                "uuid": eng_uuid,
+                "validity": {"from": expected_term_from_date, "to": None},
+            },
+        )
+
+    def test_edit_engagement_eng_terminated_when_payload_has_status_changes_no_term(
+        self,
+    ) -> None:
+        """
+        We test the case where the SD payload contains status changes and the
+        worktime of an engagement (which already has an end date) change.
+
+        See https://redmine.magenta.dk/issues/60402#note-16
+        and https://redmine.magenta.dk/issues/61683
+        """
+
+        # Arrange
+        eng_uuid = str(uuid.uuid4())
+
+        sd_updater = setup_sd_changed_at()
+        mock_mo_post = MagicMock(
+            return_value=attrdict({"status_code": 200, "text": "response text"}),
+        )
+        sd_updater.morahelper_mock._mo_post = mock_mo_post
+
+        sd_payload_fragment = {
+            "EmploymentIdentifier": "12345",
+            "WorkingTime": {
+                "ActivationDate": "1999-01-01",
+                "DeactivationDate": "2023-12-31",
+                "OccupationRate": "0.8765",
+            },
+            "EmploymentStatus": [
+                {
+                    "ActivationDate": "2000-01-01",
+                    "DeactivationDate": "2025-12-31",
+                    "EmploymentStatusCode": "1",
+                },
+            ],
+        }
+
+        mo_eng = {
+            "uuid": eng_uuid,
+            "validity": {
+                "from": "2000-01-01",
+                "to": "2025-12-31",
+            },
+        }
+
+        # Act
+        sd_updater.edit_engagement_worktime(sd_payload_fragment, mo_eng)
+
+        # Assert
+        calls = mock_mo_post.call_args_list
+        assert len(calls) == 1
+
+        assert calls[0] == call(
+            "details/edit",
+            {
+                "type": "engagement",
+                "uuid": eng_uuid,
+                "data": {
+                    "fraction": 876500,
+                    "validity": {"from": "1999-01-01", "to": "2023-12-31"},
+                },
+            },
+        )
