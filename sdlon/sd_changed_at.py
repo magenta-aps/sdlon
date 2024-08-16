@@ -1430,9 +1430,8 @@ class ChangeAtSD:
         """
 
         def terminate_eng(eng_end: datetime.date) -> None:
-            # Due to the way MOs service API is working, we need to add 1 day to
-            # the "last day of work" to get the "first day of non-work", i.e.
-            # the first day of the termination period.
+            # We need to add 1 day to the "last day of work" to get the "first day of
+            # non-work", i.e. the first day of the termination period.
             term_start_date = eng_end + datetime.timedelta(days=1)
             term_start: str = format_date(term_start_date)
 
