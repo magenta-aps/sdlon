@@ -2160,12 +2160,29 @@ class TestEditEngagementX:
             },
         )
 
-    def test_edit_engagement_worktime_eng_not_terminated(self) -> None:
+    @pytest.mark.parametrize(
+        "emp_status_deactivation_date, mo_eng_end_date, expected_end_date",
+        [
+            ("9999-12-31", None, None),
+            ("2025-12-31", None, "2025-12-31"),
+            ("2025-12-31", "2030-12-31", "2025-12-31"),
+            ("2025-12-31", "2025-12-31", "2025-12-31"),
+        ],
+    )
+    def test_edit_engagement_worktime_eng_not_terminated(
+        self,
+        emp_status_deactivation_date: str,
+        mo_eng_end_date: str | None,
+        expected_end_date: str | None,
+    ) -> None:
         """
         We test the case where the worktime of an engagement
-        (which does not already have an end date) change.
+        (which does not already have an end date) change. In this test we verify that
+        the engagement is not re-terminated in the case where the SD payload
+        DeactivationDate is smaller than the MO engagement end date.
 
-        (see https://redmine.magenta.dk/issues/60402#note-16)
+        See https://redmine.magenta.dk/issues/60402#note-16
+        and https://redmine.magenta.dk/issues/61683
         """
 
         # Arrange
@@ -2181,7 +2198,7 @@ class TestEditEngagementX:
             "EmploymentIdentifier": "12345",
             "WorkingTime": {
                 "ActivationDate": "1999-01-01",
-                "DeactivationDate": "9999-12-31",
+                "DeactivationDate": emp_status_deactivation_date,
                 "OccupationRate": "0.8765",
             },
         }
@@ -2190,7 +2207,7 @@ class TestEditEngagementX:
             "uuid": eng_uuid,
             "validity": {
                 "from": "2000-01-01",
-                "to": None,
+                "to": mo_eng_end_date,
             },
         }
 
@@ -2205,7 +2222,7 @@ class TestEditEngagementX:
                 "uuid": eng_uuid,
                 "data": {
                     "fraction": 876500,
-                    "validity": {"from": "1999-01-01", "to": None},
+                    "validity": {"from": "1999-01-01", "to": expected_end_date},
                 },
             },
         )
