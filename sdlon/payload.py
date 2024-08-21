@@ -18,9 +18,13 @@ def get_payloads(engine: Engine, cpr: str) -> list[tuple[datetime, str]]:
     """
     Get payloads containing the CPR from the payload DB
     """
-    stmt = select(Payload.timestamp, Payload.response).where(
-        Payload.response.contains(cpr),
-        Payload.full_url == GET_EMPLOYMENT_CHANGED_AT_DATE,
+    stmt = (
+        select(Payload.timestamp, Payload.response)
+        .where(
+            Payload.response.contains(cpr),
+            Payload.full_url == GET_EMPLOYMENT_CHANGED_AT_DATE,
+        )
+        .order_by(Payload.timestamp)
     )
 
     with Session(engine) as session:
