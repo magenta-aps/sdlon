@@ -4,6 +4,7 @@ from copy import deepcopy
 from datetime import date
 
 import pytest
+from freezegun import freeze_time
 from more_itertools import one
 
 from .fixtures import get_read_employment_changed_fixture
@@ -75,13 +76,28 @@ class TestIsEmploymentIdAndNoSalaryMinimumConsistent:
 
 
 class TestCreateEngagement(unittest.TestCase):
+    @freeze_time("2000-01-01")
     @unittest.mock.patch("sdlon.engagement.read_employment_at")
     def test_return_none_when_sd_employment_not_found(self, mock_read_employment_at):
+        # Arrange
         mock_read_employment_at.return_value = None
-        mock_sd_updater = unittest.mock.MagicMock()
-        create_engagement(mock_sd_updater, 12345, "person_uuid")
 
-        mock_sd_updater.assert_not_called()
+        mock_sd_updater = unittest.mock.MagicMock()
+        mock_sd_updater.settings = {"some": "settings"}
+        mock_sd_updater.dry_run = False
+
+        # Act
+        create_engagement(mock_sd_updater, "12345", "person_uuid")
+
+        # Assert
+        mock_read_employment_at.assert_called_once_with(
+            date(2000, 1, 1),
+            settings={"some": "settings"},
+            employment_id="12345",
+            status_passive_indicator=False,
+            dry_run=False,
+        )
+        mock_sd_updater.create_new_engagement.assert_not_called()
 
 
 def test_filter_multiple_professions():
