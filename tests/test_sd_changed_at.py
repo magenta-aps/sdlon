@@ -874,6 +874,7 @@ class Test_sd_changed_at(unittest.TestCase):
     def test_handle_status_changes_terminates_let_go_employment_status(
         self, sd_deactivation_date, mo_termination_to_date
     ):
+        # Arrange
         cpr = "0101709999"
         employment_id = "01337"
 
@@ -885,7 +886,7 @@ class Test_sd_changed_at(unittest.TestCase):
             status="1",
         )
         sd_employment = read_employment_result[0]["Employment"]
-        sd_employment["EmploymentStatus"].pop(0)  # Remove the one with status 8
+        sd_employment["EmploymentStatus"].pop(0)  # Remove the one without status 8
         sd_employment["EmploymentStatus"][0]["DeactivationDate"] = sd_deactivation_date
 
         sd_updater = setup_sd_changed_at()
@@ -898,14 +899,17 @@ class Test_sd_changed_at(unittest.TestCase):
 
         morahelper = sd_updater.morahelper_mock
         mock_mo_post = morahelper._mo_post
+        # The call used in _find_engagement
         mock_mo_post.return_value = attrdict(
             {"status_code": 200, "text": lambda: "mo_engagement_uuid"}
         )
 
-        sd_updater._handle_employment_status_changes(
+        # Act
+        skip = sd_updater._handle_employment_status_changes(
             cpr=cpr, sd_employment=sd_employment, person_uuid="person_uuid"
         )
 
+        # Assert
         mock_mo_post.assert_called_once_with(
             "details/terminate",
             {
@@ -914,6 +918,34 @@ class Test_sd_changed_at(unittest.TestCase):
                 "validity": {"from": "2021-02-10", "to": mo_termination_to_date},
             },
         )
+
+        assert skip
+
+    def test_handle_status_change_do_not_term_non_existing_status8_sd_employment(self):
+        # Arrange
+        sd_updater = setup_sd_changed_at()
+        sd_updater._find_engagement = MagicMock(return_value=None)
+        sd_updater._terminate_engagement = MagicMock()
+
+        # Act
+        skip = sd_updater._handle_employment_status_changes(
+            "0101011234",
+            OrderedDict(
+                {
+                    "EmploymentIdentifier": "12345",
+                    "EmploymentStatus": {
+                        "ActivationDate": "2000-01-01",
+                        "DeactivationDate": "2010-01-01",
+                        "EmploymentStatusCode": "8",
+                    },
+                }
+            ),
+            str(uuid.uuid4()),
+        )
+
+        # Assert
+        sd_updater._terminate_engagement.assert_not_called()
+        assert skip
 
     def test_handle_status_changes_terminates_slettet_employment_status(self):
         cpr = "0101709999"
@@ -954,6 +986,31 @@ class Test_sd_changed_at(unittest.TestCase):
                 "validity": {"from": "2020-11-01", "to": None},
             },
         )
+
+    def test_do_not_terminate_non_existing_status8_sd_employment(self):
+        # Arrange
+        sd_updater = setup_sd_changed_at()
+        sd_updater._find_engagement = MagicMock(return_value=None)
+        sd_updater.edit_engagement = MagicMock()
+
+        # Act
+        sd_updater._update_user_employments(
+            "0101011234",
+            [
+                {
+                    "EmploymentIdentifier": "12345",
+                    "EmploymentStatus": {
+                        "ActivationDate": "2000-01-01",
+                        "DeactivationDate": "2010-01-01",
+                        "EmploymentStatusCode": "8",
+                    },
+                }
+            ],
+            str(uuid.uuid4()),
+        )
+
+        # Assert
+        sd_updater.edit_engagement.assert_not_called()
 
     @parameterized.expand(
         [
@@ -1100,7 +1157,7 @@ class Test_sd_changed_at(unittest.TestCase):
         status = {
             "ActivationDate": "2000-01-01",
             "DeactivationDate": "2100-01-01",
-            "EmploymentStatusCode": "",
+            "EmploymentStatusCode": "1",
         }
         cpr = ""
         result = sd_updater.create_new_engagement(engagement, status, cpr, "uuid-b")
