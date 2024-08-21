@@ -821,6 +821,12 @@ class ChangeAtSD:
         AD integration handled in check for primary engagement.
         """
         # beware - name engagement_info used for engagement in engagement_components
+
+        assert (
+            EmploymentStatus(status["EmploymentStatusCode"])
+            not in EmploymentStatus.let_go()
+        )
+
         user_key, engagement_info = engagement_components(engagement)
         if not engagement_info["departments"] or not engagement_info["professions"]:
             return False

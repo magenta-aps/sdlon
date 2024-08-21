@@ -1157,7 +1157,7 @@ class Test_sd_changed_at(unittest.TestCase):
         status = {
             "ActivationDate": "2000-01-01",
             "DeactivationDate": "2100-01-01",
-            "EmploymentStatusCode": "",
+            "EmploymentStatusCode": "1",
         }
         cpr = ""
         result = sd_updater.create_new_engagement(engagement, status, cpr, "uuid-b")
