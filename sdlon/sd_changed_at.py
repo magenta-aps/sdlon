@@ -1193,6 +1193,10 @@ class ChangeAtSD:
     def _handle_employment_status_changes(
         self, cpr: str, sd_employment: OrderedDict, person_uuid: str
     ) -> bool:
+        # NOTE: the logic in this function and its calling function is buggy and does
+        # not guarantee that we obtain the correct state in MO. The whole thing needs
+        # to be rewritten.
+
         """
         Update MO with SD employment changes.
 
@@ -1202,7 +1206,7 @@ class ChangeAtSD:
             person_uuid: The UUID of the MO employee.
 
         Returns:
-            `True` if an employment CRUD operation has been executed and
+            `True` if further engagement editing should be skipped
             `False` otherwise.
 
         Examples:
@@ -1295,6 +1299,19 @@ class ChangeAtSD:
                 logger.info("Create a leave")
                 self.create_leave(status, employment_id, person_uuid)
             elif code in EmploymentStatus.let_go():
+                mo_eng = self._find_engagement(employment_id, person_uuid)
+                if not mo_eng:
+                    logger.info(
+                        "Could not find MO engagement for passive SD employment. "
+                        "Skipping further processing",
+                        code=code,
+                    )
+                    skip = True
+                    # This break could cause problems if there are further statuses
+                    # following the status 8, but it is, however, unlikely that this
+                    # will happen.
+                    break
+
                 sd_from_date = status["ActivationDate"]
                 sd_to_date = status["DeactivationDate"]
                 success = self._terminate_engagement(
@@ -1307,7 +1324,9 @@ class ChangeAtSD:
                     logger.error(
                         "Problem terminating employment", employment_id=employment_id
                     )
-                    skip = True
+                # Setting skip = True may cause problems further down the line for
+                # complex SD payloads, but there is currently no easy way to fix it.
+                skip = True
             elif code == EmploymentStatus.Slettet:
 
                 # TODO: rename user_key to something unique in MO when employee
