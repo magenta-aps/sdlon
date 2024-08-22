@@ -50,6 +50,7 @@ def create_engagement(sd_updater, employment_id, person_uuid) -> None:
         datetime.now().date(),
         settings=sd_updater.settings,
         employment_id=employment_id,
+        status_passive_indicator=False,
         dry_run=sd_updater.dry_run,
     )
     if sd_employment_payload is None:
