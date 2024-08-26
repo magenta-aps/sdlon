@@ -1175,6 +1175,58 @@ class ChangeAtSD:
                 mo_eng, worktime_info, engagement_info["status_list"]
             )
 
+    def edit_engagement_status(
+        self, status_list: list[dict[str, str]], mo_eng: dict[str, Any]
+    ) -> None:
+        """
+        Extend the engagement validity in MO if the active engagement status
+        have been extended in SD.
+
+        NOTE: the logic below is not guaranteed to work for complex SD payloads!
+
+        Args:
+            status_list: a list of the EmploymentStatus objects from the SD payload.
+            mo_eng: the MO engagement
+        """
+
+        latest_active_sd_date_str = last(
+            emp
+            for emp in status_list
+            if EmploymentStatus(emp["EmploymentStatusCode"])
+            in EmploymentStatus.employeed()
+        )["DeactivationDate"]
+        latest_active_sd_date = parse_datetime(latest_active_sd_date_str).date()
+
+        latest_active_mo_date_str: str | None = mo_eng["validity"]["to"]
+        latest_active_mo_date = (
+            parse_datetime(latest_active_mo_date_str).date()
+            if latest_active_mo_date_str is not None
+            else datetime.date.max
+        )
+
+        if latest_active_sd_date > latest_active_mo_date:
+            payload = sd_payloads.engagement(
+                {
+                    # The user_key is a random choice - we could just as well have
+                    # updated something else
+                    "user_key": mo_eng["user_key"],
+                    "validity": {
+                        "from": mo_eng["validity"]["from"],
+                        "to": sd_to_mo_date(latest_active_sd_date_str),
+                    },
+                },
+                mo_eng,
+            )
+            logger.info(
+                "Update MO engagement status end date",
+                latest_active_sd_date=latest_active_sd_date_str,
+                latest_active_mo_date=latest_active_mo_date_str,
+                payload=payload,
+            )
+            if not self.dry_run:
+                response = self.helper._mo_post("details/edit", payload)
+                mora_assert(response)
+
     def edit_engagement(self, engagement, person_uuid):
         """
         Edit an engagement
