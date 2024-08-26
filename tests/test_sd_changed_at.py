@@ -2426,6 +2426,35 @@ class TestEditEngagementX:
             },
         )
 
+
+class TestEditEngagementStatus:
+    STATUS_LIST = [
+        {
+            "ActivationDate": "2000-01-01",
+            "DeactivationDate": "2025-12-31",
+            "EmploymentStatusCode": "1",
+        },
+        {
+            "ActivationDate": "2026-01-01",
+            "DeactivationDate": "2030-12-31",
+            "EmploymentStatusCode": "3",
+        },
+        {
+            "ActivationDate": "2031-01-01",
+            "DeactivationDate": None,
+            "EmploymentStatusCode": "8",
+        },
+    ]
+
+    MO_ENG = {
+        "user_key": "12345",
+        "uuid": "83de05b3-e890-4975-bc49-88e9052454c2",
+        "validity": {
+            "from": "2000-01-01",
+            "to": "2027-01-01",  # Before the SD status 3 above ends
+        },
+    }
+
     def test_edit_engagement_status(self):
         # Arrange
         sd_updater = setup_sd_changed_at()
@@ -2433,35 +2462,10 @@ class TestEditEngagementX:
             {"status_code": 200, "text": "response text"}
         )
 
-        status_list = [
-            {
-                "ActivationDate": "2000-01-01",
-                "DeactivationDate": "2025-12-31",
-                "EmploymentStatusCode": "1",
-            },
-            {
-                "ActivationDate": "2026-01-01",
-                "DeactivationDate": "2030-12-31",
-                "EmploymentStatusCode": "3",
-            },
-            {
-                "ActivationDate": "2031-01-01",
-                "DeactivationDate": None,
-                "EmploymentStatusCode": "8",
-            },
-        ]
-
-        mo_eng = {
-            "user_key": "12345",
-            "uuid": "83de05b3-e890-4975-bc49-88e9052454c2",
-            "validity": {
-                "from": "2000-01-01",
-                "to": "2027-01-01",  # Before the SD status 3 above ends
-            },
-        }
-
         # Act
-        sd_updater.edit_engagement_status(status_list, mo_eng)
+        sd_updater.edit_engagement_status(
+            TestEditEngagementStatus.STATUS_LIST, TestEditEngagementStatus.MO_ENG
+        )
 
         # Assert
         sd_updater.morahelper_mock._mo_post.assert_called_once_with(
