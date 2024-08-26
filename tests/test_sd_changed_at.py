@@ -2482,3 +2482,29 @@ class TestEditEngagementStatus:
                 },
             },
         )
+
+    def test_no_update_when_mo_eng_end_date_greater_than_sd_deactivation_date(self):
+        # Arrange
+        sd_updater = setup_sd_changed_at()
+        TestEditEngagementStatus.MO_ENG["validity"]["to"] = None
+
+        # Act
+        sd_updater.edit_engagement_status(
+            TestEditEngagementStatus.STATUS_LIST, TestEditEngagementStatus.MO_ENG
+        )
+
+        # Assert
+        sd_updater.morahelper_mock._mo_post.assert_not_called()
+
+    def test_dry_run(self):
+        # Arrange
+        sd_updater = setup_sd_changed_at()
+        sd_updater.dry_run = True
+
+        # Act
+        sd_updater.edit_engagement_status(
+            TestEditEngagementStatus.STATUS_LIST, TestEditEngagementStatus.MO_ENG
+        )
+
+        # Assert
+        sd_updater.morahelper_mock._mo_post.assert_not_called()
