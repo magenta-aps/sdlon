@@ -987,6 +987,58 @@ class Test_sd_changed_at(unittest.TestCase):
             },
         )
 
+    def test_handle_status_change_extend_eng_validity_via_status_change_only(self):
+        # Arrange
+        sd_updater = setup_sd_changed_at()
+
+        sd_updater._find_engagement = MagicMock(
+            return_value={
+                "user_key": "12345",
+                "uuid": "83de05b3-e890-4975-bc49-88e9052454c2",
+                "validity": {
+                    "from": "2000-01-01",
+                    "to": "2027-01-01",  # Before the SD status 1 below ends
+                },
+            }
+        )
+        sd_updater.morahelper_mock._mo_post.return_value = attrdict(
+            {"status_code": 200, "text": "response text"}
+        )
+
+        # Act
+        sd_updater._handle_employment_status_changes(
+            "0101011234",
+            OrderedDict(
+                {
+                    "EmploymentIdentifier": "12345",
+                    "EmploymentStatus": [
+                        {
+                            "ActivationDate": "2000-01-01",
+                            "DeactivationDate": "2030-12-31",
+                            "EmploymentStatusCode": "1",
+                        },
+                    ],
+                }
+            ),
+            str(uuid.uuid4()),
+        )
+
+        # Assert
+        sd_updater.morahelper_mock._mo_post.assert_called_once_with(
+            "details/edit",
+            {
+                "type": "engagement",
+                "uuid": "83de05b3-e890-4975-bc49-88e9052454c2",
+                "data": {
+                    "user_key": "12345",
+                    "validity": {
+                        "from": "2000-01-01",
+                        "to": "2030-12-31",  # The day the last active SD emp ends
+                    },
+                },
+            },
+        )
+
     def test_do_not_terminate_non_existing_status8_sd_employment(self):
         # Arrange
         sd_updater = setup_sd_changed_at()
@@ -2425,3 +2477,86 @@ class TestEditEngagementX:
                 },
             },
         )
+
+
+class TestEditEngagementStatus:
+    STATUS_LIST = [
+        {
+            "ActivationDate": "2000-01-01",
+            "DeactivationDate": "2025-12-31",
+            "EmploymentStatusCode": "1",
+        },
+        {
+            "ActivationDate": "2026-01-01",
+            "DeactivationDate": "2030-12-31",
+            "EmploymentStatusCode": "3",
+        },
+        {
+            "ActivationDate": "2031-01-01",
+            "DeactivationDate": None,
+            "EmploymentStatusCode": "8",
+        },
+    ]
+
+    MO_ENG = {
+        "user_key": "12345",
+        "uuid": "83de05b3-e890-4975-bc49-88e9052454c2",
+        "validity": {
+            "from": "2000-01-01",
+            "to": "2027-01-01",  # Before the SD status 3 above ends
+        },
+    }
+
+    def test_edit_engagement_status(self):
+        # Arrange
+        sd_updater = setup_sd_changed_at()
+        sd_updater.morahelper_mock._mo_post.return_value = attrdict(
+            {"status_code": 200, "text": "response text"}
+        )
+
+        # Act
+        sd_updater.edit_engagement_status(
+            TestEditEngagementStatus.STATUS_LIST, TestEditEngagementStatus.MO_ENG
+        )
+
+        # Assert
+        sd_updater.morahelper_mock._mo_post.assert_called_once_with(
+            "details/edit",
+            {
+                "type": "engagement",
+                "uuid": "83de05b3-e890-4975-bc49-88e9052454c2",
+                "data": {
+                    "user_key": "12345",
+                    "validity": {
+                        "from": "2000-01-01",
+                        "to": "2030-12-31",  # The day the last active SD emp ends
+                    },
+                },
+            },
+        )
+
+    def test_no_update_when_mo_eng_end_date_greater_than_sd_deactivation_date(self):
+        # Arrange
+        sd_updater = setup_sd_changed_at()
+        TestEditEngagementStatus.MO_ENG["validity"]["to"] = None
+
+        # Act
+        sd_updater.edit_engagement_status(
+            TestEditEngagementStatus.STATUS_LIST, TestEditEngagementStatus.MO_ENG
+        )
+
+        # Assert
+        sd_updater.morahelper_mock._mo_post.assert_not_called()
+
+    def test_dry_run(self):
+        # Arrange
+        sd_updater = setup_sd_changed_at()
+        sd_updater.dry_run = True
+
+        # Act
+        sd_updater.edit_engagement_status(
+            TestEditEngagementStatus.STATUS_LIST, TestEditEngagementStatus.MO_ENG
+        )
+
+        # Assert
+        sd_updater.morahelper_mock._mo_post.assert_not_called()
