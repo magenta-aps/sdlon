@@ -1331,6 +1331,7 @@ class ChangeAtSD:
                 if mo_eng:
                     logger.info("Found MO engagement", eng_uuid=mo_eng["uuid"])
                     self._refresh_mo_engagements(person_uuid)
+                    self.edit_engagement_status(eng["status_list"], mo_eng)
                     self.edit_engagement(sd_employment, person_uuid)
                 else:
                     logger.info("MO engagement not found. Create new engagement")
