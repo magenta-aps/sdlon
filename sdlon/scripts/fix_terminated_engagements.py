@@ -12,6 +12,8 @@ from more_itertools import first
 from more_itertools import last
 from more_itertools import one
 from sdclient.responses import Employment
+from sdclient.responses import EmploymentDepartment
+from sdclient.responses import EmploymentStatus
 from sdclient.responses import EmploymentWithLists
 from sdclient.responses import GetEmploymentChangedResponse
 from sdclient.responses import GetEmploymentResponse
@@ -29,23 +31,31 @@ logger = get_logger()
 
 
 def get_emp_status_timeline(
-    employment: Employment, employment_changed: EmploymentWithLists | None
+    employment: Employment | None, employment_changed: EmploymentWithLists | None
 ) -> EmploymentWithLists:
-    # TODO: for now, we only handle EmploymentStatus. In the future we
-    #       should also handle Profession and EmploymentDepartment
+    # TODO: rename function (to be done later due to upcoming rebase...)
+    # TODO: for now, we only handle EmploymentStatus and EmploymentDepartment.
+    #       In the future we should also handle Profession
+
+    assert employment is not None or employment_changed is not None
+
+    def get_future_emp_attrs(
+        attr: str,
+    ) -> list[EmploymentStatus | EmploymentDepartment]:
+        return (
+            getattr(employment_changed, attr)
+            if employment_changed is not None
+            and getattr(employment_changed, attr) is not None
+            else []
+        )
 
     # The EmploymentIdentifiers must match
-    if employment_changed is not None:
+    if employment is not None and employment_changed is not None:
         assert (
             employment.EmploymentIdentifier == employment_changed.EmploymentIdentifier
         )
 
-    future_emp_statuses = (
-        employment_changed.EmploymentStatus
-        if employment_changed is not None
-        and employment_changed.EmploymentStatus is not None
-        else []
-    )
+    future_emp_statuses = get_future_emp_attrs("EmploymentStatus")
     # Only include active SD employments
     future_emp_statuses = [
         emp_status
@@ -54,12 +64,25 @@ def get_emp_status_timeline(
         in (status.value for status in EmploymentStatusEnum.employeed())
     ]
 
-    emp_timeline = EmploymentWithLists(
-        EmploymentIdentifier=employment.EmploymentIdentifier,
-        EmploymentDate=employment.EmploymentDate,
-        AnniversaryDate=employment.AnniversaryDate,
-        EmploymentStatus=[employment.EmploymentStatus] + future_emp_statuses,
-    )
+    future_emp_departments = get_future_emp_attrs("EmploymentDepartment")
+
+    if employment is not None:
+        emp_timeline = EmploymentWithLists(
+            EmploymentIdentifier=employment.EmploymentIdentifier,
+            EmploymentDate=employment.EmploymentDate,
+            AnniversaryDate=employment.AnniversaryDate,
+            EmploymentStatus=[employment.EmploymentStatus] + future_emp_statuses,
+            EmploymentDepartment=[employment.EmploymentDepartment]
+            + future_emp_departments,
+        )
+    else:
+        emp_timeline = EmploymentWithLists(
+            EmploymentIdentifier=employment_changed.EmploymentIdentifier,
+            EmploymentDate=employment_changed.EmploymentDate,
+            AnniversaryDate=employment_changed.AnniversaryDate,
+            EmploymentStatus=future_emp_statuses,
+            EmploymentDepartment=future_emp_departments,
+        )
 
     if len(emp_timeline.EmploymentStatus) <= 1:
         return emp_timeline
@@ -75,10 +98,15 @@ def get_emp_status_timeline(
         emp_status.DeactivationDate for emp_status in emp_timeline.EmploymentStatus[:-1]
     )
     date_pairs = zip(activation_dates, deactivation_dates)
-    assert all(
-        deactivation_date + timedelta(days=1) == activation_date
-        for activation_date, deactivation_date in date_pairs
-    )
+
+    try:
+        assert all(
+            deactivation_date + timedelta(days=1) == activation_date
+            for activation_date, deactivation_date in date_pairs
+        )
+    except AssertionError as error:
+        print(emp_timeline)
+        raise error
 
     return emp_timeline
 
