@@ -114,6 +114,7 @@ def get_emp_status_timeline(
 def get_sd_employment_map(
     sd_employments: GetEmploymentResponse,
     sd_employments_changed: GetEmploymentChangedResponse,
+    only_timelines_for_currently_active_emps: bool = False,
 ) -> dict[tuple[str, str], EmploymentWithLists]:
     """
     Get a map from (cpr, EmploymentIdentifier) to the corresponding employment
@@ -122,6 +123,8 @@ def get_sd_employment_map(
     Args:
         sd_employments: the response from SD GetEmployment
         sd_employments_changed: the response from SD GetEmploymentChanged
+        only_timelines_for_currently_active_emps: if true, only include the
+          timelines for the currently active SD employments
 
     Returns:
         map from (cpr, EmploymentIdentifier) to the corresponding employment
@@ -140,10 +143,26 @@ def get_sd_employment_map(
     sd_emp_map = get_map(sd_employments)
     sd_emp_changed_map = get_map(sd_employments_changed)
 
-    return {
+    map_ = {
         key: get_emp_status_timeline(emp, sd_emp_changed_map.get(key))
         for key, emp in sd_emp_map.items()
     }
+
+    if only_timelines_for_currently_active_emps:
+        return map_
+
+    currently_active_emps_keys = set(sd_emp_map.keys())
+    future_emps_keys = set(sd_emp_changed_map.keys())
+    diff_keys = future_emps_keys.difference(currently_active_emps_keys)
+
+    map_.update(
+        {
+            key: get_emp_status_timeline(None, sd_emp_changed_map[key])
+            for key in diff_keys
+        }
+    )
+
+    return map_
 
 
 def get_mo_eng_validity_map(mo: MO) -> dict[tuple[str, str], dict[str, Any]]:
@@ -306,11 +325,15 @@ def main(
     print("Get SD employments")
     sd_employments = sd.get_sd_employments(now)
     sd_employments_changed = sd.get_sd_employments_changed(
-        activation_date=now,
+        activation_date=now + timedelta(days=1),
         deactivation_date=date(9999, 12, 31),
     )
 
-    sd_emp_map = get_sd_employment_map(sd_employments, sd_employments_changed)
+    sd_emp_map = get_sd_employment_map(
+        sd_employments,
+        sd_employments_changed,
+        only_timelines_for_currently_active_emps=True,
+    )
     print("Get MO engagements and validities")
     mo_eng_validity_map = get_mo_eng_validity_map(mo)
 
