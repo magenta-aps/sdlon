@@ -90,7 +90,7 @@ class FixDepartments:
         return institution_uuid
 
     def create_single_department(
-        self, department: OrderedDict, parent_uuid: str
+        self, department: OrderedDict, parent_uuid: str | None
     ) -> None:
         """
         Create an organization unit in MO based on the corresponding department info
@@ -113,6 +113,8 @@ class FixDepartments:
                 unit_level_uuid = unit_level["uuid"]
 
         logger.debug("SD department", department=department)
+
+        assert self.unit_type is not None
         payload = sd_payloads.create_single_org_unit(
             department=department,
             unit_type=self.unit_type["uuid"],
@@ -195,6 +197,7 @@ class FixDepartments:
 
         logger.info("Unit parent at from_date", from_date=from_date, parent_uuid=parent)
 
+        assert self.unit_type is not None
         payload = sd_payloads.edit_org_unit(
             user_key=shortname,
             name=name,

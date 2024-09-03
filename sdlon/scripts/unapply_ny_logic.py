@@ -115,9 +115,9 @@ def get_update_interval(
 
     end_date: date = min(mo_validity.to.date(), sd_deactivation_date)
     end = datetime(end_date.year, end_date.month, end_date.day)
-    end = end if not end.date() == date.max else None
+    mo_end = end if not end.date() == date.max else None
 
-    return mo_validity.from_, end
+    return mo_validity.from_, mo_end
 
 
 def update_eng_ou(

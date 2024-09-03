@@ -563,7 +563,7 @@ class ChangeAtSD:
                 uuid = object_guid
                 logger.debug("Using ObjectGuid as MO UUID", uuid=uuid)
             else:
-                uuid = uuid4()
+                uuid = str(uuid4())
                 logger.debug(
                     "User not in MO, UUID list or AD, assigning UUID", uuid=uuid
                 )
