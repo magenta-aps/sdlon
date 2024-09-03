@@ -43,9 +43,9 @@ def get_emp_status_timeline(
         attr: str,
     ) -> list[EmploymentStatus | EmploymentDepartment]:
         return (
-            getattr(employment_changed, attr)
+            attr_
             if employment_changed is not None
-            and getattr(employment_changed, attr) is not None
+            and (attr_ := getattr(employment_changed, attr)) is not None
             else []
         )
 
