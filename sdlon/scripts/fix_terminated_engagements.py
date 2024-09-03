@@ -325,6 +325,9 @@ def main(
     print("Get SD employments")
     sd_employments = sd.get_sd_employments(now)
     sd_employments_changed = sd.get_sd_employments_changed(
+        # We have to use tomorrow as the activation date to avoid having duplicate
+        # objects in sd_employments and sd_employments_changed, i.e. the latter should
+        # only contain future objects
         activation_date=now + timedelta(days=1),
         deactivation_date=date(9999, 12, 31),
     )
