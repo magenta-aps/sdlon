@@ -143,26 +143,26 @@ def get_sd_employment_map(
     sd_emp_map = get_map(sd_employments)
     sd_emp_changed_map = get_map(sd_employments_changed)
 
-    map_ = {
+    cpr_empid_timeline_map = {
         key: get_emp_status_timeline(emp, sd_emp_changed_map.get(key))
         for key, emp in sd_emp_map.items()
     }
 
     if only_timelines_for_currently_active_emps:
-        return map_
+        return cpr_empid_timeline_map
 
     currently_active_emps_keys = set(sd_emp_map.keys())
     future_emps_keys = set(sd_emp_changed_map.keys())
     diff_keys = future_emps_keys.difference(currently_active_emps_keys)
 
-    map_.update(
+    cpr_empid_timeline_map.update(
         {
             key: get_emp_status_timeline(None, sd_emp_changed_map[key])
             for key in diff_keys
         }
     )
 
-    return map_
+    return cpr_empid_timeline_map
 
 
 def get_mo_eng_validity_map(mo: MO) -> dict[tuple[str, str], dict[str, Any]]:
