@@ -12,6 +12,8 @@ from more_itertools import first
 from more_itertools import last
 from more_itertools import one
 from sdclient.responses import Employment
+from sdclient.responses import EmploymentDepartment
+from sdclient.responses import EmploymentStatus
 from sdclient.responses import EmploymentWithLists
 from sdclient.responses import GetEmploymentChangedResponse
 from sdclient.responses import GetEmploymentResponse
@@ -29,23 +31,31 @@ logger = get_logger()
 
 
 def get_emp_status_timeline(
-    employment: Employment, employment_changed: EmploymentWithLists | None
+    employment: Employment | None, employment_changed: EmploymentWithLists | None
 ) -> EmploymentWithLists:
-    # TODO: for now, we only handle EmploymentStatus. In the future we
-    #       should also handle Profession and EmploymentDepartment
+    # TODO: rename function (to be done later due to upcoming rebase...)
+    # TODO: for now, we only handle EmploymentStatus and EmploymentDepartment.
+    #       In the future we should also handle Profession
+
+    assert employment is not None or employment_changed is not None
+
+    def get_future_emp_attrs(
+        attr: str,
+    ) -> list[EmploymentStatus | EmploymentDepartment]:
+        return (
+            attr_
+            if employment_changed is not None
+            and (attr_ := getattr(employment_changed, attr)) is not None
+            else []
+        )
 
     # The EmploymentIdentifiers must match
-    if employment_changed is not None:
+    if employment is not None and employment_changed is not None:
         assert (
             employment.EmploymentIdentifier == employment_changed.EmploymentIdentifier
         )
 
-    future_emp_statuses = (
-        employment_changed.EmploymentStatus
-        if employment_changed is not None
-        and employment_changed.EmploymentStatus is not None
-        else []
-    )
+    future_emp_statuses = get_future_emp_attrs("EmploymentStatus")
     # Only include active SD employments
     future_emp_statuses = [
         emp_status
@@ -54,12 +64,25 @@ def get_emp_status_timeline(
         in (status.value for status in EmploymentStatusEnum.employeed())
     ]
 
-    emp_timeline = EmploymentWithLists(
-        EmploymentIdentifier=employment.EmploymentIdentifier,
-        EmploymentDate=employment.EmploymentDate,
-        AnniversaryDate=employment.AnniversaryDate,
-        EmploymentStatus=[employment.EmploymentStatus] + future_emp_statuses,
-    )
+    future_emp_departments = get_future_emp_attrs("EmploymentDepartment")
+
+    if employment is not None:
+        emp_timeline = EmploymentWithLists(
+            EmploymentIdentifier=employment.EmploymentIdentifier,
+            EmploymentDate=employment.EmploymentDate,
+            AnniversaryDate=employment.AnniversaryDate,
+            EmploymentStatus=[employment.EmploymentStatus] + future_emp_statuses,
+            EmploymentDepartment=[employment.EmploymentDepartment]
+            + future_emp_departments,
+        )
+    else:
+        emp_timeline = EmploymentWithLists(
+            EmploymentIdentifier=employment_changed.EmploymentIdentifier,
+            EmploymentDate=employment_changed.EmploymentDate,
+            AnniversaryDate=employment_changed.AnniversaryDate,
+            EmploymentStatus=future_emp_statuses,
+            EmploymentDepartment=future_emp_departments,
+        )
 
     if len(emp_timeline.EmploymentStatus) <= 1:
         return emp_timeline
@@ -75,10 +98,15 @@ def get_emp_status_timeline(
         emp_status.DeactivationDate for emp_status in emp_timeline.EmploymentStatus[:-1]
     )
     date_pairs = zip(activation_dates, deactivation_dates)
-    assert all(
-        deactivation_date + timedelta(days=1) == activation_date
-        for activation_date, deactivation_date in date_pairs
-    )
+
+    try:
+        assert all(
+            deactivation_date + timedelta(days=1) == activation_date
+            for activation_date, deactivation_date in date_pairs
+        )
+    except AssertionError as error:
+        print(emp_timeline)
+        raise error
 
     return emp_timeline
 
@@ -86,6 +114,7 @@ def get_emp_status_timeline(
 def get_sd_employment_map(
     sd_employments: GetEmploymentResponse,
     sd_employments_changed: GetEmploymentChangedResponse,
+    only_timelines_for_currently_active_emps: bool = False,
 ) -> dict[tuple[str, str], EmploymentWithLists]:
     """
     Get a map from (cpr, EmploymentIdentifier) to the corresponding employment
@@ -94,6 +123,8 @@ def get_sd_employment_map(
     Args:
         sd_employments: the response from SD GetEmployment
         sd_employments_changed: the response from SD GetEmploymentChanged
+        only_timelines_for_currently_active_emps: if true, only include the
+          timelines for the currently active SD employments
 
     Returns:
         map from (cpr, EmploymentIdentifier) to the corresponding employment
@@ -112,10 +143,26 @@ def get_sd_employment_map(
     sd_emp_map = get_map(sd_employments)
     sd_emp_changed_map = get_map(sd_employments_changed)
 
-    return {
+    cpr_empid_timeline_map = {
         key: get_emp_status_timeline(emp, sd_emp_changed_map.get(key))
         for key, emp in sd_emp_map.items()
     }
+
+    if only_timelines_for_currently_active_emps:
+        return cpr_empid_timeline_map
+
+    currently_active_emps_keys = set(sd_emp_map.keys())
+    future_emps_keys = set(sd_emp_changed_map.keys())
+    diff_keys = future_emps_keys.difference(currently_active_emps_keys)
+
+    cpr_empid_timeline_map.update(
+        {
+            key: get_emp_status_timeline(None, sd_emp_changed_map[key])
+            for key in diff_keys
+        }
+    )
+
+    return cpr_empid_timeline_map
 
 
 def get_mo_eng_validity_map(mo: MO) -> dict[tuple[str, str], dict[str, Any]]:
@@ -278,11 +325,18 @@ def main(
     print("Get SD employments")
     sd_employments = sd.get_sd_employments(now)
     sd_employments_changed = sd.get_sd_employments_changed(
-        activation_date=now,
+        # We have to use tomorrow as the activation date to avoid having duplicate
+        # objects in sd_employments and sd_employments_changed, i.e. the latter should
+        # only contain future objects
+        activation_date=now + timedelta(days=1),
         deactivation_date=date(9999, 12, 31),
     )
 
-    sd_emp_map = get_sd_employment_map(sd_employments, sd_employments_changed)
+    sd_emp_map = get_sd_employment_map(
+        sd_employments,
+        sd_employments_changed,
+        only_timelines_for_currently_active_emps=True,
+    )
     print("Get MO engagements and validities")
     mo_eng_validity_map = get_mo_eng_validity_map(mo)
 
