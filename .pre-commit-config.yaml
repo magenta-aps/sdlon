@@ -11,13 +11,14 @@ repos:
     hooks:
       - id: black
 
-  #TODO: enable mypy
-  # - repo: https://github.com/pre-commit/mirrors-mypy
-  #   rev: v1.5.1
-  #   hooks:
-  #     - id: mypy
-  #       language: system
-  #       types: [file, python]
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.1
+    hooks:
+      - id: mypy
+        #language: system
+        types: [file, python]
+        exclude: alembic
+        additional_dependencies: [types-requests]
 
   - repo: https://github.com/asottile/reorder_python_imports
     rev: v2.5.0

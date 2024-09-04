@@ -12,6 +12,8 @@ import hypothesis.strategies as st
 import pytest
 from hypothesis import given
 from parameterized import parameterized
+from prometheus_client import Enum
+from prometheus_client import Gauge
 from ra_utils.attrdict import attrdict
 from ra_utils.generate_uuid import uuid_generator
 
@@ -1696,7 +1698,7 @@ def test_apply_ny_logic_for_non_existing_future_unit(
     ou_uuid_afd = "00000000-0000-0000-0000-000000000000"
     ou_uuid_ny1 = "10000000-0000-0000-0000-000000000000"
     person_uuid = str(uuid.uuid4())
-    department_from_date = format_date(department_from_date)
+    department_from_date_str = format_date(department_from_date)
 
     mock_read_ou = MagicMock(
         side_effect=[
@@ -1722,7 +1724,7 @@ def test_apply_ny_logic_for_non_existing_future_unit(
 
     # Act
     sd_updater.apply_NY_logic(
-        ou_uuid_afd, 12345, {"from": department_from_date, "to": None}, person_uuid
+        ou_uuid_afd, 12345, {"from": department_from_date_str, "to": None}, person_uuid
     )
 
     # Assert
@@ -1735,7 +1737,7 @@ def test_apply_ny_logic_for_non_existing_future_unit(
         ou_uuid_afd,
         person_uuid,
         12345,
-        {"from": department_from_date, "to": None},
+        {"from": department_from_date_str, "to": None},
     )
 
 
@@ -1782,7 +1784,7 @@ def test_dipex_last_success_timestamp_not_called_on_error(
 
     # Act
     with pytest.raises(Exception):
-        changed_at(False, False, mock_dipex_last_success_timestamp)
+        changed_at(Gauge("Some", "gauge"), Enum("Some", "Prometheus state"))
 
     # Assert
     mock_dipex_last_success_timestamp.set_to_current_time.assert_not_called()

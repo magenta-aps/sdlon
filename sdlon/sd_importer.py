@@ -103,7 +103,7 @@ class SdImport:
                 identifier="AD-bruger fra SD", system_name="AD-bruger fra SD"
             )
 
-        self.nodes: Dict[str, Dict] = {}  # Will be populated when org-tree is created
+        self.nodes: dict[str, Node] = {}  # Will be populated when org-tree is created
 
         self.org_only = org_only
         if not org_only:

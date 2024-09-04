@@ -76,6 +76,7 @@ def get_emp_status_timeline(
             + future_emp_departments,
         )
     else:
+        assert employment_changed is not None
         emp_timeline = EmploymentWithLists(
             EmploymentIdentifier=employment_changed.EmploymentIdentifier,
             EmploymentDate=employment_changed.EmploymentDate,
