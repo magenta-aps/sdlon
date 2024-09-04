@@ -1433,6 +1433,27 @@ class ChangeAtSD:
                 continue
             self.edit_engagement(sd_employment, person_uuid)
 
+    def _get_eng_user_key(self, sd_emp_id: str) -> str:
+        """
+        Get the effective MO engagement user_key. Ideally, we should use a combined
+        state/strategy pattern here, but for now we will just use a parametric switch
+        based on the application settings.
+
+        If the SD_PREFIX_ENG_USER_KEY_WITH_INST_ID environment variable is set to
+        "true", the MO user_key will be prefixed with the SD InstitutionIdentifier, e.g.
+        if the EmploymentIdentifier is "12345" and the InstitutionIdentifier is "AB",
+        the user_key will be "AB-12345".
+
+        Args:
+            sd_emp_id: the SD EmploymentIdentifier
+
+        Returns:
+            The MO engagement user_key
+        """
+        if not self.settings.sd_prefix_eng_user_key_with_inst_id:
+            return sd_emp_id
+        return f"{self.settings.sd_institution_identifier.upper()}-{sd_emp_id}"
+
     def update_all_employments(self, in_cpr: Optional[str] = None) -> None:
         if in_cpr is not None:
             employments_changed = self.read_employment_changed(in_cpr=in_cpr)

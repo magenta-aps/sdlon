@@ -87,6 +87,9 @@ class Settings(BaseSettings):  # type: ignore
 
     sd_skip_leave_creation_if_no_engagement: bool = False
 
+    # Prefix engagement user key with InstitutionIdentifier
+    sd_prefix_eng_user_key_with_inst_id: bool = False
+
     # Settings for the SD payload database
     pghost: str = "sd-db"
     app_database: str = "sd"

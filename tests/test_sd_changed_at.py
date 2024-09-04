@@ -2562,3 +2562,31 @@ class TestEditEngagementStatus:
 
         # Assert
         sd_updater.morahelper_mock._mo_post.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "prefix_enabled, sd_emp_id, sd_inst_id, expected",
+    [
+        (False, "12345", "II", "12345"),
+        (True, "23456", "AB", "AB-23456"),
+    ],
+)
+def test__get_eng_user_key(
+    prefix_enabled: bool,
+    sd_emp_id: str,
+    sd_inst_id: str,
+    expected: str,
+):
+    # Arrange
+    sd_updater = setup_sd_changed_at(
+        updates={
+            "sd_prefix_eng_user_key_with_inst_id": prefix_enabled,
+            "sd_institution_identifier": sd_inst_id,
+        }
+    )
+
+    # Act
+    user_key = sd_updater._get_eng_user_key(sd_emp_id)
+
+    # Assert
+    assert user_key == expected
