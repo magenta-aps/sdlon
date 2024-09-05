@@ -185,3 +185,35 @@ def get_last_day_of_sd_work(emp_status_list: list[dict[str, str]]) -> date | Non
         return activation_date - timedelta(days=1)
 
     return None
+
+
+def get_eng_user_key(
+    sd_emp_id: str,
+    sd_inst_id: str,
+    prefix_eng_user_key_with_inst_id: bool,
+) -> str:
+    """
+    Get the effective MO engagement user_key. Ideally, we should use a combined
+    state/strategy pattern here, but for now we will just use a parametric switch
+    based on the application settings.
+
+    Args:
+        sd_emp_id: the SD EmploymentIdentifier
+        sd_inst_id: the SD InstitutionIdentifier
+        prefix_eng_user_key_with_inst_id: if True, the user_key will be prefixed with
+          the SD InstitutionIdentifier
+
+    Returns:
+        The MO engagement user_key, e.g "12345" or "AB-12345"
+    """
+
+    # This block was adapted from SDChangedAt._find_engagement. This is problematic if
+    # there exist cases where sd_emp_id is 6 figures.
+    try:
+        user_key = str(int(sd_emp_id)).zfill(5)
+    except ValueError:
+        user_key = sd_emp_id
+
+    if not prefix_eng_user_key_with_inst_id:
+        return user_key
+    return f"{sd_inst_id.upper()}-{user_key}"

@@ -48,6 +48,7 @@ from .date_utils import sd_to_mo_validity
 from .engagement import create_engagement
 from .engagement import engagement_components
 from .engagement import filtered_professions
+from .engagement import get_eng_user_key
 from .engagement import get_last_day_of_sd_work
 from .engagement import (
     is_employment_id_and_no_salary_minimum_consistent,
@@ -823,7 +824,11 @@ class ChangeAtSD:
         )
 
         sd_emp_id, engagement_info = engagement_components(sd_employment)
-        user_key = self._get_eng_user_key(sd_emp_id)
+        user_key = get_eng_user_key(
+            sd_emp_id,
+            self.settings.sd_institution_identifier,
+            self.settings.sd_prefix_eng_user_key_with_inst_id,
+        )
         if not engagement_info["departments"] or not engagement_info["professions"]:
             return False
 
@@ -961,7 +966,11 @@ class ChangeAtSD:
         # engagement in MO. We should instead loop over all (GraphQL) engagement
         # validities and update each validity interval one at a time.
         employment_id, engagement_info = engagement_components(sd_employment)
-        user_key = self._get_eng_user_key(employment_id)
+        user_key = get_eng_user_key(
+            employment_id,
+            self.settings.sd_institution_identifier,
+            self.settings.sd_prefix_eng_user_key_with_inst_id,
+        )
 
         for department in engagement_info["departments"]:
             logger.info("Change department of engagement", user_key=user_key)
@@ -1230,7 +1239,11 @@ class ChangeAtSD:
         Edit an engagement
         """
         employment_id, _ = engagement_components(sd_employment)
-        user_key = self._get_eng_user_key(employment_id)
+        user_key = get_eng_user_key(
+            employment_id,
+            self.settings.sd_institution_identifier,
+            self.settings.sd_prefix_eng_user_key_with_inst_id,
+        )
 
         logger.debug("Edit engagement", user_key=user_key, person_uuid=person_uuid)
         mo_eng = self._find_engagement(user_key, person_uuid)
@@ -1312,7 +1325,11 @@ class ChangeAtSD:
         # The EmploymentStatusCode can take a number of magical values.
         # that must be handled separately.
         employment_id, eng = engagement_components(sd_employment)
-        user_key = self._get_eng_user_key(employment_id)
+        user_key = get_eng_user_key(
+            employment_id,
+            self.settings.sd_institution_identifier,
+            self.settings.sd_prefix_eng_user_key_with_inst_id,
+        )
 
         logger.info(
             "Handle employment status changes",
@@ -1430,35 +1447,6 @@ class ChangeAtSD:
             ):
                 continue
             self.edit_engagement(sd_employment, person_uuid)
-
-    def _get_eng_user_key(self, sd_emp_id: str) -> str:
-        """
-        Get the effective MO engagement user_key. Ideally, we should use a combined
-        state/strategy pattern here, but for now we will just use a parametric switch
-        based on the application settings.
-
-        If the SD_PREFIX_ENG_USER_KEY_WITH_INST_ID environment variable is set to
-        "true", the MO user_key will be prefixed with the SD InstitutionIdentifier, e.g.
-        if the EmploymentIdentifier is "12345" and the InstitutionIdentifier is "AB",
-        the user_key will be "AB-12345".
-
-        Args:
-            sd_emp_id: the SD EmploymentIdentifier
-
-        Returns:
-            The MO engagement user_key
-        """
-
-        # This block was adapted from _find_engagement. This is problematic if there
-        # exist cases where sd_emp_id is 6 figures.
-        try:
-            user_key = str(int(sd_emp_id)).zfill(5)
-        except ValueError:
-            user_key = sd_emp_id
-
-        if not self.settings.sd_prefix_eng_user_key_with_inst_id:
-            return user_key
-        return f"{self.settings.sd_institution_identifier.upper()}-{user_key}"
 
     def update_all_employments(self, in_cpr: Optional[str] = None) -> None:
         if in_cpr is not None:

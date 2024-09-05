@@ -2565,36 +2565,6 @@ class TestEditEngagementStatus:
 
 
 @pytest.mark.parametrize(
-    "prefix_enabled, sd_emp_id, sd_inst_id, expected",
-    [
-        (False, "12345", "II", "12345"),
-        (False, "45", "II", "00045"),
-        (True, "23456", "AB", "AB-23456"),
-        (True, "56", "AB", "AB-00056"),
-    ],
-)
-def test__get_eng_user_key(
-    prefix_enabled: bool,
-    sd_emp_id: str,
-    sd_inst_id: str,
-    expected: str,
-):
-    # Arrange
-    sd_updater = setup_sd_changed_at(
-        updates={
-            "sd_prefix_eng_user_key_with_inst_id": prefix_enabled,
-            "sd_institution_identifier": sd_inst_id,
-        }
-    )
-
-    # Act
-    user_key = sd_updater._get_eng_user_key(sd_emp_id)
-
-    # Assert
-    assert user_key == expected
-
-
-@pytest.mark.parametrize(
     "prefix_enabled, sd_emp_id, sd_inst_id, expected_user_key",
     [
         (False, "12345", "II", "12345"),
