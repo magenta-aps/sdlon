@@ -96,13 +96,13 @@ def create_engagement(
     return payload
 
 
-def create_association(org_unit, person_uuid, association_uuid, job_id, validity):
+def create_association(org_unit, person_uuid, association_uuid, user_key, validity):
     payload = {
         "type": "association",
         "org_unit": {"uuid": org_unit},
         "person": {"uuid": person_uuid},
         "association_type": {"uuid": association_uuid},
-        "user_key": job_id,
+        "user_key": user_key,
         "validity": validity,
     }
     return payload

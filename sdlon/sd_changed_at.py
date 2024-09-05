@@ -740,7 +740,7 @@ class ChangeAtSD:
             response = self.helper._mo_post("details/create", payload)
             assert response.status_code == 201
 
-    def create_association(self, department, person_uuid, employment_id, validity):
+    def create_association(self, department, person_uuid, user_key, validity):
         """Create a association for a user"""
         logger.info("Consider to create an association")
         associations = self.helper.read_user_association(
@@ -760,7 +760,7 @@ class ChangeAtSD:
                 department,
                 person_uuid,
                 str(self.association_uuid),
-                employment_id,
+                user_key,
                 validity,
             )
             logger.debug("Create association (details/create)", payload=payload)
@@ -770,10 +770,10 @@ class ChangeAtSD:
         else:
             logger.info("No new Association is needed")
 
-    def apply_NY_logic(self, org_unit, employment_id, validity, person_uuid) -> str:
+    def apply_NY_logic(self, org_unit, user_key, validity, person_uuid) -> str:
         logger.debug(
             "Apply NY logic",
-            employment_id=employment_id,
+            user_key=user_key,
             org_unit=org_unit,
             validity=validity,
         )
@@ -801,7 +801,7 @@ class ChangeAtSD:
             )
 
         if ou_info["org_unit_level"]["user_key"] in too_deep:
-            self.create_association(org_unit, person_uuid, employment_id, validity)
+            self.create_association(org_unit, person_uuid, user_key, validity)
 
         while ou_info["org_unit_level"]["user_key"] in too_deep:
             ou_info = ou_info["parent"]
