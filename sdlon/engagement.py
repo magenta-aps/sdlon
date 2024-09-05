@@ -35,13 +35,13 @@ def engagement_components(engagement_info) -> Tuple[str, Dict[str, List[Any]]]:
 
 
 def update_existing_engagement(
-    sd_updater, mo_engagement, sd_engagement, person_uuid
+    sd_updater, mo_engagement, sd_employment, person_uuid
 ) -> None:
-    sd_updater.edit_engagement_department(sd_engagement, mo_engagement, person_uuid)
+    sd_updater.edit_engagement_department(sd_employment, mo_engagement, person_uuid)
     if sd_updater.settings.sd_overwrite_existing_employment_name:
-        sd_updater.edit_engagement_profession(sd_engagement, mo_engagement)
-    sd_updater.edit_engagement_type(sd_engagement, mo_engagement)
-    sd_updater.edit_engagement_worktime(sd_engagement, mo_engagement)
+        sd_updater.edit_engagement_profession(sd_employment, mo_engagement)
+    sd_updater.edit_engagement_type(sd_employment, mo_engagement)
+    sd_updater.edit_engagement_worktime(sd_employment, mo_engagement)
 
 
 def create_engagement(sd_updater, employment_id, person_uuid) -> None:

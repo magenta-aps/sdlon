@@ -956,11 +956,11 @@ class ChangeAtSD:
 
         return True
 
-    def edit_engagement_department(self, engagement, mo_eng, person_uuid):
+    def edit_engagement_department(self, sd_employment, mo_eng, person_uuid):
         # This function may cause incorrect data in MO, since mo_eng is only the latest
         # engagement in MO. We should instead loop over all (GraphQL) engagement
         # validities and update each validity interval one at a time.
-        employment_id, engagement_info = engagement_components(engagement)
+        employment_id, engagement_info = engagement_components(sd_employment)
         for department in engagement_info["departments"]:
             logger.info("Change department of engagement", employment_id=employment_id)
             logger.debug("Department object", department=department)
@@ -1057,11 +1057,11 @@ class ChangeAtSD:
         logger.info("Non-numeric id. Job pos id", job_position_id=job_position)
         return self._fetch_engagement_type(job_position)
 
-    def edit_engagement_type(self, engagement, mo_eng):
+    def edit_engagement_type(self, sd_employment, mo_eng):
         # This function may cause incorrect data in MO, since mo_eng is only the latest
         # engagement in MO. We should instead loop over all (GraphQL) engagement
         # validities and update each validity interval one at a time.
-        employment_id, engagement_info = engagement_components(engagement)
+        employment_id, engagement_info = engagement_components(sd_employment)
         for profession_info in engagement_info["professions"]:
             logger.info(
                 "Change engagement type of engagement", employment_id=employment_id
@@ -1070,7 +1070,9 @@ class ChangeAtSD:
 
             validity = sd_to_mo_validity(profession_info)
 
-            engagement_type = self.determine_engagement_type(engagement, job_position)
+            engagement_type = self.determine_engagement_type(
+                sd_employment, job_position
+            )
             if engagement_type is None:
                 continue
             data = {"engagement_type": {"uuid": engagement_type}, "validity": validity}
@@ -1086,11 +1088,11 @@ class ChangeAtSD:
                 mo_eng, profession_info, engagement_info["status_list"]
             )
 
-    def edit_engagement_profession(self, engagement, mo_eng):
+    def edit_engagement_profession(self, sd_employment, mo_eng):
         # This function may cause incorrect data in MO, since mo_eng is only the latest
         # engagement in MO. We should instead loop over all (GraphQL) engagement
         # validities and update each validity interval one at a time.
-        employment_id, engagement_info = engagement_components(engagement)
+        employment_id, engagement_info = engagement_components(sd_employment)
         for profession_info in engagement_info["professions"]:
             logger.info("Change profession of engagement", employment_id=employment_id)
             job_position = profession_info["JobPositionIdentifier"]
@@ -1103,7 +1105,7 @@ class ChangeAtSD:
             # leave it as is until the whole SD code base is rewritten
 
             if not is_employment_id_and_no_salary_minimum_consistent(
-                engagement, self.no_salary_minimum
+                sd_employment, self.no_salary_minimum
             ):
                 sd_from_date = profession_info["ActivationDate"]
                 sd_to_date = profession_info["DeactivationDate"]
@@ -1147,11 +1149,11 @@ class ChangeAtSD:
                     mo_eng, profession_info, engagement_info["status_list"]
                 )
 
-    def edit_engagement_worktime(self, engagement, mo_eng):
+    def edit_engagement_worktime(self, sd_employment, mo_eng):
         # This function may cause incorrect data in MO, since mo_eng is only the latest
         # engagement in MO. We should instead loop over all (GraphQL) engagement
         # validities and update each validity interval one at a time.
-        employment_id, engagement_info = engagement_components(engagement)
+        employment_id, engagement_info = engagement_components(sd_employment)
         for worktime_info in engagement_info["working_time"]:
             logger.info(
                 "Change working time of engagement", employment_id=employment_id
