@@ -56,13 +56,13 @@ def association(data, uuid):
     return payload
 
 
-def create_leave(mo_eng, person_uuid, leave_uuid, job_id, validity):
+def create_leave(mo_eng, person_uuid, leave_uuid, user_key, validity):
     payload = {
         "type": "leave",
         "engagement": {"uuid": mo_eng["uuid"]},
         "person": {"uuid": person_uuid},
         "leave_type": {"uuid": leave_uuid},
-        "user_key": job_id,
+        "user_key": user_key,
         "validity": validity,
     }
     return payload
