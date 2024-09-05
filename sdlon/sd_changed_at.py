@@ -810,7 +810,7 @@ class ChangeAtSD:
 
         return org_unit
 
-    def create_new_engagement(self, engagement, status, cpr, person_uuid):
+    def create_new_engagement(self, sd_employment, status, cpr, person_uuid):
         """
         Create a new engagement
         AD integration handled in check for primary engagement.
@@ -822,7 +822,7 @@ class ChangeAtSD:
             not in EmploymentStatus.let_go()
         )
 
-        sd_emp_id, engagement_info = engagement_components(engagement)
+        sd_emp_id, engagement_info = engagement_components(sd_employment)
         user_key = self._get_eng_user_key(sd_emp_id)
         if not engagement_info["departments"] or not engagement_info["professions"]:
             return False
@@ -859,7 +859,7 @@ class ChangeAtSD:
         if self.use_jpi:
             job_function = job_position
 
-        engagement_type = self.determine_engagement_type(engagement, job_position)
+        engagement_type = self.determine_engagement_type(sd_employment, job_position)
         if engagement_type is None:
             return False
 
@@ -891,7 +891,7 @@ class ChangeAtSD:
 
         if also_edit:
             # This will take of the extra entries
-            self.edit_engagement(engagement, person_uuid)
+            self.edit_engagement(sd_employment, person_uuid)
 
         return True
 
@@ -1031,9 +1031,9 @@ class ChangeAtSD:
                 mo_eng, department, engagement_info["status_list"]
             )
 
-    def determine_engagement_type(self, engagement, job_position):
+    def determine_engagement_type(self, sd_employment, job_position):
         split = self.settings.sd_monthly_hourly_divide
-        employment_id = calc_employment_id(engagement)
+        employment_id = calc_employment_id(sd_employment)
         if employment_id["value"] < split:
             return self.engagement_types.get("månedsløn")
         # XXX: Is the first condition not implied by not hitting the above case?
@@ -1223,18 +1223,18 @@ class ChangeAtSD:
                 response = self.helper._mo_post("details/edit", payload)
                 mora_assert(response)
 
-    def edit_engagement(self, engagement, person_uuid):
+    def edit_engagement(self, sd_employment, person_uuid):
         """
         Edit an engagement
         """
-        employment_id, _ = engagement_components(engagement)
+        employment_id, _ = engagement_components(sd_employment)
         logger.debug(
             "Edit engagement", employment_id=employment_id, person_uuid=person_uuid
         )
         mo_eng = self._find_engagement(employment_id, person_uuid)
 
         employment_consistent = is_employment_id_and_no_salary_minimum_consistent(
-            engagement, self.no_salary_minimum
+            sd_employment, self.no_salary_minimum
         )
 
         if mo_eng is None:
@@ -1242,7 +1242,7 @@ class ChangeAtSD:
                 create_engagement(self, employment_id, person_uuid)
             return
 
-        update_existing_engagement(self, mo_eng, engagement, person_uuid)
+        update_existing_engagement(self, mo_eng, sd_employment, person_uuid)
 
     def _handle_employment_status_changes(
         self, cpr: str, sd_employment: OrderedDict, person_uuid: str
