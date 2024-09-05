@@ -2687,3 +2687,73 @@ def test__find_engagement_uses_correct_user_key():
 
     # Assert
     assert relevant_eng == {"user_key": "12345"}
+
+
+@pytest.mark.parametrize(
+    "prefix_enabled, sd_emp_id, sd_inst_id, expected_user_key",
+    [
+        (False, "12345", "II", "12345"),
+        (True, "23456", "AB", "AB-23456"),
+    ],
+)
+def test_handle_status_changes_uses_correct_user_key(
+    prefix_enabled: bool,
+    sd_emp_id: str,
+    sd_inst_id: str,
+    expected_user_key: str,
+):
+    # Arrange
+    sd_updater = setup_sd_changed_at(
+        updates={
+            "sd_prefix_eng_user_key_with_inst_id": prefix_enabled,
+            "sd_institution_identifier": sd_inst_id,
+        }
+    )
+
+    sd_updater._find_engagement = MagicMock(
+        return_value={
+            "user_key": expected_user_key,
+            "uuid": "83de05b3-e890-4975-bc49-88e9052454c2",
+            "validity": {
+                "from": "2000-01-01",
+                "to": "2027-01-01",
+            },
+        }
+    )
+    sd_updater.morahelper_mock._mo_post.return_value = attrdict(
+        {"status_code": 200, "text": "response text"}
+    )
+
+    # Act
+    sd_updater._handle_employment_status_changes(
+        "0101011234",
+        OrderedDict(
+            {
+                "EmploymentIdentifier": "12345",
+                "EmploymentStatus": [
+                    {
+                        "ActivationDate": "2000-01-01",
+                        "DeactivationDate": "2030-12-31",
+                        "EmploymentStatusCode": "1",
+                    },
+                ],
+            }
+        ),
+        str(uuid.uuid4()),
+    )
+
+    # Assert
+    sd_updater.morahelper_mock._mo_post.assert_called_once_with(
+        "details/edit",
+        {
+            "type": "engagement",
+            "uuid": "83de05b3-e890-4975-bc49-88e9052454c2",
+            "data": {
+                "user_key": expected_user_key,
+                "validity": {
+                    "from": "2000-01-01",
+                    "to": "2030-12-31",
+                },
+            },
+        },
+    )

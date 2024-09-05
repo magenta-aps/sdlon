@@ -715,9 +715,9 @@ class ChangeAtSD:
             return job_uuid
         return self._create_professions(job_function, job_position)
 
-    def create_leave(self, status, employment_id, person_uuid: str):
+    def create_leave(self, status, user_key, person_uuid: str):
         """Create a leave for a user"""
-        logger.info("Create leave", employment_id=employment_id, status=status)
+        logger.info("Create leave", user_key=user_key, status=status)
         # TODO: This code potentially creates duplicated leaves.
 
         # Notice, the expected and desired behaviour for leaves is for the engagement
@@ -726,12 +726,12 @@ class ChangeAtSD:
         # forces an edit to the engagement that will extend it to span the
         # leave. If this ever turns out not to hold, add a dummy-edit to the
         # engagement here.
-        mo_eng = self._find_engagement(employment_id, person_uuid)
+        mo_eng = self._find_engagement(user_key, person_uuid)
         payload = sd_payloads.create_leave(
             mo_eng,
             person_uuid,
             str(self.leave_uuid),
-            employment_id,
+            user_key,
             sd_to_mo_validity(status),
         )
 
@@ -1310,10 +1310,12 @@ class ChangeAtSD:
         # The EmploymentStatusCode can take a number of magical values.
         # that must be handled separately.
         employment_id, eng = engagement_components(sd_employment)
+        user_key = self._get_eng_user_key(employment_id)
 
         logger.info(
             "Handle employment status changes",
             emp_id=employment_id,
+            user_key=user_key,
             cpr=anonymize_cpr(cpr),
         )
 
@@ -1323,7 +1325,7 @@ class ChangeAtSD:
             code = EmploymentStatus(code)
 
             if code in [EmploymentStatus.AnsatUdenLoen, EmploymentStatus.AnsatMedLoen]:
-                mo_eng = self._find_engagement(employment_id, person_uuid)
+                mo_eng = self._find_engagement(user_key, person_uuid)
                 if mo_eng:
                     logger.info("Found MO engagement", eng_uuid=mo_eng["uuid"])
                     self._refresh_mo_engagements(person_uuid)
@@ -1339,7 +1341,7 @@ class ChangeAtSD:
                         )
                 skip = True
             elif code == EmploymentStatus.Orlov:
-                mo_eng = self._find_engagement(employment_id, person_uuid)
+                mo_eng = self._find_engagement(user_key, person_uuid)
                 if not mo_eng:
                     if self.settings.sd_skip_leave_creation_if_no_engagement:
                         logger.info("Not allowed to create leave with no engagement")
@@ -1352,9 +1354,9 @@ class ChangeAtSD:
                             sd_employment, status, cpr, person_uuid
                         )
                 logger.info("Create a leave")
-                self.create_leave(status, employment_id, person_uuid)
+                self.create_leave(status, user_key, person_uuid)
             elif code in EmploymentStatus.let_go():
-                mo_eng = self._find_engagement(employment_id, person_uuid)
+                mo_eng = self._find_engagement(user_key, person_uuid)
                 if not mo_eng:
                     logger.info(
                         "Could not find MO engagement for passive SD employment. "
@@ -1370,15 +1372,13 @@ class ChangeAtSD:
                 sd_from_date = status["ActivationDate"]
                 sd_to_date = status["DeactivationDate"]
                 success = self._terminate_engagement(
-                    user_key=employment_id,
+                    user_key=user_key,
                     person_uuid=person_uuid,
                     from_date=sd_from_date,
                     to_date=sd_to_mo_date(sd_to_date),
                 )
                 if not success:
-                    logger.error(
-                        "Problem terminating employment", employment_id=employment_id
-                    )
+                    logger.error("Problem terminating employment", user_key=user_key)
                 # Setting skip = True may cause problems further down the line for
                 # complex SD payloads, but there is currently no easy way to fix it.
                 skip = True
@@ -1401,10 +1401,10 @@ class ChangeAtSD:
                 # Note that an SD person can jump from any status to "Slettet"
 
                 for mo_eng in self._fetch_mo_engagements(person_uuid):
-                    if mo_eng["user_key"] == employment_id:
+                    if mo_eng["user_key"] == user_key:
                         sd_from_date = status["ActivationDate"]
                         self._terminate_engagement(
-                            user_key=employment_id,
+                            user_key=user_key,
                             person_uuid=person_uuid,
                             from_date=sd_from_date,
                         )
