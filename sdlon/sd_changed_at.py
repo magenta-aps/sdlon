@@ -961,8 +961,10 @@ class ChangeAtSD:
         # engagement in MO. We should instead loop over all (GraphQL) engagement
         # validities and update each validity interval one at a time.
         employment_id, engagement_info = engagement_components(sd_employment)
+        user_key = self._get_eng_user_key(employment_id)
+
         for department in engagement_info["departments"]:
-            logger.info("Change department of engagement", employment_id=employment_id)
+            logger.info("Change department of engagement", user_key=user_key)
             logger.debug("Department object", department=department)
 
             validity = sd_to_mo_validity(department)
@@ -1003,7 +1005,7 @@ class ChangeAtSD:
             current_association = None
             # TODO: This is a filter + next (only?)
             for association in associations:
-                if association["user_key"] == employment_id:
+                if association["user_key"] == user_key:
                     current_association = association["uuid"]
 
             if current_association:
@@ -1015,9 +1017,7 @@ class ChangeAtSD:
                     response = self.helper._mo_post("details/edit", payload)
                     mora_assert(response)
 
-            org_unit = self.apply_NY_logic(
-                org_unit, employment_id, validity, person_uuid
-            )
+            org_unit = self.apply_NY_logic(org_unit, user_key, validity, person_uuid)
 
             logger.debug("New org unit for edited engagement", org_unit=org_unit)
             data = {"org_unit": {"uuid": org_unit}, "validity": validity}

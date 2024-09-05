@@ -2791,3 +2791,66 @@ def test_edit_engagement_uses_correct_user_key(
 
     # Assert
     sd_updater._find_engagement.assert_called_once_with(expected_user_key, person_uuid)
+
+
+@pytest.mark.parametrize(
+    "prefix_enabled, sd_emp_id, sd_inst_id, expected_user_key",
+    [
+        (False, "12345", "II", "12345"),
+        (True, "23456", "AB", "AB-23456"),
+    ],
+)
+def test_edit_engagement_department_uses_correct_user_key(
+    prefix_enabled: bool,
+    sd_emp_id: str,
+    sd_inst_id: str,
+    expected_user_key: str,
+) -> None:
+    # Arrange
+    org_unit_afd_level = str(uuid.uuid4())
+    org_unit_ny_level = str(uuid.uuid4())
+    eng_uuid = str(uuid.uuid4())
+    person_uuid = str(uuid.uuid4())
+
+    sd_updater = setup_sd_changed_at(
+        updates={
+            "sd_prefix_eng_user_key_with_inst_id": prefix_enabled,
+            "sd_institution_identifier": sd_inst_id,
+        }
+    )
+    mock_mo_post = MagicMock(
+        return_value=attrdict({"status_code": 200, "text": "response text"}),
+    )
+    sd_updater.morahelper_mock._mo_post = mock_mo_post
+    sd_updater.apply_NY_logic = MagicMock(return_value=org_unit_ny_level)
+
+    sd_payload_fragment = {
+        "EmploymentIdentifier": sd_emp_id,
+        "EmploymentDepartment": {
+            "ActivationDate": "1999-01-01",
+            "DeactivationDate": "9999-12-31",
+            "DepartmentIdentifier": "dep1",
+            "DepartmentLevelIdentifier": "NY1-niveau",
+            "DepartmentName": "Department 1",
+            "DepartmentUUIDIdentifier": org_unit_afd_level,
+        },
+    }
+
+    mo_eng = {
+        "uuid": eng_uuid,
+        "validity": {
+            "from": "2000-01-01",
+            "to": None,
+        },
+    }
+
+    # Act
+    sd_updater.edit_engagement_department(sd_payload_fragment, mo_eng, person_uuid)
+
+    # Assert
+    sd_updater.apply_NY_logic.assert_called_once_with(
+        org_unit_afd_level,
+        expected_user_key,
+        {"from": "1999-01-01", "to": None},
+        person_uuid,
+    )
