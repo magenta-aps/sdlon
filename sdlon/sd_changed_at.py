@@ -618,12 +618,7 @@ class ChangeAtSD:
         self.mo_engagements_cache[person_uuid] = mo_engagements
         return mo_engagements
 
-    def _find_engagement(self, employment_id, person_uuid):
-        try:
-            user_key = str(int(employment_id)).zfill(5)
-        except ValueError:  # We will end here, if int(employment_id) fails
-            user_key = employment_id
-
+    def _find_engagement(self, user_key, person_uuid):
         logger.debug("Find engagement", from_date=self.from_date, user_key=user_key)
 
         mo_engagements = self._fetch_mo_engagements(person_uuid)
@@ -636,7 +631,7 @@ class ChangeAtSD:
         if relevant_engagement is None:
             logger.info(
                 "Fruitlessly searched for employment_id in engagements",
-                employment_id=employment_id,
+                user_key=user_key,
                 mo_engagements=mo_engagements,
             )
         return relevant_engagement
@@ -1451,9 +1446,17 @@ class ChangeAtSD:
         Returns:
             The MO engagement user_key
         """
+
+        # This block was adapted from _find_engagement. This is problematic if there
+        # exist cases where sd_emp_id is 6 figures.
+        try:
+            user_key = str(int(sd_emp_id)).zfill(5)
+        except ValueError:
+            user_key = sd_emp_id
+
         if not self.settings.sd_prefix_eng_user_key_with_inst_id:
-            return sd_emp_id
-        return f"{self.settings.sd_institution_identifier.upper()}-{sd_emp_id}"
+            return user_key
+        return f"{self.settings.sd_institution_identifier.upper()}-{user_key}"
 
     def update_all_employments(self, in_cpr: Optional[str] = None) -> None:
         if in_cpr is not None:

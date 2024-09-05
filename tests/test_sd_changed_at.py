@@ -2568,7 +2568,9 @@ class TestEditEngagementStatus:
     "prefix_enabled, sd_emp_id, sd_inst_id, expected",
     [
         (False, "12345", "II", "12345"),
+        (False, "45", "II", "00045"),
         (True, "23456", "AB", "AB-23456"),
+        (True, "56", "AB", "AB-00056"),
     ],
 )
 def test__get_eng_user_key(
