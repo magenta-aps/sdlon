@@ -2669,3 +2669,21 @@ def test_create_new_engagement_sets_correct_user_key(
             "validity": {"from": "2000-01-01", "to": "2025-12-31"},
         },
     )
+
+
+def test__find_engagement_uses_correct_user_key():
+    # Arrange
+    sd_updater = setup_sd_changed_at()
+
+    sd_updater._fetch_mo_engagements = MagicMock(
+        return_value=[
+            {"user_key": "not relevant"},
+            {"user_key": "12345"},
+        ]
+    )
+
+    # Act
+    relevant_eng = sd_updater._find_engagement("12345", str(uuid.uuid4()))
+
+    # Assert
+    assert relevant_eng == {"user_key": "12345"}
