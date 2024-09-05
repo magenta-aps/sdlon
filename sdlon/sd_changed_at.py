@@ -1230,10 +1230,10 @@ class ChangeAtSD:
         Edit an engagement
         """
         employment_id, _ = engagement_components(sd_employment)
-        logger.debug(
-            "Edit engagement", employment_id=employment_id, person_uuid=person_uuid
-        )
-        mo_eng = self._find_engagement(employment_id, person_uuid)
+        user_key = self._get_eng_user_key(employment_id)
+
+        logger.debug("Edit engagement", user_key=user_key, person_uuid=person_uuid)
+        mo_eng = self._find_engagement(user_key, person_uuid)
 
         employment_consistent = is_employment_id_and_no_salary_minimum_consistent(
             sd_employment, self.no_salary_minimum

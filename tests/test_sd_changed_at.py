@@ -2757,3 +2757,37 @@ def test_handle_status_changes_uses_correct_user_key(
             },
         },
     )
+
+
+@pytest.mark.parametrize(
+    "prefix_enabled, sd_emp_id, sd_inst_id, expected_user_key",
+    [
+        (False, "12345", "II", "12345"),
+        (True, "23456", "AB", "AB-23456"),
+    ],
+)
+def test_edit_engagement_uses_correct_user_key(
+    prefix_enabled: bool,
+    sd_emp_id: str,
+    sd_inst_id: str,
+    expected_user_key: str,
+):
+    # Arrange
+    sd_updater = setup_sd_changed_at(
+        updates={
+            "sd_prefix_eng_user_key_with_inst_id": prefix_enabled,
+            "sd_institution_identifier": sd_inst_id,
+        }
+    )
+
+    sd_updater._find_engagement = MagicMock()
+
+    person_uuid = str(uuid.uuid4())
+    # We only need the EmploymentIdentifier from the payload in this test
+    sd_emp = {"EmploymentIdentifier": sd_emp_id}
+
+    # Act
+    sd_updater.edit_engagement(sd_emp, person_uuid)
+
+    # Assert
+    sd_updater._find_engagement.assert_called_once_with(expected_user_key, person_uuid)
