@@ -18,6 +18,7 @@ from .date_utils import format_date
 from .date_utils import MO_INFINITY
 from .date_utils import parse_datetime
 from .date_utils import SD_INFINITY
+from .engagement import get_eng_user_key
 from .exceptions import NoCurrentValdityException
 from .log import get_logger
 from .log import setup_logging
@@ -301,21 +302,17 @@ class FixDepartments:
         return department
 
     # Notice! Similar code also exists in sd_changed_at
-    def _find_engagement(self, mo_engagements, job_id):
+    def _find_engagement(self, mo_engagements, user_key):
         """
         Given a list of engagements for a person, find the one with a specific
         job_id. If several elements covering the same engagement is in the list
         an unspecified element will be returned.
-        :param mo_engaements: A list of engagements as returned by MO.
-        :param job_id: The SD JobIdentifier to find.
+        :param mo_engagements: A list of engagements as returned by MO.
+        :param user_key: The MO engagement user_key
         :return: Some element in the list that has the correct job_id. If no
         engagement is found, None is returned.
         """
         relevant_engagement = None
-        try:
-            user_key = str(int(job_id)).zfill(5)
-        except ValueError:  # We will end here, if int(job_id) fails
-            user_key = job_id
 
         for mo_eng in mo_engagements:
             if mo_eng["user_key"] == user_key:
@@ -324,7 +321,7 @@ class FixDepartments:
         if relevant_engagement is None:
             logger.info(
                 "Fruitlessly searched for employment_id in MO engagements",
-                employment_id=job_id,
+                user_key=user_key,
                 mo_engagements=mo_engagements,
             )
         return relevant_engagement
@@ -430,8 +427,12 @@ class FixDepartments:
                 person["Employment"] = [person["Employment"]]
 
             for employment in person["Employment"]:
-                emp_id = employment["EmploymentIdentifier"]
-                logger.info("Checking job-id", employment_id=emp_id)
+                user_key = get_eng_user_key(
+                    employment["EmploymentIdentifier"],
+                    self.settings.sd_institution_identifier,
+                    self.settings.sd_prefix_eng_user_key_with_inst_id,
+                )
+                logger.info("Checking user_key", user_key=user_key)
                 sd_uuid = employment["EmploymentDepartment"]["DepartmentUUIDIdentifier"]
                 if not sd_uuid == unit_uuid:
                     # This employment is not from the current department,
@@ -441,9 +442,7 @@ class FixDepartments:
 
                 mo_person = self.helper.read_user(user_cpr=cpr, org_uuid=self.org_uuid)
                 if mo_person is None:
-                    logger.warning(
-                        "MO person is None for employment_id", employment_id=emp_id
-                    )
+                    logger.warning("MO person is None", user_key=user_key)
                     continue
 
                 mo_engagements = self.helper.read_user_engagement(
@@ -452,11 +451,11 @@ class FixDepartments:
 
                 # Find the uuid of the relevant engagement and update all current and
                 # future rows.
-                mo_engagement = self._find_engagement(mo_engagements, emp_id)
+                mo_engagement = self._find_engagement(mo_engagements, user_key)
                 if mo_engagement is None:
                     logger.warning(
                         "MO engagement is None",
-                        employment_id=emp_id,
+                        user_key=user_key,
                         mo_person_uuid=mo_person["uuid"],
                     )
                     continue
