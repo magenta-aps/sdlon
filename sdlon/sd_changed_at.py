@@ -827,7 +827,8 @@ class ChangeAtSD:
             not in EmploymentStatus.let_go()
         )
 
-        user_key, engagement_info = engagement_components(engagement)
+        sd_emp_id, engagement_info = engagement_components(engagement)
+        user_key = self._get_eng_user_key(sd_emp_id)
         if not engagement_info["departments"] or not engagement_info["professions"]:
             return False
 

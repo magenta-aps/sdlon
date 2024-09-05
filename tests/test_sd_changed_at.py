@@ -2590,3 +2590,80 @@ def test__get_eng_user_key(
 
     # Assert
     assert user_key == expected
+
+
+@pytest.mark.parametrize(
+    "prefix_enabled, sd_emp_id, sd_inst_id, expected_user_key",
+    [
+        (False, "12345", "II", "12345"),
+        (True, "23456", "AB", "AB-23456"),
+    ],
+)
+def test_create_new_engagement_sets_correct_user_key(
+    prefix_enabled: bool,
+    sd_emp_id: str,
+    sd_inst_id: str,
+    expected_user_key: str,
+):
+    # Arrange
+    sd_updater = setup_sd_changed_at(
+        updates={
+            "sd_prefix_eng_user_key_with_inst_id": prefix_enabled,
+            "sd_institution_identifier": sd_inst_id,
+        }
+    )
+
+    person_uuid = str(uuid.uuid4())
+    ou_uuid = str(uuid.uuid4())
+    eng_type_uuid = str(uuid.uuid4())
+    job_function_uuid = str(uuid.uuid4())
+
+    emp_status = {
+        "ActivationDate": "2000-01-01",
+        "DeactivationDate": "2025-12-31",
+        "EmploymentStatusCode": "1",
+    }
+
+    sd_emp = {
+        "EmploymentIdentifier": sd_emp_id,
+        "EmploymentStatus": emp_status,
+        "EmploymentDepartment": {
+            "ActivationDate": "2000-01-01",
+            "DeactivationDate": "2025-12-31",
+            "DepartmentIdentifier": "ABCD",
+            "DepartmentUUIDIdentifier": ou_uuid,
+        },
+        "Profession": {
+            "ActivationDate": "2000-01-01",
+            "DeactivationDate": "2025-12-31",
+            "JobPositionIdentifier": "4",
+            "EmploymentName": "Kung Fu Fighter",
+            "AppointmentCode": "0",
+        },
+    }
+
+    sd_updater.apply_NY_logic = MagicMock(return_value=ou_uuid)
+    sd_updater.determine_engagement_type = MagicMock(return_value=eng_type_uuid)
+    sd_updater._fetch_professions = MagicMock(return_value=job_function_uuid)
+
+    sd_updater.morahelper_mock._mo_post = MagicMock(
+        return_value=attrdict({"status_code": 201, "text": "response text"})
+    )
+
+    # Act
+    sd_updater.create_new_engagement(sd_emp, emp_status, "0101011234", person_uuid)
+
+    # Assert
+    sd_updater.morahelper_mock._mo_post.assert_called_once_with(
+        "details/create",
+        {
+            "type": "engagement",
+            "org_unit": {"uuid": ou_uuid},
+            "person": {"uuid": person_uuid},
+            "job_function": {"uuid": job_function_uuid},
+            "engagement_type": {"uuid": eng_type_uuid},
+            "user_key": expected_user_key,
+            "fraction": 0,
+            "validity": {"from": "2000-01-01", "to": "2025-12-31"},
+        },
+    )
