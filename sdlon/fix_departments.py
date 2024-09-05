@@ -430,8 +430,8 @@ class FixDepartments:
                 person["Employment"] = [person["Employment"]]
 
             for employment in person["Employment"]:
-                job_id = employment["EmploymentIdentifier"]
-                logger.info("Checking job-id", employment_id=job_id)
+                emp_id = employment["EmploymentIdentifier"]
+                logger.info("Checking job-id", employment_id=emp_id)
                 sd_uuid = employment["EmploymentDepartment"]["DepartmentUUIDIdentifier"]
                 if not sd_uuid == unit_uuid:
                     # This employment is not from the current department,
@@ -442,7 +442,7 @@ class FixDepartments:
                 mo_person = self.helper.read_user(user_cpr=cpr, org_uuid=self.org_uuid)
                 if mo_person is None:
                     logger.warning(
-                        "MO person is None for employment_id", employment_id=job_id
+                        "MO person is None for employment_id", employment_id=emp_id
                     )
                     continue
 
@@ -452,11 +452,11 @@ class FixDepartments:
 
                 # Find the uuid of the relevant engagement and update all current and
                 # future rows.
-                mo_engagement = self._find_engagement(mo_engagements, job_id)
+                mo_engagement = self._find_engagement(mo_engagements, emp_id)
                 if mo_engagement is None:
                     logger.warning(
                         "MO engagement is None",
-                        employment_id=job_id,
+                        employment_id=emp_id,
                         mo_person_uuid=mo_person["uuid"],
                     )
                     continue
