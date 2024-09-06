@@ -2562,3 +2562,265 @@ class TestEditEngagementStatus:
 
         # Assert
         sd_updater.morahelper_mock._mo_post.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "prefix_enabled, sd_emp_id, sd_inst_id, expected_user_key",
+    [
+        (False, "12345", "II", "12345"),
+        (True, "23456", "AB", "AB-23456"),
+    ],
+)
+def test_create_new_engagement_sets_correct_user_key(
+    prefix_enabled: bool,
+    sd_emp_id: str,
+    sd_inst_id: str,
+    expected_user_key: str,
+):
+    # Arrange
+    sd_updater = setup_sd_changed_at(
+        updates={
+            "sd_prefix_eng_user_key_with_inst_id": prefix_enabled,
+            "sd_institution_identifier": sd_inst_id,
+        }
+    )
+
+    person_uuid = str(uuid.uuid4())
+    ou_uuid = str(uuid.uuid4())
+    eng_type_uuid = str(uuid.uuid4())
+    job_function_uuid = str(uuid.uuid4())
+
+    emp_status = {
+        "ActivationDate": "2000-01-01",
+        "DeactivationDate": "2025-12-31",
+        "EmploymentStatusCode": "1",
+    }
+
+    sd_emp = {
+        "EmploymentIdentifier": sd_emp_id,
+        "EmploymentStatus": emp_status,
+        "EmploymentDepartment": {
+            "ActivationDate": "2000-01-01",
+            "DeactivationDate": "2025-12-31",
+            "DepartmentIdentifier": "ABCD",
+            "DepartmentUUIDIdentifier": ou_uuid,
+        },
+        "Profession": {
+            "ActivationDate": "2000-01-01",
+            "DeactivationDate": "2025-12-31",
+            "JobPositionIdentifier": "4",
+            "EmploymentName": "Kung Fu Fighter",
+            "AppointmentCode": "0",
+        },
+    }
+
+    sd_updater.apply_NY_logic = MagicMock(return_value=ou_uuid)
+    sd_updater.determine_engagement_type = MagicMock(return_value=eng_type_uuid)
+    sd_updater._fetch_professions = MagicMock(return_value=job_function_uuid)
+
+    sd_updater.morahelper_mock._mo_post = MagicMock(
+        return_value=attrdict({"status_code": 201, "text": "response text"})
+    )
+
+    # Act
+    sd_updater.create_new_engagement(sd_emp, emp_status, "0101011234", person_uuid)
+
+    # Assert
+    sd_updater.morahelper_mock._mo_post.assert_called_once_with(
+        "details/create",
+        {
+            "type": "engagement",
+            "org_unit": {"uuid": ou_uuid},
+            "person": {"uuid": person_uuid},
+            "job_function": {"uuid": job_function_uuid},
+            "engagement_type": {"uuid": eng_type_uuid},
+            "user_key": expected_user_key,
+            "fraction": 0,
+            "validity": {"from": "2000-01-01", "to": "2025-12-31"},
+        },
+    )
+
+
+def test__find_engagement_uses_correct_user_key():
+    # Arrange
+    sd_updater = setup_sd_changed_at()
+
+    sd_updater._fetch_mo_engagements = MagicMock(
+        return_value=[
+            {"user_key": "not relevant"},
+            {"user_key": "12345"},
+        ]
+    )
+
+    # Act
+    relevant_eng = sd_updater._find_engagement("12345", str(uuid.uuid4()))
+
+    # Assert
+    assert relevant_eng == {"user_key": "12345"}
+
+
+@pytest.mark.parametrize(
+    "prefix_enabled, sd_emp_id, sd_inst_id, expected_user_key",
+    [
+        (False, "12345", "II", "12345"),
+        (True, "23456", "AB", "AB-23456"),
+    ],
+)
+def test_handle_status_changes_uses_correct_user_key(
+    prefix_enabled: bool,
+    sd_emp_id: str,
+    sd_inst_id: str,
+    expected_user_key: str,
+):
+    # Arrange
+    sd_updater = setup_sd_changed_at(
+        updates={
+            "sd_prefix_eng_user_key_with_inst_id": prefix_enabled,
+            "sd_institution_identifier": sd_inst_id,
+        }
+    )
+
+    sd_updater._find_engagement = MagicMock(
+        return_value={
+            "user_key": expected_user_key,
+            "uuid": "83de05b3-e890-4975-bc49-88e9052454c2",
+            "validity": {
+                "from": "2000-01-01",
+                "to": "2027-01-01",
+            },
+        }
+    )
+    sd_updater.morahelper_mock._mo_post.return_value = attrdict(
+        {"status_code": 200, "text": "response text"}
+    )
+
+    # Act
+    sd_updater._handle_employment_status_changes(
+        "0101011234",
+        OrderedDict(
+            {
+                "EmploymentIdentifier": "12345",
+                "EmploymentStatus": [
+                    {
+                        "ActivationDate": "2000-01-01",
+                        "DeactivationDate": "2030-12-31",
+                        "EmploymentStatusCode": "1",
+                    },
+                ],
+            }
+        ),
+        str(uuid.uuid4()),
+    )
+
+    # Assert
+    sd_updater.morahelper_mock._mo_post.assert_called_once_with(
+        "details/edit",
+        {
+            "type": "engagement",
+            "uuid": "83de05b3-e890-4975-bc49-88e9052454c2",
+            "data": {
+                "user_key": expected_user_key,
+                "validity": {
+                    "from": "2000-01-01",
+                    "to": "2030-12-31",
+                },
+            },
+        },
+    )
+
+
+@pytest.mark.parametrize(
+    "prefix_enabled, sd_emp_id, sd_inst_id, expected_user_key",
+    [
+        (False, "12345", "II", "12345"),
+        (True, "23456", "AB", "AB-23456"),
+    ],
+)
+def test_edit_engagement_uses_correct_user_key(
+    prefix_enabled: bool,
+    sd_emp_id: str,
+    sd_inst_id: str,
+    expected_user_key: str,
+):
+    # Arrange
+    sd_updater = setup_sd_changed_at(
+        updates={
+            "sd_prefix_eng_user_key_with_inst_id": prefix_enabled,
+            "sd_institution_identifier": sd_inst_id,
+        }
+    )
+
+    sd_updater._find_engagement = MagicMock()
+
+    person_uuid = str(uuid.uuid4())
+    # We only need the EmploymentIdentifier from the payload in this test
+    sd_emp = {"EmploymentIdentifier": sd_emp_id}
+
+    # Act
+    sd_updater.edit_engagement(sd_emp, person_uuid)
+
+    # Assert
+    sd_updater._find_engagement.assert_called_once_with(expected_user_key, person_uuid)
+
+
+@pytest.mark.parametrize(
+    "prefix_enabled, sd_emp_id, sd_inst_id, expected_user_key",
+    [
+        (False, "12345", "II", "12345"),
+        (True, "23456", "AB", "AB-23456"),
+    ],
+)
+def test_edit_engagement_department_uses_correct_user_key(
+    prefix_enabled: bool,
+    sd_emp_id: str,
+    sd_inst_id: str,
+    expected_user_key: str,
+) -> None:
+    # Arrange
+    org_unit_afd_level = str(uuid.uuid4())
+    org_unit_ny_level = str(uuid.uuid4())
+    eng_uuid = str(uuid.uuid4())
+    person_uuid = str(uuid.uuid4())
+
+    sd_updater = setup_sd_changed_at(
+        updates={
+            "sd_prefix_eng_user_key_with_inst_id": prefix_enabled,
+            "sd_institution_identifier": sd_inst_id,
+        }
+    )
+    mock_mo_post = MagicMock(
+        return_value=attrdict({"status_code": 200, "text": "response text"}),
+    )
+    sd_updater.morahelper_mock._mo_post = mock_mo_post
+    sd_updater.apply_NY_logic = MagicMock(return_value=org_unit_ny_level)
+
+    sd_payload_fragment = {
+        "EmploymentIdentifier": sd_emp_id,
+        "EmploymentDepartment": {
+            "ActivationDate": "1999-01-01",
+            "DeactivationDate": "9999-12-31",
+            "DepartmentIdentifier": "dep1",
+            "DepartmentLevelIdentifier": "NY1-niveau",
+            "DepartmentName": "Department 1",
+            "DepartmentUUIDIdentifier": org_unit_afd_level,
+        },
+    }
+
+    mo_eng = {
+        "uuid": eng_uuid,
+        "validity": {
+            "from": "2000-01-01",
+            "to": None,
+        },
+    }
+
+    # Act
+    sd_updater.edit_engagement_department(sd_payload_fragment, mo_eng, person_uuid)
+
+    # Assert
+    sd_updater.apply_NY_logic.assert_called_once_with(
+        org_unit_afd_level,
+        expected_user_key,
+        {"from": "1999-01-01", "to": None},
+        person_uuid,
+    )

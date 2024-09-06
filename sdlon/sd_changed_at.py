@@ -48,6 +48,7 @@ from .date_utils import sd_to_mo_validity
 from .engagement import create_engagement
 from .engagement import engagement_components
 from .engagement import filtered_professions
+from .engagement import get_eng_user_key
 from .engagement import get_last_day_of_sd_work
 from .engagement import (
     is_employment_id_and_no_salary_minimum_consistent,
@@ -618,12 +619,7 @@ class ChangeAtSD:
         self.mo_engagements_cache[person_uuid] = mo_engagements
         return mo_engagements
 
-    def _find_engagement(self, employment_id, person_uuid):
-        try:
-            user_key = str(int(employment_id)).zfill(5)
-        except ValueError:  # We will end here, if int(employment_id) fails
-            user_key = employment_id
-
+    def _find_engagement(self, user_key, person_uuid):
         logger.debug("Find engagement", from_date=self.from_date, user_key=user_key)
 
         mo_engagements = self._fetch_mo_engagements(person_uuid)
@@ -636,7 +632,7 @@ class ChangeAtSD:
         if relevant_engagement is None:
             logger.info(
                 "Fruitlessly searched for employment_id in engagements",
-                employment_id=employment_id,
+                user_key=user_key,
                 mo_engagements=mo_engagements,
             )
         return relevant_engagement
@@ -720,9 +716,9 @@ class ChangeAtSD:
             return job_uuid
         return self._create_professions(job_function, job_position)
 
-    def create_leave(self, status, employment_id, person_uuid: str):
+    def create_leave(self, status, user_key, person_uuid: str):
         """Create a leave for a user"""
-        logger.info("Create leave", employment_id=employment_id, status=status)
+        logger.info("Create leave", user_key=user_key, status=status)
         # TODO: This code potentially creates duplicated leaves.
 
         # Notice, the expected and desired behaviour for leaves is for the engagement
@@ -731,12 +727,12 @@ class ChangeAtSD:
         # forces an edit to the engagement that will extend it to span the
         # leave. If this ever turns out not to hold, add a dummy-edit to the
         # engagement here.
-        mo_eng = self._find_engagement(employment_id, person_uuid)
+        mo_eng = self._find_engagement(user_key, person_uuid)
         payload = sd_payloads.create_leave(
             mo_eng,
             person_uuid,
             str(self.leave_uuid),
-            employment_id,
+            user_key,
             sd_to_mo_validity(status),
         )
 
@@ -745,7 +741,7 @@ class ChangeAtSD:
             response = self.helper._mo_post("details/create", payload)
             assert response.status_code == 201
 
-    def create_association(self, department, person_uuid, employment_id, validity):
+    def create_association(self, department, person_uuid, user_key, validity):
         """Create a association for a user"""
         logger.info("Consider to create an association")
         associations = self.helper.read_user_association(
@@ -765,7 +761,7 @@ class ChangeAtSD:
                 department,
                 person_uuid,
                 str(self.association_uuid),
-                employment_id,
+                user_key,
                 validity,
             )
             logger.debug("Create association (details/create)", payload=payload)
@@ -775,10 +771,10 @@ class ChangeAtSD:
         else:
             logger.info("No new Association is needed")
 
-    def apply_NY_logic(self, org_unit, employment_id, validity, person_uuid) -> str:
+    def apply_NY_logic(self, org_unit, user_key, validity, person_uuid) -> str:
         logger.debug(
             "Apply NY logic",
-            employment_id=employment_id,
+            user_key=user_key,
             org_unit=org_unit,
             validity=validity,
         )
@@ -806,7 +802,7 @@ class ChangeAtSD:
             )
 
         if ou_info["org_unit_level"]["user_key"] in too_deep:
-            self.create_association(org_unit, person_uuid, employment_id, validity)
+            self.create_association(org_unit, person_uuid, user_key, validity)
 
         while ou_info["org_unit_level"]["user_key"] in too_deep:
             ou_info = ou_info["parent"]
@@ -815,7 +811,7 @@ class ChangeAtSD:
 
         return org_unit
 
-    def create_new_engagement(self, engagement, status, cpr, person_uuid):
+    def create_new_engagement(self, sd_employment, status, cpr, person_uuid):
         """
         Create a new engagement
         AD integration handled in check for primary engagement.
@@ -827,7 +823,12 @@ class ChangeAtSD:
             not in EmploymentStatus.let_go()
         )
 
-        user_key, engagement_info = engagement_components(engagement)
+        sd_emp_id, engagement_info = engagement_components(sd_employment)
+        user_key = get_eng_user_key(
+            sd_emp_id,
+            self.settings.sd_institution_identifier,
+            self.settings.sd_prefix_eng_user_key_with_inst_id,
+        )
         if not engagement_info["departments"] or not engagement_info["professions"]:
             return False
 
@@ -863,7 +864,7 @@ class ChangeAtSD:
         if self.use_jpi:
             job_function = job_position
 
-        engagement_type = self.determine_engagement_type(engagement, job_position)
+        engagement_type = self.determine_engagement_type(sd_employment, job_position)
         if engagement_type is None:
             return False
 
@@ -895,7 +896,7 @@ class ChangeAtSD:
 
         if also_edit:
             # This will take of the extra entries
-            self.edit_engagement(engagement, person_uuid)
+            self.edit_engagement(sd_employment, person_uuid)
 
         return True
 
@@ -960,13 +961,19 @@ class ChangeAtSD:
 
         return True
 
-    def edit_engagement_department(self, engagement, mo_eng, person_uuid):
+    def edit_engagement_department(self, sd_employment, mo_eng, person_uuid):
         # This function may cause incorrect data in MO, since mo_eng is only the latest
         # engagement in MO. We should instead loop over all (GraphQL) engagement
         # validities and update each validity interval one at a time.
-        employment_id, engagement_info = engagement_components(engagement)
+        employment_id, engagement_info = engagement_components(sd_employment)
+        user_key = get_eng_user_key(
+            employment_id,
+            self.settings.sd_institution_identifier,
+            self.settings.sd_prefix_eng_user_key_with_inst_id,
+        )
+
         for department in engagement_info["departments"]:
-            logger.info("Change department of engagement", employment_id=employment_id)
+            logger.info("Change department of engagement", user_key=user_key)
             logger.debug("Department object", department=department)
 
             validity = sd_to_mo_validity(department)
@@ -1007,7 +1014,7 @@ class ChangeAtSD:
             current_association = None
             # TODO: This is a filter + next (only?)
             for association in associations:
-                if association["user_key"] == employment_id:
+                if association["user_key"] == user_key:
                     current_association = association["uuid"]
 
             if current_association:
@@ -1019,9 +1026,7 @@ class ChangeAtSD:
                     response = self.helper._mo_post("details/edit", payload)
                     mora_assert(response)
 
-            org_unit = self.apply_NY_logic(
-                org_unit, employment_id, validity, person_uuid
-            )
+            org_unit = self.apply_NY_logic(org_unit, user_key, validity, person_uuid)
 
             logger.debug("New org unit for edited engagement", org_unit=org_unit)
             data = {"org_unit": {"uuid": org_unit}, "validity": validity}
@@ -1035,9 +1040,9 @@ class ChangeAtSD:
                 mo_eng, department, engagement_info["status_list"]
             )
 
-    def determine_engagement_type(self, engagement, job_position):
+    def determine_engagement_type(self, sd_employment, job_position):
         split = self.settings.sd_monthly_hourly_divide
-        employment_id = calc_employment_id(engagement)
+        employment_id = calc_employment_id(sd_employment)
         if employment_id["value"] < split:
             return self.engagement_types.get("månedsløn")
         # XXX: Is the first condition not implied by not hitting the above case?
@@ -1061,11 +1066,11 @@ class ChangeAtSD:
         logger.info("Non-numeric id. Job pos id", job_position_id=job_position)
         return self._fetch_engagement_type(job_position)
 
-    def edit_engagement_type(self, engagement, mo_eng):
+    def edit_engagement_type(self, sd_employment, mo_eng):
         # This function may cause incorrect data in MO, since mo_eng is only the latest
         # engagement in MO. We should instead loop over all (GraphQL) engagement
         # validities and update each validity interval one at a time.
-        employment_id, engagement_info = engagement_components(engagement)
+        employment_id, engagement_info = engagement_components(sd_employment)
         for profession_info in engagement_info["professions"]:
             logger.info(
                 "Change engagement type of engagement", employment_id=employment_id
@@ -1074,7 +1079,9 @@ class ChangeAtSD:
 
             validity = sd_to_mo_validity(profession_info)
 
-            engagement_type = self.determine_engagement_type(engagement, job_position)
+            engagement_type = self.determine_engagement_type(
+                sd_employment, job_position
+            )
             if engagement_type is None:
                 continue
             data = {"engagement_type": {"uuid": engagement_type}, "validity": validity}
@@ -1090,11 +1097,11 @@ class ChangeAtSD:
                 mo_eng, profession_info, engagement_info["status_list"]
             )
 
-    def edit_engagement_profession(self, engagement, mo_eng):
+    def edit_engagement_profession(self, sd_employment, mo_eng):
         # This function may cause incorrect data in MO, since mo_eng is only the latest
         # engagement in MO. We should instead loop over all (GraphQL) engagement
         # validities and update each validity interval one at a time.
-        employment_id, engagement_info = engagement_components(engagement)
+        employment_id, engagement_info = engagement_components(sd_employment)
         for profession_info in engagement_info["professions"]:
             logger.info("Change profession of engagement", employment_id=employment_id)
             job_position = profession_info["JobPositionIdentifier"]
@@ -1107,7 +1114,7 @@ class ChangeAtSD:
             # leave it as is until the whole SD code base is rewritten
 
             if not is_employment_id_and_no_salary_minimum_consistent(
-                engagement, self.no_salary_minimum
+                sd_employment, self.no_salary_minimum
             ):
                 sd_from_date = profession_info["ActivationDate"]
                 sd_to_date = profession_info["DeactivationDate"]
@@ -1151,11 +1158,11 @@ class ChangeAtSD:
                     mo_eng, profession_info, engagement_info["status_list"]
                 )
 
-    def edit_engagement_worktime(self, engagement, mo_eng):
+    def edit_engagement_worktime(self, sd_employment, mo_eng):
         # This function may cause incorrect data in MO, since mo_eng is only the latest
         # engagement in MO. We should instead loop over all (GraphQL) engagement
         # validities and update each validity interval one at a time.
-        employment_id, engagement_info = engagement_components(engagement)
+        employment_id, engagement_info = engagement_components(sd_employment)
         for worktime_info in engagement_info["working_time"]:
             logger.info(
                 "Change working time of engagement", employment_id=employment_id
@@ -1227,18 +1234,22 @@ class ChangeAtSD:
                 response = self.helper._mo_post("details/edit", payload)
                 mora_assert(response)
 
-    def edit_engagement(self, engagement, person_uuid):
+    def edit_engagement(self, sd_employment, person_uuid):
         """
         Edit an engagement
         """
-        employment_id, _ = engagement_components(engagement)
-        logger.debug(
-            "Edit engagement", employment_id=employment_id, person_uuid=person_uuid
+        employment_id, _ = engagement_components(sd_employment)
+        user_key = get_eng_user_key(
+            employment_id,
+            self.settings.sd_institution_identifier,
+            self.settings.sd_prefix_eng_user_key_with_inst_id,
         )
-        mo_eng = self._find_engagement(employment_id, person_uuid)
+
+        logger.debug("Edit engagement", user_key=user_key, person_uuid=person_uuid)
+        mo_eng = self._find_engagement(user_key, person_uuid)
 
         employment_consistent = is_employment_id_and_no_salary_minimum_consistent(
-            engagement, self.no_salary_minimum
+            sd_employment, self.no_salary_minimum
         )
 
         if mo_eng is None:
@@ -1246,7 +1257,7 @@ class ChangeAtSD:
                 create_engagement(self, employment_id, person_uuid)
             return
 
-        update_existing_engagement(self, mo_eng, engagement, person_uuid)
+        update_existing_engagement(self, mo_eng, sd_employment, person_uuid)
 
     def _handle_employment_status_changes(
         self, cpr: str, sd_employment: OrderedDict, person_uuid: str
@@ -1314,10 +1325,16 @@ class ChangeAtSD:
         # The EmploymentStatusCode can take a number of magical values.
         # that must be handled separately.
         employment_id, eng = engagement_components(sd_employment)
+        user_key = get_eng_user_key(
+            employment_id,
+            self.settings.sd_institution_identifier,
+            self.settings.sd_prefix_eng_user_key_with_inst_id,
+        )
 
         logger.info(
             "Handle employment status changes",
             emp_id=employment_id,
+            user_key=user_key,
             cpr=anonymize_cpr(cpr),
         )
 
@@ -1327,7 +1344,7 @@ class ChangeAtSD:
             code = EmploymentStatus(code)
 
             if code in [EmploymentStatus.AnsatUdenLoen, EmploymentStatus.AnsatMedLoen]:
-                mo_eng = self._find_engagement(employment_id, person_uuid)
+                mo_eng = self._find_engagement(user_key, person_uuid)
                 if mo_eng:
                     logger.info("Found MO engagement", eng_uuid=mo_eng["uuid"])
                     self._refresh_mo_engagements(person_uuid)
@@ -1343,7 +1360,7 @@ class ChangeAtSD:
                         )
                 skip = True
             elif code == EmploymentStatus.Orlov:
-                mo_eng = self._find_engagement(employment_id, person_uuid)
+                mo_eng = self._find_engagement(user_key, person_uuid)
                 if not mo_eng:
                     if self.settings.sd_skip_leave_creation_if_no_engagement:
                         logger.info("Not allowed to create leave with no engagement")
@@ -1356,9 +1373,9 @@ class ChangeAtSD:
                             sd_employment, status, cpr, person_uuid
                         )
                 logger.info("Create a leave")
-                self.create_leave(status, employment_id, person_uuid)
+                self.create_leave(status, user_key, person_uuid)
             elif code in EmploymentStatus.let_go():
-                mo_eng = self._find_engagement(employment_id, person_uuid)
+                mo_eng = self._find_engagement(user_key, person_uuid)
                 if not mo_eng:
                     logger.info(
                         "Could not find MO engagement for passive SD employment. "
@@ -1374,15 +1391,13 @@ class ChangeAtSD:
                 sd_from_date = status["ActivationDate"]
                 sd_to_date = status["DeactivationDate"]
                 success = self._terminate_engagement(
-                    user_key=employment_id,
+                    user_key=user_key,
                     person_uuid=person_uuid,
                     from_date=sd_from_date,
                     to_date=sd_to_mo_date(sd_to_date),
                 )
                 if not success:
-                    logger.error(
-                        "Problem terminating employment", employment_id=employment_id
-                    )
+                    logger.error("Problem terminating employment", user_key=user_key)
                 # Setting skip = True may cause problems further down the line for
                 # complex SD payloads, but there is currently no easy way to fix it.
                 skip = True
@@ -1405,10 +1420,10 @@ class ChangeAtSD:
                 # Note that an SD person can jump from any status to "Slettet"
 
                 for mo_eng in self._fetch_mo_engagements(person_uuid):
-                    if mo_eng["user_key"] == employment_id:
+                    if mo_eng["user_key"] == user_key:
                         sd_from_date = status["ActivationDate"]
                         self._terminate_engagement(
-                            user_key=employment_id,
+                            user_key=user_key,
                             person_uuid=person_uuid,
                             from_date=sd_from_date,
                         )

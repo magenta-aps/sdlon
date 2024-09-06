@@ -10,6 +10,7 @@ import pytest
 from pytest import MonkeyPatch
 
 from sdlon.config import Settings
+from sdlon.engagement import get_eng_user_key
 from sdlon.models import JobFunction
 from sdlon.sd_common import read_employment_at
 from sdlon.sd_common import sd_lookup
@@ -118,3 +119,25 @@ def test_sd_lookup_does_not_persist_payload_when_dry_run(
 
     # Assert
     mock_log_payload.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "prefix_enabled, sd_emp_id, sd_inst_id, expected",
+    [
+        (False, "12345", "II", "12345"),
+        (False, "45", "II", "00045"),
+        (True, "23456", "AB", "AB-23456"),
+        (True, "56", "AB", "AB-00056"),
+    ],
+)
+def test_get_eng_user_key(
+    prefix_enabled: bool,
+    sd_emp_id: str,
+    sd_inst_id: str,
+    expected: str,
+):
+    # Act
+    user_key = get_eng_user_key(sd_emp_id, sd_inst_id, prefix_enabled)
+
+    # Assert
+    assert user_key == expected
