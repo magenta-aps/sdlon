@@ -79,7 +79,6 @@ Test SDLoen Integration:
     - python -m sdlon.sd_cli --help
     - python -m sdlon.sd_fixup --help
     - python -m sdlon.sd_importer --help
-    - python -m sdlon.sd_log_analyzer --help
     - python -m sdlon.sync_job_id --help
     - python -m sdlon.test_mo_against_sd --help
     # Run tests
