@@ -18,6 +18,7 @@ from typing import Tuple
 from typing import Union
 from uuid import UUID
 from uuid import uuid4
+from zoneinfo import ZoneInfo
 
 import click
 import requests
@@ -1624,7 +1625,7 @@ def changed_at(
         sentry_sdk.init(dsn=settings.job_settings.sentry_dsn)
 
     from_date = get_run_db_from_date()
-    to_date = datetime.datetime.now(tz=datetime.timezone.utc)
+    to_date = datetime.datetime.now(tz=ZoneInfo("Europe/Copenhagen"))
     dates = gen_date_intervals(from_date, to_date)
     for from_date, to_date in dates:
         persist_status(from_date, to_date, RunDBState.RUNNING)
