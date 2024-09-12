@@ -25,7 +25,9 @@ def create_app(**kwargs) -> FastAPI:
     settings = get_settings(**kwargs)
     settings.job_settings.start_logging_based_on_settings()
 
-    app = FastAPI(fix_departments=FixDepartments(settings))
+    app = FastAPI(
+        fix_departments=FixDepartments(settings, settings.sd_institution_identifier)
+    )
 
     # Instrumentation
     sd_changed_at_state.state(get_status().value)

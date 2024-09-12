@@ -60,7 +60,7 @@ class _TestableFixDepartments(FixDepartments):
 
         read_mo_org = "sdlon.fix_departments.MoraHelper.read_organisation"
         with mock.patch(read_mo_org, return_value=cls.MO_ORG_ROOT):
-            return cls(settings)
+            return cls(settings, settings.sd_institution_identifier)
 
     def get_institution(self, institution_identifier: str):
         return self.SD_INSTITUTION_UUID

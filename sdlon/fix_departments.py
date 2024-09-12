@@ -30,12 +30,13 @@ logger = get_logger()
 
 
 class FixDepartments:
-    def __init__(self, settings: Settings, dry_run: bool = False):
+    def __init__(self, settings: Settings, current_inst_id: str, dry_run: bool = False):
         logger.info("Start program")
         self.settings = settings
+        self.current_inst_id = current_inst_id
         self.dry_run = dry_run
 
-        self.institution_uuid = self.get_institution(settings.sd_institution_identifier)
+        self.institution_uuid = self.get_institution(current_inst_id)
         self.helper = self._get_mora_helper(self.settings)
 
         if self.settings.sd_fix_departments_root is not None:
@@ -429,7 +430,7 @@ class FixDepartments:
             for employment in person["Employment"]:
                 user_key = get_eng_user_key(
                     employment["EmploymentIdentifier"],
-                    self.settings.sd_institution_identifier,
+                    self.current_inst_id,
                     self.settings.sd_prefix_eng_user_key_with_inst_id,
                 )
                 logger.info("Checking user_key", user_key=user_key)
@@ -577,7 +578,7 @@ def unit_fixer(ou_uuid: UUID):
         logger.info("Cannot fix the root unit!")
         return
 
-    unit_fixer = FixDepartments(settings)
+    unit_fixer = FixDepartments(settings, settings.sd_institution_identifier)
 
     today = datetime.datetime.today().date()
 

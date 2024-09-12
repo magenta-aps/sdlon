@@ -181,7 +181,9 @@ class ChangeAtSD:
         )
 
     def _get_fix_departments(self) -> FixDepartments:
-        return FixDepartments(self.settings, self.dry_run)
+        return FixDepartments(
+            self.settings, self.settings.sd_institution_identifier, self.dry_run
+        )
 
     def _get_mora_helper(self, mora_base) -> MoraHelper:
         return MoraHelper(hostname=mora_base, use_cache=False)
