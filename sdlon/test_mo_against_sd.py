@@ -144,6 +144,7 @@ class TestMOAgainstSd(object):
         }
         request_uuid = uuid.uuid4()
         logger.info("check_user", request_uuid=request_uuid)
+        assert isinstance(self.settings.sd_institution_identifier, str)
         sd_employments_response = sd_lookup(
             "GetEmployment20111201",
             settings=self.settings,

@@ -55,6 +55,7 @@ def fetch_user_employments(settings: Settings, cpr: str) -> List:
     }
     request_uuid = uuid4()
     logger.info("fetch_user_employments", request_uuid=request_uuid)
+    assert isinstance(settings.sd_institution_identifier, str)
     sd_employments_response = sd_lookup(
         "GetEmployment20111201",
         settings=settings,
