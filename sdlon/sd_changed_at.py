@@ -189,7 +189,7 @@ class ChangeAtSD:
         return MoraHelper(hostname=mora_base, use_cache=False)
 
     def _get_job_sync(self, settings: Settings) -> JobIdSync:
-        return JobIdSync(settings)
+        return JobIdSync(settings, self.current_inst_id)
 
     def _read_forced_uuids(self):
         cpr_map = pathlib.Path(self.settings.cpr_uuid_map_path)

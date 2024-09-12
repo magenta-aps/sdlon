@@ -19,9 +19,10 @@ logger = get_logger()
 
 
 class JobIdSync:
-    def __init__(self, settings: Settings):
+    def __init__(self, settings: Settings, current_inst_id: str):
         logger.info("Start sync")
         self.settings = settings
+        self.current_inst_id = current_inst_id
 
         sd_job_function = self.settings.sd_job_function
         if sd_job_function == JobFunction.job_position_identifier:
@@ -109,6 +110,7 @@ class JobIdSync:
                 params=params,
                 request_uuid=request_uuid,
                 dry_run=True,
+                institution_identifier=self.current_inst_id,
             )
         except Exception:  # TODO: Be specific here
             logger.info("This job_position could not be found in SD")
@@ -238,7 +240,8 @@ def sync_jobid(job_pos_id, title, sync_all):
     if job_pos_id and sync_all:
         raise click.ClickException("job-pos-id and sync-all are mutually exclusive")
 
-    sync_tool = JobIdSync(settings)
+    assert isinstance(settings.sd_institution_identifier, str)
+    sync_tool = JobIdSync(settings, settings.sd_institution_identifier)
 
     if job_pos_id:
         print(job_pos_id)
