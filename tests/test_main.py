@@ -4,6 +4,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
+from ra_utils.attrdict import attrdict
 
 from sdlon.main import create_app
 from tests.test_fix_departments import _TestableFixDepartments
@@ -42,6 +43,13 @@ def test_trigger_fix_departments(
     mock_get_settings: MagicMock,
 ):
     # Arrange
+    mock_get_settings.return_value = attrdict(
+        {
+            "sd_institution_identifier": "II",
+            "job_settings": MagicMock(),
+        }
+    )
+
     fix_departments = _TestableFixDepartments.get_instance()
     fix_departments.fix_department = MagicMock()
     fix_departments.fix_NY_logic = MagicMock()
@@ -70,6 +78,13 @@ def test_trigger_fix_departments_on_error(
     mock_get_settings: MagicMock,
 ):
     # Arrange
+    mock_get_settings.return_value = attrdict(
+        {
+            "sd_institution_identifier": "II",
+            "job_settings": MagicMock(),
+        }
+    )
+
     fix_departments = _TestableFixDepartments.get_instance()
     error = Exception("some error")
     fix_departments.fix_NY_logic = MagicMock(side_effect=error)
