@@ -184,6 +184,7 @@ def ensure_list(element):
 def read_employment_at(
     effective_date: datetime.date,
     settings: Settings,
+    inst_id: str,
     employment_id: Optional[str] = None,
     status_active_indicator: bool = True,
     status_passive_indicator: bool = True,
@@ -211,6 +212,7 @@ def read_employment_at(
     response = sd_lookup(
         url,
         settings=settings,
+        institution_identifier=inst_id,
         params=params,
         request_uuid=request_uuid,
         dry_run=dry_run,
