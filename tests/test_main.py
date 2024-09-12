@@ -73,6 +73,33 @@ def test_trigger_fix_departments(
 
 @patch("sdlon.main.get_settings")
 @patch("sdlon.main.FixDepartments")
+def test_trigger_fix_departments_with_inst_id_query_param(
+    mock_fix_dep: MagicMock,
+    mock_get_settings: MagicMock,
+):
+    # Arrange
+    mock_get_settings.return_value = attrdict(
+        {
+            "sd_institution_identifier": ["II", "XY", "AB"],
+            "job_settings": MagicMock(),
+        }
+    )
+
+    fix_departments = _TestableFixDepartments.get_instance()
+    mock_fix_dep.return_value = fix_departments
+
+    app = create_app()
+    client = TestClient(app)
+
+    # Act
+    client.post(f"/trigger/apply-ny-logic/{str(uuid4())}?institution_identifier=XY")
+
+    # Assert
+    assert fix_departments.current_inst_id == "XY"
+
+
+@patch("sdlon.main.get_settings")
+@patch("sdlon.main.FixDepartments")
 def test_trigger_fix_departments_on_error(
     mock_fix_dep: MagicMock,
     mock_get_settings: MagicMock,
