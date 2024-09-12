@@ -390,7 +390,10 @@ def fixup_leaves(ctx, mox_base):
     cpr_uuid_map = dict(map(itemgetter("cpr_no", "uuid"), users))
     # NOTE: This will only reimport current leaves, not historic ones
     #       This behavior is inline with sd_importer.py
-    changed_at = ChangeAtSD(settings, datetime.datetime.now())
+    assert isinstance(settings.sd_institution_identifier, str)
+    changed_at = ChangeAtSD(
+        settings, settings.sd_institution_identifier, datetime.datetime.now()
+    )
 
     def try_fetch_leave(cpr: str) -> Tuple[str, List[dict]]:
         """Attempt to lookup engagements from a CPR.

@@ -97,12 +97,14 @@ class ChangeAtSD:
     def __init__(
         self,
         settings: Settings,
+        current_inst_id: str,
         from_date: datetime.datetime,
         to_date: Optional[datetime.datetime] = None,
         dry_run: bool = False,
     ):
         self.settings = settings
         self.dry_run = dry_run
+        self.current_inst_id = current_inst_id
 
         job_function_type = self.settings.sd_job_function
         if job_function_type == JobFunction.job_position_identifier:
@@ -827,7 +829,7 @@ class ChangeAtSD:
         sd_emp_id, engagement_info = engagement_components(sd_employment)
         user_key = get_eng_user_key(
             sd_emp_id,
-            self.settings.sd_institution_identifier,
+            self.current_inst_id,
             self.settings.sd_prefix_eng_user_key_with_inst_id,
         )
         if not engagement_info["departments"] or not engagement_info["professions"]:
@@ -969,7 +971,7 @@ class ChangeAtSD:
         employment_id, engagement_info = engagement_components(sd_employment)
         user_key = get_eng_user_key(
             employment_id,
-            self.settings.sd_institution_identifier,
+            self.current_inst_id,
             self.settings.sd_prefix_eng_user_key_with_inst_id,
         )
 
@@ -1242,7 +1244,7 @@ class ChangeAtSD:
         employment_id, _ = engagement_components(sd_employment)
         user_key = get_eng_user_key(
             employment_id,
-            self.settings.sd_institution_identifier,
+            self.current_inst_id,
             self.settings.sd_prefix_eng_user_key_with_inst_id,
         )
 
@@ -1328,7 +1330,7 @@ class ChangeAtSD:
         employment_id, eng = engagement_components(sd_employment)
         user_key = get_eng_user_key(
             employment_id,
-            self.settings.sd_institution_identifier,
+            self.current_inst_id,
             self.settings.sd_prefix_eng_user_key_with_inst_id,
         )
 
@@ -1565,7 +1567,7 @@ def initialize_changed_at(from_date):
     settings = get_settings()
 
     logger.info("Start initial ChangedAt")
-    sd_updater = ChangeAtSD(settings, from_date)
+    sd_updater = ChangeAtSD(settings, settings.sd_institution_identifier, from_date)
     sd_updater.update_changed_persons()
     sd_updater.update_all_employments()
     logger.info("Ended initial ChangedAt")
@@ -1633,7 +1635,9 @@ def changed_at(
         logger.info(
             "Initialize ChangedAtSD class", from_date=from_date, to_date=to_date
         )
-        sd_updater = ChangeAtSD(settings, from_date, to_date)  # type: ignore
+        sd_updater = ChangeAtSD(
+            settings, settings.sd_institution_identifier, from_date, to_date
+        )  # type: ignore
 
         logger.info("Update changed persons")
         sd_updater.update_changed_persons()
@@ -1670,7 +1674,9 @@ def import_single_user(cpr: str, from_date: datetime.datetime, dry_run: bool):
 
     settings = get_settings()
 
-    sd_updater = ChangeAtSD(settings, from_date, None, dry_run)
+    sd_updater = ChangeAtSD(
+        settings, settings.sd_institution_identifier, from_date, None, dry_run
+    )
     sd_updater.update_changed_persons(cpr)
     sd_updater.update_all_employments(cpr)
 
@@ -1700,7 +1706,9 @@ def date_interval_run(
 
     logger.info("Date interval run started")
 
-    sd_updater = ChangeAtSD(settings, from_date, to_date, dry_run)  # type: ignore
+    sd_updater = ChangeAtSD(
+        settings, settings.sd_institution_identifier, from_date, to_date, dry_run
+    )  # type: ignore
 
     logger.info("Update changed persons")
     sd_updater.update_changed_persons(changed_at_run_cpr=cpr)
