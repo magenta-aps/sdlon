@@ -1675,14 +1675,29 @@ def changed_at(
 @click.option(
     "--dry-run", is_flag=True, default=False, help="Dry-run making no actual changes."
 )
-def import_single_user(cpr: str, from_date: datetime.datetime, dry_run: bool):
+@click.option(
+    "--institution-identifier",
+    default=None,
+    help="The SD InstitutionIdentifier",
+)
+def import_single_user(
+    cpr: str,
+    from_date: datetime.datetime,
+    dry_run: bool,
+    institution_identifier: str | None,
+):
     """Import a single user into MO."""
 
     settings = get_settings()
 
-    sd_updater = ChangeAtSD(
-        settings, settings.sd_institution_identifier, from_date, None, dry_run
-    )
+    if institution_identifier is None:
+        assert isinstance(settings.sd_institution_identifier, str)
+        inst_id = settings.sd_institution_identifier
+    else:
+        inst_id = institution_identifier
+
+    sd_updater = ChangeAtSD(settings, inst_id, from_date, None, dry_run)
+
     sd_updater.update_changed_persons(cpr)
     sd_updater.update_all_employments(cpr)
 
@@ -1701,19 +1716,31 @@ def import_single_user(cpr: str, from_date: datetime.datetime, dry_run: bool):
 @click.option(
     "--dry-run", is_flag=True, help="If flag is set, no changes will be made to MO"
 )
+@click.option(
+    "--institution-identifier",
+    default=None,
+    help="The SD InstitutionIdentifier",
+)
 def date_interval_run(
     from_date: datetime.datetime,
     to_date: datetime.datetime,
     cpr: str,
     dry_run: bool,
+    institution_identifier: str | None,
 ):
     settings = get_settings()
     setup_logging(settings.log_level)
 
     logger.info("Date interval run started")
 
+    if institution_identifier is None:
+        assert isinstance(settings.sd_institution_identifier, str)
+        inst_id = settings.sd_institution_identifier
+    else:
+        inst_id = institution_identifier
+
     sd_updater = ChangeAtSD(
-        settings, settings.sd_institution_identifier, from_date, to_date, dry_run
+        settings, inst_id, from_date, to_date, dry_run
     )  # type: ignore
 
     logger.info("Update changed persons")
