@@ -62,7 +62,7 @@ class _TestableFixDepartments(FixDepartments):
         with mock.patch(read_mo_org, return_value=cls.MO_ORG_ROOT):
             return cls(settings)
 
-    def get_institution(self):
+    def get_institution(self, institution_identifier: str):
         return self.SD_INSTITUTION_UUID
 
     def get_parent(self, unit_uuid, validity_date):

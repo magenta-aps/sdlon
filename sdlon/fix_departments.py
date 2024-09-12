@@ -35,7 +35,7 @@ class FixDepartments:
         self.settings = settings
         self.dry_run = dry_run
 
-        self.institution_uuid = self.get_institution()
+        self.institution_uuid = self.get_institution(settings.sd_institution_identifier)
         self.helper = self._get_mora_helper(self.settings)
 
         if self.settings.sd_fix_departments_root is not None:
@@ -67,15 +67,15 @@ class FixDepartments:
     def _get_mora_helper(self, settings):
         return MoraHelper(hostname=self.settings.mora_base, use_cache=False)
 
-    def get_institution(self):
+    def get_institution(self, inst_id: str):
         """
         Get the institution uuid of the current organisation. It is uniquely
         determined from the InstitutionIdentifier. The identifier is read
         from settings.json. The value is rarely used, but is needed to dertermine
         if a unit is a root unit.
+        :param inst_id: The SD InstitutionIdentifier
         :return: The SD institution uuid for the organisation.
         """
-        inst_id = self.settings.sd_institution_identifier
         params = {"UUIDIndicator": "true", "InstitutionIdentifier": inst_id}
         request_uuid = uuid4()
         logger.info("get_institution", request_uuid=request_uuid)
