@@ -582,6 +582,7 @@ def unit_fixer(ou_uuid: UUID):
         logger.info("Cannot fix the root unit!")
         return
 
+    assert isinstance(settings.sd_institution_identifier, str)
     unit_fixer = FixDepartments(settings, settings.sd_institution_identifier)
 
     today = datetime.datetime.today().date()

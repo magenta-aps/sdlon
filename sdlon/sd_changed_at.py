@@ -181,9 +181,7 @@ class ChangeAtSD:
         )
 
     def _get_fix_departments(self) -> FixDepartments:
-        return FixDepartments(
-            self.settings, self.settings.sd_institution_identifier, self.dry_run
-        )
+        return FixDepartments(self.settings, self.current_inst_id, self.dry_run)
 
     def _get_mora_helper(self, mora_base) -> MoraHelper:
         return MoraHelper(hostname=mora_base, use_cache=False)
@@ -1571,14 +1569,20 @@ class ChangeAtSD:
 def initialize_changed_at(from_date):
     persist_status(from_date, from_date, RunDBState.RUNNING)
     settings = get_settings()
+    inst_ids = ensure_list(settings.sd_institution_identifier)
 
-    logger.info("Start initial ChangedAt")
-    sd_updater = ChangeAtSD(settings, settings.sd_institution_identifier, from_date)
-    sd_updater.update_changed_persons()
-    sd_updater.update_all_employments()
-    logger.info("Ended initial ChangedAt")
+    logger.info("Start initialization run")
+
+    for inst_id in inst_ids:
+        logger.info("Start initial ChangedAt", inst_id=inst_id)
+        sd_updater = ChangeAtSD(settings, inst_id, from_date)
+        sd_updater.update_changed_persons()
+        sd_updater.update_all_employments()
+        logger.info("Ended initial ChangedAt", inst_id=inst_id)
 
     persist_status(from_date, from_date, RunDBState.COMPLETED)
+
+    logger.info("Finished initialization run")
 
 
 @click.group()
@@ -1616,6 +1620,8 @@ def changed_at(
 
     logger.info("Program started")
 
+    inst_ids = ensure_list(settings.sd_institution_identifier)
+
     run_db_state = get_status()
     logger.info("The RunDB state is", run_db_state=run_db_state)
 
@@ -1638,18 +1644,22 @@ def changed_at(
     for from_date, to_date in dates:
         persist_status(from_date, to_date, RunDBState.RUNNING)
 
-        logger.info(
-            "Initialize ChangedAtSD class", from_date=from_date, to_date=to_date
-        )
-        sd_updater = ChangeAtSD(
-            settings, settings.sd_institution_identifier, from_date, to_date
-        )  # type: ignore
+        for inst_id in inst_ids:
+            logger.info(
+                "Initialize ChangedAtSD class",
+                from_date=from_date,
+                to_date=to_date,
+                inst_id=inst_id,
+            )
+            sd_updater = ChangeAtSD(
+                settings, inst_id, from_date, to_date
+            )  # type: ignore
 
-        logger.info("Update changed persons")
-        sd_updater.update_changed_persons()
+            logger.info("Update changed persons")
+            sd_updater.update_changed_persons()
 
-        logger.info("Update all employments")
-        sd_updater.update_all_employments()
+            logger.info("Update all employments")
+            sd_updater.update_all_employments()
 
         persist_status(from_date, to_date, RunDBState.COMPLETED)
 
