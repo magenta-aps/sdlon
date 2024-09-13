@@ -44,7 +44,10 @@ def cli(uuid):
     uuids = uuid
     settings = get_settings()
     settings.sd_use_ad_integration = False
-    cat = ChangeAtSD(settings, from_date=datetime.date.today())
+    assert isinstance(settings.sd_institution_identifier, str)
+    cat = ChangeAtSD(
+        settings, settings.sd_institution_identifier, from_date=datetime.date.today()
+    )
     mh = cat.helper
     for uuid in uuids:
         mh = cat.helper

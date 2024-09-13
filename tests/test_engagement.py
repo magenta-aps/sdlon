@@ -84,6 +84,7 @@ class TestCreateEngagement(unittest.TestCase):
 
         mock_sd_updater = unittest.mock.MagicMock()
         mock_sd_updater.settings = {"some": "settings"}
+        mock_sd_updater.current_inst_id = "II"
         mock_sd_updater.dry_run = False
 
         # Act
@@ -93,6 +94,7 @@ class TestCreateEngagement(unittest.TestCase):
         mock_read_employment_at.assert_called_once_with(
             date(2000, 1, 1),
             settings={"some": "settings"},
+            inst_id="II",
             employment_id="12345",
             status_passive_indicator=False,
             dry_run=False,

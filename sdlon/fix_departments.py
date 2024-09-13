@@ -30,12 +30,13 @@ logger = get_logger()
 
 
 class FixDepartments:
-    def __init__(self, settings: Settings, dry_run: bool = False):
+    def __init__(self, settings: Settings, current_inst_id: str, dry_run: bool = False):
         logger.info("Start program")
         self.settings = settings
+        self.current_inst_id = current_inst_id
         self.dry_run = dry_run
 
-        self.institution_uuid = self.get_institution()
+        self.institution_uuid = self.get_institution(current_inst_id)
         self.helper = self._get_mora_helper(self.settings)
 
         if self.settings.sd_fix_departments_root is not None:
@@ -67,15 +68,15 @@ class FixDepartments:
     def _get_mora_helper(self, settings):
         return MoraHelper(hostname=self.settings.mora_base, use_cache=False)
 
-    def get_institution(self):
+    def get_institution(self, inst_id: str):
         """
         Get the institution uuid of the current organisation. It is uniquely
         determined from the InstitutionIdentifier. The identifier is read
         from settings.json. The value is rarely used, but is needed to dertermine
         if a unit is a root unit.
+        :param inst_id: The SD InstitutionIdentifier
         :return: The SD institution uuid for the organisation.
         """
-        inst_id = self.settings.sd_institution_identifier
         params = {"UUIDIndicator": "true", "InstitutionIdentifier": inst_id}
         request_uuid = uuid4()
         logger.info("get_institution", request_uuid=request_uuid)
@@ -85,6 +86,7 @@ class FixDepartments:
             params=params,
             request_uuid=request_uuid,
             dry_run=self.dry_run,
+            institution_identifier=inst_id,
         )
         institution = institution_info["Region"]["Institution"]
         institution_uuid = institution["InstitutionUUIDIdentifier"]
@@ -293,6 +295,7 @@ class FixDepartments:
             params=params,
             request_uuid=request_uuid,
             dry_run=self.dry_run,
+            institution_identifier=self.current_inst_id,
         )
         department = department_info.get("Department")
         if department is None:
@@ -380,6 +383,7 @@ class FixDepartments:
                 params=params,
                 request_uuid=request_uuid,
                 dry_run=self.dry_run,
+                institution_identifier=self.current_inst_id,
             )
             people = employments.get("Person", [])
             if not isinstance(people, list):
@@ -429,7 +433,7 @@ class FixDepartments:
             for employment in person["Employment"]:
                 user_key = get_eng_user_key(
                     employment["EmploymentIdentifier"],
-                    self.settings.sd_institution_identifier,
+                    self.current_inst_id,
                     self.settings.sd_prefix_eng_user_key_with_inst_id,
                 )
                 logger.info("Checking user_key", user_key=user_key)
@@ -511,6 +515,7 @@ class FixDepartments:
             params=params,
             request_uuid=request_uuid,
             dry_run=self.dry_run,
+            institution_identifier=self.current_inst_id,
         )
         if "DepartmentParent" not in parent_response:
             logger.error(
@@ -577,7 +582,8 @@ def unit_fixer(ou_uuid: UUID):
         logger.info("Cannot fix the root unit!")
         return
 
-    unit_fixer = FixDepartments(settings)
+    assert isinstance(settings.sd_institution_identifier, str)
+    unit_fixer = FixDepartments(settings, settings.sd_institution_identifier)
 
     today = datetime.datetime.today().date()
 

@@ -27,7 +27,8 @@ class Test_sync_job_id(TestCase):
             sd_global_from_date="2022-01-09",
             app_dbpassword="secret",
         )
-        self.job_id_sync = JobIdSyncTest(settings)
+        assert isinstance(settings.sd_institution_identifier, str)
+        self.job_id_sync = JobIdSyncTest(settings, settings.sd_institution_identifier)
 
     def test_create(self):
         self.assertTrue(self.job_id_sync.update_job_functions)

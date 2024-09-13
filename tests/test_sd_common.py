@@ -37,7 +37,13 @@ def test_return_none_when_sd_employment_empty(
     settings: Settings,
 ) -> None:
     mock_sd_lookup.return_value = OrderedDict()
-    assert read_employment_at(date(2000, 1, 1), settings) is None
+    assert isinstance(settings.sd_institution_identifier, str)
+    assert (
+        read_employment_at(
+            date(2000, 1, 1), settings, settings.sd_institution_identifier
+        )
+        is None
+    )
 
 
 @dataclass

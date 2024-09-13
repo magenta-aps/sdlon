@@ -90,7 +90,11 @@ def setup_sd_changed_at(updates=None, hours=24, dry_run=False):
     start_date = today
 
     sd_updater = ChangeAtSDTest(
-        settings, start_date, start_date + timedelta(hours=hours), dry_run=dry_run
+        settings,
+        settings.sd_institution_identifier,
+        start_date,
+        start_date + timedelta(hours=hours),
+        dry_run=dry_run,
     )
 
     return sd_updater

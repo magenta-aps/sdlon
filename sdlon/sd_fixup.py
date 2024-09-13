@@ -55,6 +55,7 @@ def fetch_user_employments(settings: Settings, cpr: str) -> List:
     }
     request_uuid = uuid4()
     logger.info("fetch_user_employments", request_uuid=request_uuid)
+    assert isinstance(settings.sd_institution_identifier, str)
     sd_employments_response = sd_lookup(
         "GetEmployment20111201",
         settings=settings,
@@ -390,7 +391,10 @@ def fixup_leaves(ctx, mox_base):
     cpr_uuid_map = dict(map(itemgetter("cpr_no", "uuid"), users))
     # NOTE: This will only reimport current leaves, not historic ones
     #       This behavior is inline with sd_importer.py
-    changed_at = ChangeAtSD(settings, datetime.datetime.now())
+    assert isinstance(settings.sd_institution_identifier, str)
+    changed_at = ChangeAtSD(
+        settings, settings.sd_institution_identifier, datetime.datetime.now()
+    )
 
     def try_fetch_leave(cpr: str) -> Tuple[str, List[dict]]:
         """Attempt to lookup engagements from a CPR.

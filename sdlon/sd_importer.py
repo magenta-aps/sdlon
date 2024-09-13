@@ -612,6 +612,7 @@ class SdImport:
             read_employment_at(
                 effective_date,
                 settings=self.settings,
+                inst_id=self.settings.sd_institution_identifier,
                 status_passive_indicator=False,
             )
         )
@@ -621,6 +622,7 @@ class SdImport:
             read_employment_at(
                 effective_date,
                 settings=self.settings,
+                inst_id=self.settings.sd_institution_identifier,
                 status_active_indicator=False,
                 status_passive_indicator=True,
             )

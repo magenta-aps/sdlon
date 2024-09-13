@@ -97,12 +97,14 @@ class ChangeAtSD:
     def __init__(
         self,
         settings: Settings,
+        current_inst_id: str,
         from_date: datetime.datetime,
         to_date: Optional[datetime.datetime] = None,
         dry_run: bool = False,
     ):
         self.settings = settings
         self.dry_run = dry_run
+        self.current_inst_id = current_inst_id
 
         job_function_type = self.settings.sd_job_function
         if job_function_type == JobFunction.job_position_identifier:
@@ -179,13 +181,13 @@ class ChangeAtSD:
         )
 
     def _get_fix_departments(self) -> FixDepartments:
-        return FixDepartments(self.settings, self.dry_run)
+        return FixDepartments(self.settings, self.current_inst_id, self.dry_run)
 
     def _get_mora_helper(self, mora_base) -> MoraHelper:
         return MoraHelper(hostname=mora_base, use_cache=False)
 
     def _get_job_sync(self, settings: Settings) -> JobIdSync:
-        return JobIdSync(settings)
+        return JobIdSync(settings, self.current_inst_id)
 
     def _read_forced_uuids(self):
         cpr_map = pathlib.Path(self.settings.cpr_uuid_map_path)
@@ -322,6 +324,7 @@ class ChangeAtSD:
             params=params,
             request_uuid=request_uuid,
             dry_run=self.dry_run,
+            institution_identifier=self.current_inst_id,
         )
 
         employment_response = ensure_list(response.get("Person", []))
@@ -369,6 +372,7 @@ class ChangeAtSD:
             params=params,
             request_uuid=request_uuid,
             dry_run=self.dry_run,
+            institution_identifier=self.current_inst_id,
         )
         persons_changed = ensure_list(response.get("Person", []))
         return persons_changed
@@ -404,6 +408,7 @@ class ChangeAtSD:
             params=params,
             request_uuid=request_uuid,
             dry_run=self.dry_run,
+            institution_identifier=self.current_inst_id,
         )
         person = ensure_list(response.get("Person", []))
         return person
@@ -827,7 +832,7 @@ class ChangeAtSD:
         sd_emp_id, engagement_info = engagement_components(sd_employment)
         user_key = get_eng_user_key(
             sd_emp_id,
-            self.settings.sd_institution_identifier,
+            self.current_inst_id,
             self.settings.sd_prefix_eng_user_key_with_inst_id,
         )
         if not engagement_info["departments"] or not engagement_info["professions"]:
@@ -969,7 +974,7 @@ class ChangeAtSD:
         employment_id, engagement_info = engagement_components(sd_employment)
         user_key = get_eng_user_key(
             employment_id,
-            self.settings.sd_institution_identifier,
+            self.current_inst_id,
             self.settings.sd_prefix_eng_user_key_with_inst_id,
         )
 
@@ -1003,6 +1008,7 @@ class ChangeAtSD:
                     params=params,
                     request_uuid=request_uuid,
                     dry_run=self.dry_run,
+                    institution_identifier=self.current_inst_id,
                 )
                 logger.warning("GetDepartment returned", response=response)
                 org_unit = response["Department"]["DepartmentUUIDIdentifier"]
@@ -1242,7 +1248,7 @@ class ChangeAtSD:
         employment_id, _ = engagement_components(sd_employment)
         user_key = get_eng_user_key(
             employment_id,
-            self.settings.sd_institution_identifier,
+            self.current_inst_id,
             self.settings.sd_prefix_eng_user_key_with_inst_id,
         )
 
@@ -1328,7 +1334,7 @@ class ChangeAtSD:
         employment_id, eng = engagement_components(sd_employment)
         user_key = get_eng_user_key(
             employment_id,
-            self.settings.sd_institution_identifier,
+            self.current_inst_id,
             self.settings.sd_prefix_eng_user_key_with_inst_id,
         )
 
@@ -1563,14 +1569,20 @@ class ChangeAtSD:
 def initialize_changed_at(from_date):
     persist_status(from_date, from_date, RunDBState.RUNNING)
     settings = get_settings()
+    inst_ids = ensure_list(settings.sd_institution_identifier)
 
-    logger.info("Start initial ChangedAt")
-    sd_updater = ChangeAtSD(settings, from_date)
-    sd_updater.update_changed_persons()
-    sd_updater.update_all_employments()
-    logger.info("Ended initial ChangedAt")
+    logger.info("Start initialization run")
+
+    for inst_id in inst_ids:
+        logger.info("Start initial ChangedAt", inst_id=inst_id)
+        sd_updater = ChangeAtSD(settings, inst_id, from_date)
+        sd_updater.update_changed_persons()
+        sd_updater.update_all_employments()
+        logger.info("Ended initial ChangedAt", inst_id=inst_id)
 
     persist_status(from_date, from_date, RunDBState.COMPLETED)
+
+    logger.info("Finished initialization run")
 
 
 @click.group()
@@ -1608,6 +1620,8 @@ def changed_at(
 
     logger.info("Program started")
 
+    inst_ids = ensure_list(settings.sd_institution_identifier)
+
     run_db_state = get_status()
     logger.info("The RunDB state is", run_db_state=run_db_state)
 
@@ -1630,16 +1644,22 @@ def changed_at(
     for from_date, to_date in dates:
         persist_status(from_date, to_date, RunDBState.RUNNING)
 
-        logger.info(
-            "Initialize ChangedAtSD class", from_date=from_date, to_date=to_date
-        )
-        sd_updater = ChangeAtSD(settings, from_date, to_date)  # type: ignore
+        for inst_id in inst_ids:
+            logger.info(
+                "Initialize ChangedAtSD class",
+                from_date=from_date,
+                to_date=to_date,
+                inst_id=inst_id,
+            )
+            sd_updater = ChangeAtSD(
+                settings, inst_id, from_date, to_date
+            )  # type: ignore
 
-        logger.info("Update changed persons")
-        sd_updater.update_changed_persons()
+            logger.info("Update changed persons")
+            sd_updater.update_changed_persons()
 
-        logger.info("Update all employments")
-        sd_updater.update_all_employments()
+            logger.info("Update all employments")
+            sd_updater.update_all_employments()
 
         persist_status(from_date, to_date, RunDBState.COMPLETED)
 
@@ -1665,12 +1685,29 @@ def changed_at(
 @click.option(
     "--dry-run", is_flag=True, default=False, help="Dry-run making no actual changes."
 )
-def import_single_user(cpr: str, from_date: datetime.datetime, dry_run: bool):
+@click.option(
+    "--institution-identifier",
+    default=None,
+    help="The SD InstitutionIdentifier",
+)
+def import_single_user(
+    cpr: str,
+    from_date: datetime.datetime,
+    dry_run: bool,
+    institution_identifier: str | None,
+):
     """Import a single user into MO."""
 
     settings = get_settings()
 
-    sd_updater = ChangeAtSD(settings, from_date, None, dry_run)
+    if institution_identifier is None:
+        assert isinstance(settings.sd_institution_identifier, str)
+        inst_id = settings.sd_institution_identifier
+    else:
+        inst_id = institution_identifier
+
+    sd_updater = ChangeAtSD(settings, inst_id, from_date, None, dry_run)
+
     sd_updater.update_changed_persons(cpr)
     sd_updater.update_all_employments(cpr)
 
@@ -1689,18 +1726,32 @@ def import_single_user(cpr: str, from_date: datetime.datetime, dry_run: bool):
 @click.option(
     "--dry-run", is_flag=True, help="If flag is set, no changes will be made to MO"
 )
+@click.option(
+    "--institution-identifier",
+    default=None,
+    help="The SD InstitutionIdentifier",
+)
 def date_interval_run(
     from_date: datetime.datetime,
     to_date: datetime.datetime,
     cpr: str,
     dry_run: bool,
+    institution_identifier: str | None,
 ):
     settings = get_settings()
     setup_logging(settings.log_level)
 
     logger.info("Date interval run started")
 
-    sd_updater = ChangeAtSD(settings, from_date, to_date, dry_run)  # type: ignore
+    if institution_identifier is None:
+        assert isinstance(settings.sd_institution_identifier, str)
+        inst_id = settings.sd_institution_identifier
+    else:
+        inst_id = institution_identifier
+
+    sd_updater = ChangeAtSD(
+        settings, inst_id, from_date, to_date, dry_run
+    )  # type: ignore
 
     logger.info("Update changed persons")
     sd_updater.update_changed_persons(changed_at_run_cpr=cpr)

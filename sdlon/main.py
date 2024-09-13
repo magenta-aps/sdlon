@@ -3,7 +3,6 @@ from datetime import datetime
 from uuid import UUID
 
 from fastapi import FastAPI
-from fastapi import Request
 from fastapi import Response
 from prometheus_fastapi_instrumentator import Instrumentator
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
@@ -25,7 +24,7 @@ def create_app(**kwargs) -> FastAPI:
     settings = get_settings(**kwargs)
     settings.job_settings.start_logging_based_on_settings()
 
-    app = FastAPI(fix_departments=FixDepartments(settings))
+    app = FastAPI()
 
     # Instrumentation
     sd_changed_at_state.state(get_status().value)
@@ -48,12 +47,21 @@ def create_app(**kwargs) -> FastAPI:
 
     @app.post("/trigger/apply-ny-logic/{ou}")
     async def fix_departments(
-        ou: UUID, request: Request, response: Response
+        ou: UUID,
+        response: Response,
+        institution_identifier: str | None = None,
     ) -> dict[str, str]:
         logger.info("Triggered fix_department", ou=str(ou))
 
         today = datetime.today().date()
-        fix_departments = request.app.extra["fix_departments"]
+
+        if institution_identifier is None:
+            assert isinstance(settings.sd_institution_identifier, str)
+            inst_id = settings.sd_institution_identifier
+        else:
+            inst_id = institution_identifier
+
+        fix_departments = FixDepartments(settings, inst_id)
 
         try:
             fix_departments.fix_NY_logic(str(ou), today)

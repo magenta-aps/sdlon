@@ -25,6 +25,7 @@ def sd_lookup(
     params: Optional[Dict[str, Any]] = None,
     request_uuid: uuid.UUID = uuid.uuid4(),
     dry_run: bool = False,
+    institution_identifier: str | None = None,
 ) -> OrderedDict:
     """Fire a requests against SD."""
     # TODO: this could potentially log CPRs - to be fixed
@@ -37,7 +38,9 @@ def sd_lookup(
     full_url = BASE_URL + url
 
     payload = {
-        "InstitutionIdentifier": settings.sd_institution_identifier,
+        "InstitutionIdentifier": institution_identifier
+        if institution_identifier is not None
+        else settings.sd_institution_identifier
     }
     payload.update(params)
     auth = (settings.sd_user, settings.sd_password.get_secret_value())
@@ -181,6 +184,7 @@ def ensure_list(element):
 def read_employment_at(
     effective_date: datetime.date,
     settings: Settings,
+    inst_id: str,
     employment_id: Optional[str] = None,
     status_active_indicator: bool = True,
     status_passive_indicator: bool = True,
@@ -208,6 +212,7 @@ def read_employment_at(
     response = sd_lookup(
         url,
         settings=settings,
+        institution_identifier=inst_id,
         params=params,
         request_uuid=request_uuid,
         dry_run=dry_run,
