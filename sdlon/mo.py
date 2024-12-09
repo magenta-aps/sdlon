@@ -22,7 +22,7 @@ class MO:
             client_id=client_id,
             client_secret=client_secret,
             mo_base_url=mo_base_url,
-            gql_version=21,
+            gql_version=22,
             timeout=timeout,
         )
 

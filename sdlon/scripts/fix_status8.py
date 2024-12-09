@@ -70,9 +70,11 @@ def get_mo_employees(gql_client: GraphQLClient) -> List[Employee]:
     query GetEmployees {
         employees {
             objects {
-                cpr_no
+                validities {
+                    cpr_no
+                }
+                uuid
             }
-            uuid
         }
     }
     """
@@ -80,11 +82,11 @@ def get_mo_employees(gql_client: GraphQLClient) -> List[Employee]:
     r = gql_client.execute(query)
 
     employees = []
-    for employee in r["employees"]:
+    for employee in r["employees"]["objects"]:
         try:
             employees.append(
                 Employee(
-                    cpr_no=one(employee["objects"])["cpr_no"], uuid=employee["uuid"]
+                    cpr_no=one(employee["validities"])["cpr_no"], uuid=employee["uuid"]
                 )
             )
         except ValueError:
@@ -141,14 +143,16 @@ def get_mo_engagements(
     query = gql(
         """
         query GetEngagements($uuid: [UUID!]!) {
-            engagements(employees: $uuid) {
+            engagements(filter: {employees: $uuid}) {
                 objects {
-                    user_key
-                    validity {
-                        from
+                    validities {
+                        user_key
+                        validity {
+                            from
+                        }
                     }
+                    uuid
                 }
-                uuid
             }
         }
     """
@@ -158,12 +162,12 @@ def get_mo_engagements(
     engagements = [
         {
             "uuid": engagement["uuid"],
-            "user_key": one(engagement["objects"])["user_key"],
+            "user_key": one(engagement["validities"])["user_key"],
             # Convert back and forth between datetime objects and strings?
             # Nah - it is much easier to just use [:10] for this use case
-            "from": one(engagement["objects"])["validity"]["from"][:10],
+            "from": one(engagement["validities"])["validity"]["from"][:10],
         }
-        for engagement in r["engagements"]
+        for engagement in r["engagements"]["objects"]
     ]
     return engagements
 
@@ -299,7 +303,7 @@ def main(
 
     print("Number of SD employments:", len(sd_employments.Person))
 
-    gql_client = get_mo_client(auth_server, client_id, client_secret, mo_base_url, 3)
+    gql_client = get_mo_client(auth_server, client_id, client_secret, mo_base_url, 22)
     employees = get_mo_employees(gql_client)
 
     print("Terminate engagements")

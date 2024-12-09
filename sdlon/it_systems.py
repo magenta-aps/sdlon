@@ -12,7 +12,7 @@ from sdlon.models import ITUserSystem
 QUERY_GET_SD_TO_AD_IT_SYSTEM_UUID = gql(
     """
     query GetItSystems($user_key: [String!]!) {
-        itsystems(user_keys: $user_key) {
+        itsystems(filter: { user_keys: $user_key }) {
             objects {
                 uuid
             }
@@ -24,7 +24,7 @@ QUERY_GET_SD_TO_AD_IT_SYSTEM_UUID = gql(
 QUERY_GET_EMPLOYEE_IT_SYSTEMS = gql(
     """
         query GetEmployeeItSystems($uuid: [UUID!]!) {
-            employees(uuids: $uuid) {
+            employees(filter: { uuids: $uuid }) {
                 objects {
                     current {
                         itusers {

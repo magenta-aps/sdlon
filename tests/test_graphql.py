@@ -8,12 +8,12 @@ def test_get_mo_client():
         "client_id",
         "client_secret",
         "http://mo-service:5000",
-        10,
+        22,
         300,
     )
 
     # Assert
-    assert client.transport.url == "http://mo-service:5000/graphql/v10"
+    assert client.transport.url == "http://mo-service:5000/graphql/v22"
     assert (
         client.transport.client_args["auth_server"]
         == "http://keycloak-service:8080/auth"
