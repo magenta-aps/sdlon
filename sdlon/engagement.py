@@ -1,6 +1,5 @@
 import re
 from datetime import date
-from datetime import datetime
 from datetime import timedelta
 from operator import itemgetter
 from typing import Any
@@ -44,10 +43,15 @@ def update_existing_engagement(
     sd_updater.edit_engagement_worktime(sd_employment, mo_engagement)
 
 
-def create_engagement(sd_updater, employment_id, person_uuid) -> None:
+def create_engagement(
+    sd_updater,
+    employment_id,
+    person_uuid,
+    sd_lookup_date: date,
+) -> None:
     # Call SD to get SD employment
     sd_employment_payload = read_employment_at(
-        datetime.now().date(),
+        sd_lookup_date,
         settings=sd_updater.settings,
         inst_id=sd_updater.current_inst_id,
         employment_id=employment_id,

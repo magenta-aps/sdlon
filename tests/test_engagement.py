@@ -101,6 +101,27 @@ class TestCreateEngagement(unittest.TestCase):
         )
         mock_sd_updater.create_new_engagement.assert_not_called()
 
+    @unittest.mock.patch("sdlon.engagement.read_employment_at")
+    def test_use_correct_sd_lookup_date(self, mock_read_employment_at):
+        # Arrange
+        mock_sd_updater = unittest.mock.MagicMock()
+        mock_sd_updater.settings = {"some": "settings"}
+        mock_sd_updater.current_inst_id = "II"
+        mock_sd_updater.dry_run = False
+
+        # Act
+        create_engagement(mock_sd_updater, "12345", "person_uuid", date(2000, 1, 1))
+
+        # Assert
+        mock_read_employment_at.assert_called_once_with(
+            date(2000, 1, 1),
+            settings={"some": "settings"},
+            inst_id="II",
+            employment_id="12345",
+            status_passive_indicator=False,
+            dry_run=False,
+        )
+
 
 def test_filter_multiple_professions():
     # Arrange
