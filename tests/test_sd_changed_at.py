@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 import hypothesis.strategies as st
 import pytest
+from freezegun import freeze_time
 from hypothesis import given
 from parameterized import parameterized
 from prometheus_client import Enum
@@ -1559,6 +1560,51 @@ class Test_sd_changed_at(unittest.TestCase):
 
         # Assert
         sd_updater.edit_engagement_profession.assert_not_called()
+
+    @freeze_time("2000-01-01")
+    @patch("sdlon.sd_changed_at.create_engagement")
+    def test_edit_engagement_sd_lookup_date(self, mock_create_engagement):
+        # Arrange
+        sd_updater = setup_sd_changed_at(
+            {
+                "sd_monthly_hourly_divide": 80000,
+                "sd_no_salary_minimum_id": 9000,
+                "sd_import_too_deep": [
+                    "Afdelings-niveau",
+                    "NY1-niveau",
+                ],
+            }
+        )
+
+        sd_employment = OrderedDict(
+            [
+                ("EmploymentIdentifier", "ABCDE"),
+                (
+                    "Profession",
+                    OrderedDict(
+                        [
+                            ("@changedAtDate", "2021-12-20"),
+                            ("ActivationDate", "2021-12-19"),
+                            ("DeactivationDate", "9999-12-31"),
+                            ("JobPositionIdentifier", "9001"),
+                            ("EmploymentName", "dummy"),
+                            ("AppointmentCode", "0"),
+                        ]
+                    ),
+                ),
+            ]
+        )
+
+        mock__find_engagement = MagicMock(return_value=None)
+        sd_updater._find_engagement = mock__find_engagement
+
+        # Act
+        sd_updater.edit_engagement(sd_employment, "person_uuid")
+
+        # Assert
+        mock_create_engagement.assert_called_once_with(
+            sd_updater, "ABCDE", "person_uuid", date(2021, 12, 19)
+        )
 
     @given(
         status=st.sampled_from(["1", "S"]),

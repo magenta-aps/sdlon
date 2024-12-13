@@ -38,6 +38,7 @@ from ramodels.mo._shared import OrganisationRef
 from . import sd_payloads
 from .config import get_settings
 from .config import Settings
+from .date_utils import create_eng_lookup_date
 from .date_utils import date_to_datetime
 from .date_utils import format_date
 from .date_utils import gen_date_intervals
@@ -1245,7 +1246,7 @@ class ChangeAtSD:
         """
         Edit an engagement
         """
-        employment_id, _ = engagement_components(sd_employment)
+        employment_id, eng_components = engagement_components(sd_employment)
         user_key = get_eng_user_key(
             employment_id,
             self.current_inst_id,
@@ -1261,7 +1262,15 @@ class ChangeAtSD:
 
         if mo_eng is None:
             if employment_consistent:
-                create_engagement(self, employment_id, person_uuid)
+                # The engagement does not exist yet. This can happen (e.g.) if an
+                # engagement was not initially created due to a too low
+                # JobPositionIdentifier, but the JobPositionIdentifier is later changed
+                # to a sufficiently large value. In this case we need to look up the
+                # full engagement at a proper date.
+
+                sd_lookup_date = create_eng_lookup_date(eng_components)
+
+                create_engagement(self, employment_id, person_uuid, sd_lookup_date)
             return
 
         update_existing_engagement(self, mo_eng, sd_employment, person_uuid)
