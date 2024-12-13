@@ -88,7 +88,7 @@ class TestCreateEngagement(unittest.TestCase):
         mock_sd_updater.dry_run = False
 
         # Act
-        create_engagement(mock_sd_updater, "12345", "person_uuid")
+        create_engagement(mock_sd_updater, "12345", "person_uuid", date(2000, 1, 1))
 
         # Assert
         mock_read_employment_at.assert_called_once_with(
