@@ -11,6 +11,7 @@ from typing import OrderedDict
 from typing import Tuple
 from typing import Union
 
+from more_itertools import first
 from more_itertools import pairwise
 from more_itertools import tabulate
 
@@ -287,3 +288,34 @@ def gen_date_intervals(
         The next date pair in the sequence of pairs
     """
     return pairwise(gen_cut_dates(from_datetime, to_datetime))
+
+
+def create_eng_lookup_date(
+    engagement_components: dict[str, list[dict[str, Any]]]
+) -> date:
+    """
+    This is only "best effort" to obtain the relevant SD lookup date for creating
+    a new (missing) engagement during an "edit_engagement" operation. There is no
+    guarantee that we will retrieve the full picture in this way. The situation could
+    be more complex, but it would be quite difficult to obtain the full picture at
+    the point in the code where this function is used.
+
+    Args:
+        engagement_components: The SD payload engagement components.
+
+    Returns:
+        Best effort SD lookup date for getting the SD employment data.
+    """
+    min_comp_date = min(
+        parse_datetime(
+            first(
+                component,
+                {
+                    "ActivationDate": SD_INFINITY,
+                    "DeactivationDate": SD_INFINITY,
+                },
+            )["ActivationDate"]
+        )
+        for component in engagement_components.values()
+    )
+    return max(min_comp_date, datetime.now()).date()

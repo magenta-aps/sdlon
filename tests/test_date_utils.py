@@ -5,11 +5,13 @@ from datetime import timedelta
 from uuid import uuid4
 
 import pytest
+from freezegun import freeze_time
 from hypothesis import given
 from hypothesis import strategies as st
 from more_itertools import pairwise
 
 from sdlon.date_utils import _get_employment_from_date
+from sdlon.date_utils import create_eng_lookup_date
 from sdlon.date_utils import date_to_datetime
 from sdlon.date_utils import datetime_to_sd_date
 from sdlon.date_utils import format_date
@@ -19,6 +21,7 @@ from sdlon.date_utils import get_employment_datetimes
 from sdlon.date_utils import get_mo_validity
 from sdlon.date_utils import get_sd_validity
 from sdlon.date_utils import is_midnight
+from sdlon.date_utils import SD_INFINITY
 from sdlon.date_utils import sd_to_mo_date
 from sdlon.date_utils import sd_to_mo_validity
 from sdlon.date_utils import to_midnight
@@ -466,3 +469,36 @@ def test_format_date_zero_fill(date_time: datetime, expected: str):
 )
 def test_datetime_to_sd_date(date_time: datetime, expected: str):
     assert datetime_to_sd_date(date_time) == expected
+
+
+@freeze_time("2000-01-01")
+@pytest.mark.parametrize(
+    "activation_date, expected",
+    [("2020-01-01", date(2020, 1, 1)), ("1999-01-01", date(2000, 1, 1))],
+)
+def test_create_eng_lookup_date(activation_date: str, expected: date):
+    # Arrange
+    eng_components = {
+        "professions": [
+            {
+                "ActivationDate": activation_date,
+                "DeactivationDate": "2024-12-31",
+            },
+            {
+                "ActivationDate": "2025-01-01",
+                "DeactivationDate": SD_INFINITY,
+            },
+        ],
+        "departments": [
+            {
+                "ActivationDate": "2026-01-01",
+                "DeactivationDate": SD_INFINITY,
+            },
+        ],
+    }
+
+    # Act
+    sd_lookup_date = create_eng_lookup_date(eng_components)
+
+    # Assert
+    assert sd_lookup_date == expected
