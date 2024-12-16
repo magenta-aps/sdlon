@@ -37,21 +37,23 @@ def get_eng_type_uuid(gql_client: GraphQLClient, salary_type: SalaryType) -> UUI
     query = gql(
         """
             query GetEngagementTypeUUID($user_key: [String!]!) {
-              classes(user_keys: $user_key) {
-                objects {
-                  user_key
-                  type
-                  name
-                  uuid
+                classes(filter: { user_keys: $user_key }) {
+                    objects {
+                        validities {
+                            user_key
+                            type
+                            name
+                            uuid
+                        }
+                    }
                 }
-              }
             }
         """
     )
 
     r = gql_client.execute(query, variable_values={"user_key": salary_type.value})
 
-    return UUID(one(r["classes"]["objects"])["uuid"])
+    return UUID(one(one(r["classes"]["objects"])["validities"])["uuid"])
 
 
 def get_engagement_user_key_and_type(gql_client: GraphQLClient) -> list[Engagement]:
@@ -70,7 +72,7 @@ def get_engagement_user_key_and_type(gql_client: GraphQLClient) -> list[Engageme
             query GetEngagementAndType {
               engagements {
                 objects {
-                  objects {
+                  validities {
                     uuid
                     user_key
                     engagement_type {
@@ -93,11 +95,11 @@ def get_engagement_user_key_and_type(gql_client: GraphQLClient) -> list[Engageme
 
     return [
         Engagement(
-            eng_uuid=UUID(one(obj["objects"])["uuid"]),
-            user_key=one(obj["objects"])["user_key"],
-            eng_type_uuid=UUID(one(obj["objects"])["engagement_type"]["uuid"]),
+            eng_uuid=UUID(one(obj["validities"])["uuid"]),
+            user_key=one(obj["validities"])["user_key"],
+            eng_type_uuid=UUID(one(obj["validities"])["engagement_type"]["uuid"]),
             from_date=parse_datetime(
-                one(obj["objects"])["validity"]["from"][:10]
+                one(obj["validities"])["validity"]["from"][:10]
             ).date(),
         )
         for obj in objects
@@ -195,7 +197,7 @@ def main(
         print("Make sure you have read the README.md before running the script")
         exit(0)
 
-    gql_client = get_mo_client(auth_server, client_id, client_secret, mo_base_url, 5)
+    gql_client = get_mo_client(auth_server, client_id, client_secret, mo_base_url, 22)
 
     hourly_eng_type_uuid = get_eng_type_uuid(gql_client, SalaryType.HOURLY)
     monthly_eng_type_uuid = get_eng_type_uuid(gql_client, SalaryType.MONTHLY)

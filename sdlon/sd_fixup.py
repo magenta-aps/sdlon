@@ -185,14 +185,15 @@ def read_associations(session: SyncClientSession, org_unit_uuids: list[UUID]):
     query = gql(
         """
         query AssociationsQuery ($org_units: [UUID!]) {
-            associations(org_units: $org_units) {
+            associations(filter: {org_units: $org_units}) {
                 objects {
-                    uuid
-                    association_type_uuid
-                    validity {
-                        from
+                    validities {
+                        uuid
+                        association_type_uuid
+                        validity {
+                            from
+                        }
                     }
-
                 }
             }
         }
@@ -201,7 +202,7 @@ def read_associations(session: SyncClientSession, org_unit_uuids: list[UUID]):
     r = session.execute(
         query, variable_values={"org_units": [str(u) for u in org_unit_uuids]}
     )
-    return [one(a["objects"]) for a in r["associations"]]
+    return [one(a["validities"]) for a in r["associations"]["objects"]]
 
 
 def fix_association_types(
