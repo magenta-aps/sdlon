@@ -43,31 +43,28 @@ def setup_logging(
     log_file: str = "/var/log/sdlon/sd.log",
     log_file_backup_count: int = 90,
 ) -> None:
-    file_handler_conf = {
-        "level": log_level.value,
-        "class": "logging.handlers.TimedRotatingFileHandler",
-        "filename": log_file,
-        "when": "D",  # Make a new log file each day
-        "utc": True,
-        "backupCount": log_file_backup_count,
-    }
-    handlers_conf = {
-        "stdout": {
-            "level": log_level.value,
-            "class": "logging.StreamHandler",
-        },
-    }
     handlers = ["stdout"]
-
     if log_to_file:
-        handlers_conf["file"] = file_handler_conf  # type: ignore
         handlers.append("file")
 
     logging.config.dictConfig(
         {
             "version": 1,
             "disable_existing_loggers": False,
-            "handlers": handlers_conf,
+            "handlers": {
+                "stdout": {
+                    "level": log_level.value,
+                    "class": "logging.StreamHandler",
+                },
+                "file": {
+                    "level": log_level.value,
+                    "class": "logging.handlers.TimedRotatingFileHandler",
+                    "filename": log_file,
+                    "when": "D",  # Make a new log file each day
+                    "utc": True,
+                    "backupCount": log_file_backup_count,
+                },
+            },
             "loggers": {
                 "root": {
                     "handlers": handlers,
