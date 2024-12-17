@@ -1611,7 +1611,12 @@ def changed_at_init():
     logger.info("Starting SD-changed-at initialization")
 
     settings = get_settings()
-    setup_logging(settings.log_level)
+    setup_logging(
+        settings.log_level,
+        settings.log_to_file,
+        settings.log_file,
+        settings.log_file_backup_count,
+    )
 
     from_date = date_to_datetime(settings.sd_global_from_date)
     from_date = from_date.astimezone(tz=datetime.timezone.utc)
@@ -1625,7 +1630,12 @@ def changed_at(
 ):
     """Tool to delta synchronize with MO with SD."""
     settings = get_settings()
-    setup_logging(settings.log_level)
+    setup_logging(
+        settings.log_level,
+        settings.log_to_file,
+        settings.log_file,
+        settings.log_file_backup_count,
+    )
 
     logger.info("Program started")
 
@@ -1748,7 +1758,12 @@ def date_interval_run(
     institution_identifier: str | None,
 ):
     settings = get_settings()
-    setup_logging(settings.log_level)
+    setup_logging(
+        settings.log_level,
+        settings.log_to_file,
+        settings.log_file,
+        settings.log_file_backup_count,
+    )
 
     logger.info("Date interval run started")
 

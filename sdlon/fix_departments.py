@@ -576,7 +576,12 @@ class FixDepartments:
 def unit_fixer(ou_uuid: UUID):
     """Sync SD department information to MO."""
     settings = get_settings()
-    setup_logging(settings.log_level)
+    setup_logging(
+        settings.log_level,
+        settings.log_to_file,
+        settings.log_file,
+        settings.log_file_backup_count,
+    )
 
     if ou_uuid == settings.sd_fix_departments_root:
         logger.info("Cannot fix the root unit!")

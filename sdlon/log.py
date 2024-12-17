@@ -47,7 +47,7 @@ def setup_logging(
         "level": log_level.value,
         "class": "logging.handlers.TimedRotatingFileHandler",
         "filename": log_file,
-        "when": "D",
+        "when": "D",  # Make a new log file each day
         "utc": True,
         "backupCount": log_file_backup_count,
     }
