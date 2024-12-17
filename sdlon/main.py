@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi import Response
 from prometheus_fastapi_instrumentator import Instrumentator
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
-from structlog import get_logger
+from structlog.stdlib import get_logger
 
 from .config import get_settings
 from .fix_departments import FixDepartments

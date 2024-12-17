@@ -3,7 +3,7 @@ import uuid
 import click
 import requests
 from os2mo_helpers.mora_helpers import MoraHelper
-from structlog import get_logger
+from structlog.stdlib import get_logger
 
 from .config import get_settings
 from .config import Settings

@@ -19,7 +19,7 @@ from integrations import dawa_helper
 from integrations.ad_integration import ad_reader
 from os2mo_data_import import ImportHelper
 from os2mo_helpers.mora_helpers import MoraHelper
-from structlog import get_logger
+from structlog.stdlib import get_logger
 
 from .config import get_settings
 from .config import Settings

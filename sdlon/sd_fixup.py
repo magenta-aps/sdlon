@@ -22,7 +22,7 @@ from ra_utils.apply import apply
 from ra_utils.load_settings import load_setting
 from raclients.graph.client import GraphQLClient
 from raclients.graph.client import SyncClientSession
-from structlog import get_logger
+from structlog.stdlib import get_logger
 from tqdm import tqdm
 
 from . import sd_payloads

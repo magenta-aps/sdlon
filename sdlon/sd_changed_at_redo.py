@@ -8,7 +8,7 @@ import datetime
 import uuid
 
 import click
-from structlog import get_logger
+from structlog.stdlib import get_logger
 
 from .config import get_settings
 from .sd_changed_at import ChangeAtSD

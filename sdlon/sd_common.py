@@ -11,7 +11,7 @@ from typing import Union
 
 import requests
 import xmltodict
-from structlog import get_logger
+from structlog.stdlib import get_logger
 
 from .config import Settings
 from db.queries import log_payload

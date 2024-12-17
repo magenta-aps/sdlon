@@ -34,7 +34,7 @@ from prometheus_client import Enum
 from prometheus_client import Gauge
 from ramodels.mo import Employee
 from ramodels.mo._shared import OrganisationRef
-from structlog import get_logger
+from structlog.stdlib import get_logger
 
 from . import sd_payloads
 from .config import get_settings

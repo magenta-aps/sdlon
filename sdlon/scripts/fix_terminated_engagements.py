@@ -17,7 +17,7 @@ from sdclient.responses import EmploymentStatus
 from sdclient.responses import EmploymentWithLists
 from sdclient.responses import GetEmploymentChangedResponse
 from sdclient.responses import GetEmploymentResponse
-from structlog import get_logger
+from structlog.stdlib import get_logger
 
 from sdlon.date_utils import format_date
 from sdlon.date_utils import SD_INFINITY

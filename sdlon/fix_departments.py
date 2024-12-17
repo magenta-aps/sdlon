@@ -9,7 +9,7 @@ from uuid import uuid4
 
 import requests
 from os2mo_helpers.mora_helpers import MoraHelper
-from structlog import get_logger
+from structlog.stdlib import get_logger
 
 from . import sd_payloads
 from .config import get_settings

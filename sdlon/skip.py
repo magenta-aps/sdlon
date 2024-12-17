@@ -1,7 +1,7 @@
 from typing import Any
 from typing import OrderedDict
 
-from structlog import get_logger
+from structlog.stdlib import get_logger
 
 from .config import Settings
 
