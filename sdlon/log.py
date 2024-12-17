@@ -21,22 +21,6 @@ def anonymize_cpr(cpr: str) -> str:
     return cpr[:6] + "xxxx"
 
 
-# Taken from SDTool+
-def _dont_log_graphql_responses(logger, method_name, event_dict) -> dict:
-    """Drop logs from `BaseHTTPXTransport._decode_response` (in
-    `raclients.graph.transport`), which logs *all* GraphQL responses at DEBUG level.
-    (https://git.magenta.dk/rammearkitektur/ra-clients/-/blob/master/raclients/graph/transport.py#L117)
-    """
-    module: str | None = event_dict.get("module")
-    func_name: str | None = event_dict.get("func_name")
-    if module == "transport" and func_name in (
-        "_decode_response",
-        "_construct_payload",
-    ):
-        raise structlog.DropEvent
-    return event_dict
-
-
 def setup_logging(
     log_level: LogLevel,
     log_to_file: bool = False,
@@ -71,6 +55,10 @@ def setup_logging(
                     "level": log_level.value,
                     "propagate": True,
                 },
+                "raclients": {
+                    "handlers": handlers,
+                    "level": "CRITICAL",
+                },
             },
         }
     )
@@ -80,7 +68,6 @@ def setup_logging(
             structlog.processors.CallsiteParameterAdder(
                 [CallsiteParameter.MODULE, CallsiteParameter.FUNC_NAME],
             ),
-            _dont_log_graphql_responses,  # type: ignore
             structlog.contextvars.merge_contextvars,
             structlog.processors.add_log_level,
             structlog.processors.StackInfoRenderer(),
