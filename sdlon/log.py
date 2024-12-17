@@ -37,14 +37,6 @@ def _dont_log_graphql_responses(logger, method_name, event_dict) -> dict:
     return event_dict
 
 
-def get_logger():
-    """
-    DEPRECATED: will be removed in future commit
-    Use this function to get a logger instead of using structlog.get_logger() directly
-    """
-    return structlog.get_logger()
-
-
 def setup_logging(
     log_level: LogLevel,
     log_to_file: bool = False,

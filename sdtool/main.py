@@ -18,11 +18,11 @@ from os2mo_http_trigger_protocol import MOTriggerPayload
 from os2mo_http_trigger_protocol import MOTriggerRegister
 from os2mo_http_trigger_protocol import RequestType
 from prometheus_fastapi_instrumentator import Instrumentator
+from structlog import get_logger
 from structlog.contextvars import merge_contextvars
 from structlog.processors import KeyValueRenderer
 
 from sdlon.fix_departments import unit_fixer
-from sdlon.log import get_logger
 from sdtool.config import get_settings
 
 logger = get_logger()

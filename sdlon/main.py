@@ -6,10 +6,10 @@ from fastapi import FastAPI
 from fastapi import Response
 from prometheus_fastapi_instrumentator import Instrumentator
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
+from structlog import get_logger
 
 from .config import get_settings
 from .fix_departments import FixDepartments
-from .log import get_logger
 from .metrics import dipex_last_success_timestamp
 from .metrics import sd_changed_at_state
 from .sd_changed_at import changed_at

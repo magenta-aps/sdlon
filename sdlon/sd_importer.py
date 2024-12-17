@@ -19,6 +19,7 @@ from integrations import dawa_helper
 from integrations.ad_integration import ad_reader
 from os2mo_data_import import ImportHelper
 from os2mo_helpers.mora_helpers import MoraHelper
+from structlog import get_logger
 
 from .config import get_settings
 from .config import Settings
@@ -34,7 +35,6 @@ from .sd_common import generate_uuid
 from .sd_common import read_employment_at
 from .sd_common import sd_lookup
 from .skip import skip_fictional_users
-from sdlon.log import get_logger
 from sdlon.log import LogLevel
 from sdlon.log import setup_logging
 

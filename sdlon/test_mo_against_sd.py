@@ -7,9 +7,9 @@ from operator import itemgetter
 import click
 from more_itertools import flatten
 from os2mo_helpers.mora_helpers import MoraHelper
+from structlog import get_logger
 
 from .config import get_settings
-from .log import get_logger
 from .sd_common import EmploymentStatus
 from .sd_common import sd_lookup
 

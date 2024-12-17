@@ -7,11 +7,11 @@ from sqlalchemy import delete
 from sqlalchemy import desc
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
+from structlog import get_logger
 
 from db.engine import get_engine
 from db.models import Payload
 from db.models import Runs
-from sdlon.log import get_logger
 from sdlon.metrics import RunDBState
 
 logger = get_logger()

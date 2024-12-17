@@ -34,6 +34,7 @@ from prometheus_client import Enum
 from prometheus_client import Gauge
 from ramodels.mo import Employee
 from ramodels.mo._shared import OrganisationRef
+from structlog import get_logger
 
 from . import sd_payloads
 from .config import get_settings
@@ -78,7 +79,6 @@ from sdlon.it_systems import add_it_system_to_employee
 from sdlon.it_systems import get_employee_it_systems
 from sdlon.it_systems import get_sd_to_ad_it_system_uuid
 from sdlon.log import anonymize_cpr
-from sdlon.log import get_logger
 from sdlon.log import setup_logging
 from sdlon.metrics import dipex_last_success_timestamp
 from sdlon.metrics import RunDBState
