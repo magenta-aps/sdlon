@@ -66,7 +66,11 @@ def setup_logging(
     structlog.configure(
         processors=[
             structlog.processors.CallsiteParameterAdder(
-                [CallsiteParameter.MODULE, CallsiteParameter.FUNC_NAME],
+                [
+                    CallsiteParameter.MODULE,
+                    CallsiteParameter.FUNC_NAME,
+                    CallsiteParameter.LINENO,
+                ],
             ),
             structlog.contextvars.merge_contextvars,
             structlog.processors.add_log_level,
