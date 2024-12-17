@@ -45,27 +45,40 @@ def get_logger():
     return structlog.get_logger()
 
 
-def setup_logging(log_level: LogLevel) -> None:
-    # Disable logging from imported modules that use Pythons stdlib logging
+def setup_logging(
+    log_level: LogLevel,
+    log_to_file: bool = False,
+    log_file: str = "/var/log/sdlon/sd.log",
+    log_file_backup_count: int = 90,
+) -> None:
+    file_handler_conf = {
+        "level": log_level.value,
+        "class": "logging.handlers.TimedRotatingFileHandler",
+        "filename": log_file,
+        "when": "D",
+        "utc": True,
+        "backupCount": log_file_backup_count,
+    }
+    handlers_conf = {
+        "stdout": {
+            "level": log_level.value,
+            "class": "logging.StreamHandler",
+        },
+    }
+    handlers = ["stdout"]
+
+    if log_to_file:
+        handlers_conf["file"] = file_handler_conf  # type: ignore
+        handlers.append("file")
+
     logging.config.dictConfig(
         {
             "version": 1,
             "disable_existing_loggers": False,
-            "handlers": {
-                "default": {
-                    "level": log_level.value,
-                    "class": "logging.StreamHandler",
-                },
-                "file": {
-                    "level": log_level.value,
-                    "class": "logging.handlers.WatchedFileHandler",
-                    # Filename will be changed in future commit
-                    "filename": "/tmp/hurra.log",
-                },
-            },
+            "handlers": handlers_conf,
             "loggers": {
                 "root": {
-                    "handlers": ["default", "file"],
+                    "handlers": handlers,
                     "level": log_level.value,
                     "propagate": True,
                 },
