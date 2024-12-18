@@ -14,8 +14,8 @@ from typing import Union
 from more_itertools import first
 from more_itertools import pairwise
 from more_itertools import tabulate
+from structlog.stdlib import get_logger
 
-from .log import get_logger
 from .sd_common import EmploymentStatus
 
 # TODO: move constants elsewhere

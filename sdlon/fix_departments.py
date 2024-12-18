@@ -9,6 +9,7 @@ from uuid import uuid4
 
 import requests
 from os2mo_helpers.mora_helpers import MoraHelper
+from structlog.stdlib import get_logger
 
 from . import sd_payloads
 from .config import get_settings
@@ -20,7 +21,6 @@ from .date_utils import parse_datetime
 from .date_utils import SD_INFINITY
 from .engagement import get_eng_user_key
 from .exceptions import NoCurrentValdityException
-from .log import get_logger
 from .log import setup_logging
 from .sd_common import mora_assert
 from .sd_common import sd_lookup
@@ -576,7 +576,12 @@ class FixDepartments:
 def unit_fixer(ou_uuid: UUID):
     """Sync SD department information to MO."""
     settings = get_settings()
-    setup_logging(settings.log_level)
+    setup_logging(
+        settings.log_level,
+        settings.log_to_file,
+        settings.log_file,
+        settings.log_file_backup_count,
+    )
 
     if ou_uuid == settings.sd_fix_departments_root:
         logger.info("Cannot fix the root unit!")

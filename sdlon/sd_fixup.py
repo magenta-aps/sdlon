@@ -22,13 +22,13 @@ from ra_utils.apply import apply
 from ra_utils.load_settings import load_setting
 from raclients.graph.client import GraphQLClient
 from raclients.graph.client import SyncClientSession
+from structlog.stdlib import get_logger
 from tqdm import tqdm
 
 from . import sd_payloads
 from .config import get_settings
 from .config import Settings
 from .date_utils import sd_to_mo_date
-from .log import get_logger
 from .sd_changed_at import ChangeAtSD
 from .sd_common import EmploymentStatus
 from .sd_common import mora_assert

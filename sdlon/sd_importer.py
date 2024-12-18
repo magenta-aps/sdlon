@@ -19,6 +19,7 @@ from integrations import dawa_helper
 from integrations.ad_integration import ad_reader
 from os2mo_data_import import ImportHelper
 from os2mo_helpers.mora_helpers import MoraHelper
+from structlog.stdlib import get_logger
 
 from .config import get_settings
 from .config import Settings
@@ -34,8 +35,6 @@ from .sd_common import generate_uuid
 from .sd_common import read_employment_at
 from .sd_common import sd_lookup
 from .skip import skip_fictional_users
-from sdlon.log import get_logger
-from sdlon.log import LogLevel
 from sdlon.log import setup_logging
 
 
@@ -831,7 +830,7 @@ class SdImport:
 
 @click.group()
 def cli():
-    setup_logging(LogLevel.DEBUG)
+    pass
 
 
 @cli.command()
@@ -870,6 +869,12 @@ def full_import(
         overrides["mox_base"] = mox_base
 
     settings = get_settings(**overrides)
+    setup_logging(
+        settings.log_level,
+        settings.log_to_file,
+        settings.log_file,
+        settings.log_file_backup_count,
+    )
 
     # Check connection to MO before we fire requests against SD
     mh = MoraHelper(settings.mora_base)

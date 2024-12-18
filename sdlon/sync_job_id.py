@@ -3,6 +3,7 @@ import uuid
 import click
 import requests
 from os2mo_helpers.mora_helpers import MoraHelper
+from structlog.stdlib import get_logger
 
 from .config import get_settings
 from .config import Settings
@@ -10,8 +11,6 @@ from .models import JobFunction
 from .sd_common import mora_assert
 from .sd_common import sd_lookup
 from .sd_payloads import edit_klasse_title
-from sdlon.log import get_logger
-from sdlon.log import LogLevel
 from sdlon.log import setup_logging
 
 
@@ -233,7 +232,12 @@ class JobIdSync:
 def sync_jobid(job_pos_id, title, sync_all):
     """Job Position Synchronize tool."""
     settings = get_settings()
-    setup_logging(LogLevel.DEBUG)
+    setup_logging(
+        settings.log_level,
+        settings.log_to_file,
+        settings.log_file,
+        settings.log_file_backup_count,
+    )
 
     if job_pos_id is None and sync_all is None:
         raise click.ClickException("Either job-pos-id or sync-all must be given")

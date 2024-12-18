@@ -34,6 +34,7 @@ from prometheus_client import Enum
 from prometheus_client import Gauge
 from ramodels.mo import Employee
 from ramodels.mo._shared import OrganisationRef
+from structlog.stdlib import get_logger
 
 from . import sd_payloads
 from .config import get_settings
@@ -78,7 +79,6 @@ from sdlon.it_systems import add_it_system_to_employee
 from sdlon.it_systems import get_employee_it_systems
 from sdlon.it_systems import get_sd_to_ad_it_system_uuid
 from sdlon.log import anonymize_cpr
-from sdlon.log import get_logger
 from sdlon.log import setup_logging
 from sdlon.metrics import dipex_last_success_timestamp
 from sdlon.metrics import RunDBState
@@ -1611,7 +1611,12 @@ def changed_at_init():
     logger.info("Starting SD-changed-at initialization")
 
     settings = get_settings()
-    setup_logging(settings.log_level)
+    setup_logging(
+        settings.log_level,
+        settings.log_to_file,
+        settings.log_file,
+        settings.log_file_backup_count,
+    )
 
     from_date = date_to_datetime(settings.sd_global_from_date)
     from_date = from_date.astimezone(tz=datetime.timezone.utc)
@@ -1625,7 +1630,12 @@ def changed_at(
 ):
     """Tool to delta synchronize with MO with SD."""
     settings = get_settings()
-    setup_logging(settings.log_level)
+    setup_logging(
+        settings.log_level,
+        settings.log_to_file,
+        settings.log_file,
+        settings.log_file_backup_count,
+    )
 
     logger.info("Program started")
 
@@ -1748,7 +1758,12 @@ def date_interval_run(
     institution_identifier: str | None,
 ):
     settings = get_settings()
-    setup_logging(settings.log_level)
+    setup_logging(
+        settings.log_level,
+        settings.log_to_file,
+        settings.log_file,
+        settings.log_file_backup_count,
+    )
 
     logger.info("Date interval run started")
 

@@ -1,15 +1,11 @@
 import logging.config
 import re
 from enum import Enum
-from uuid import uuid4
 
 import structlog
-
+from structlog.processors import CallsiteParameter
 
 CPR_REGEX = re.compile("[0-9]{10}")
-
-# Unique log context for this application
-APP_LOG_CONTEXT = uuid4()
 
 
 class LogLevel(str, Enum):
@@ -25,42 +21,63 @@ def anonymize_cpr(cpr: str) -> str:
     return cpr[:6] + "xxxx"
 
 
-def log_filter(logger, method_name, event_dict):
-    # Only log from our application log context
-    log_context = event_dict.pop("log_context", None)
-    if log_context == APP_LOG_CONTEXT:
-        return event_dict
-    raise structlog.DropEvent
+def setup_logging(
+    log_level: LogLevel,
+    log_to_file: bool = False,
+    log_file: str = "/var/log/sdlon/sd.log",
+    log_file_backup_count: int = 90,
+) -> None:
+    handlers = ["stdout"]
+    if log_to_file:
+        handlers.append("file")
 
-
-def get_logger():
-    """
-    Use this function to get a logger instead of using structlog.get_logger() directly
-    """
-    return structlog.get_logger().bind(log_context=APP_LOG_CONTEXT)
-
-
-def setup_logging(log_level: LogLevel) -> None:
-    log_level_value = logging.getLevelName(log_level.value)
-
-    # Disable logging from imported modules that use Pythons stdlib logging
     logging.config.dictConfig(
         {
             "version": 1,
-            "disable_existing_loggers": True,  # This line does not really seem to work
-            "root": {"level": logging.CRITICAL + 1},
+            "disable_existing_loggers": False,
+            "handlers": {
+                "stdout": {
+                    "level": log_level.value,
+                    "class": "logging.StreamHandler",
+                },
+                "file": {
+                    "level": log_level.value,
+                    "class": "logging.handlers.TimedRotatingFileHandler",
+                    "filename": log_file,
+                    "when": "D",  # Make a new log file each day
+                    "utc": True,
+                    "backupCount": log_file_backup_count,
+                },
+            },
+            "loggers": {
+                "root": {
+                    "handlers": handlers,
+                    "level": log_level.value,
+                    "propagate": True,
+                },
+                "raclients": {
+                    "handlers": handlers,
+                    "level": "CRITICAL",
+                },
+            },
         }
     )
 
     structlog.configure(
         processors=[
-            log_filter,
+            structlog.processors.CallsiteParameterAdder(
+                [
+                    CallsiteParameter.MODULE,
+                    CallsiteParameter.FUNC_NAME,
+                    CallsiteParameter.LINENO,
+                ],
+            ),
             structlog.contextvars.merge_contextvars,
             structlog.processors.add_log_level,
             structlog.processors.StackInfoRenderer(),
             structlog.dev.set_exc_info,
-            structlog.processors.TimeStamper(),
-            structlog.dev.ConsoleRenderer(),
+            structlog.processors.TimeStamper(fmt="iso", utc=True),
+            structlog.dev.ConsoleRenderer(colors=False),
         ],
-        wrapper_class=structlog.make_filtering_bound_logger(log_level_value),
+        logger_factory=structlog.stdlib.LoggerFactory(),
     )

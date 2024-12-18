@@ -61,7 +61,12 @@ class Settings(BaseSettings):  # type: ignore
         "/opt/dipex/os2mo-data-import-and-export/settings/cpr_uuid_map.csv"
     )
 
+    # Logging
     log_level: LogLevel = LogLevel.DEBUG
+    log_to_file: bool = False
+    log_file: str = "/var/log/sdlon/sd.log"
+    # The number of log files to keep before rotating
+    log_file_backup_count: int = 90
 
     job_settings: JobSettings = JobSettings()
 
