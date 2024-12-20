@@ -27,6 +27,7 @@ from sdclient.responses import Person
 
 from sdlon.date_utils import format_date
 from sdlon.graphql import get_mo_client
+from sdlon.log import anonymize_cpr
 from sdlon.log import LogLevel
 from sdlon.log import setup_logging
 
@@ -324,6 +325,12 @@ def get_last_day_of_work(
     is_flag=True,
     help="Set flag to ensure that you have read the readme",
 )
+@click.option(
+    "--show-cpr",
+    "show_cpr",
+    is_flag=True,
+    help="Show CPRs in output",
+)
 def main(
     username: str,
     password: str,
@@ -335,6 +342,7 @@ def main(
     use_pickle: bool,
     dry_run: bool,
     readme: bool,
+    show_cpr: bool,
 ):
     if not readme:
         print("Make sure you have read the README.md before running the script")
@@ -375,7 +383,7 @@ def main(
                 )
                 last_day_of_work_str = format_date(last_day_of_work)
                 print(
-                    employee_.cpr_no,
+                    employee_.cpr_no if show_cpr else anonymize_cpr(employee_.cpr_no),
                     eng["user_key"],
                     last_day_of_work_str,
                     format_date(eng["to"].date()) if eng["to"] is not None else None,
