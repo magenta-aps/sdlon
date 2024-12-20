@@ -1,6 +1,7 @@
 import logging.config
 import re
 from enum import Enum
+from typing import Any
 
 import structlog
 from structlog.processors import CallsiteParameter
@@ -27,28 +28,30 @@ def setup_logging(
     log_file: str = "/var/log/sdlon/sd.log",
     log_file_backup_count: int = 90,
 ) -> None:
+    handlers_conf: dict[str, dict[str, Any]] = {
+        "stdout": {
+            "level": log_level.value,
+            "class": "logging.StreamHandler",
+        },
+    }
     handlers = ["stdout"]
+
     if log_to_file:
+        handlers_conf["file"] = {
+            "level": log_level.value,
+            "class": "logging.handlers.TimedRotatingFileHandler",
+            "filename": log_file,
+            "when": "D",  # Make a new log file each day
+            "utc": True,
+            "backupCount": log_file_backup_count,
+        }
         handlers.append("file")
 
     logging.config.dictConfig(
         {
             "version": 1,
             "disable_existing_loggers": False,
-            "handlers": {
-                "stdout": {
-                    "level": log_level.value,
-                    "class": "logging.StreamHandler",
-                },
-                "file": {
-                    "level": log_level.value,
-                    "class": "logging.handlers.TimedRotatingFileHandler",
-                    "filename": log_file,
-                    "when": "D",  # Make a new log file each day
-                    "utc": True,
-                    "backupCount": log_file_backup_count,
-                },
-            },
+            "handlers": handlers_conf,
             "loggers": {
                 "root": {
                     "handlers": handlers,
