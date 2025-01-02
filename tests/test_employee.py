@@ -1,9 +1,28 @@
 from unittest.mock import MagicMock
 from uuid import UUID
 
+from gql import gql
+
 from sdlon.employees import get_employee
-from sdlon.employees import QUERY_GET_EMPLOYEE
 from sdlon.models import MOBasePerson
+
+
+EXPECTED_QUERY_GET_EMPLOYEE = gql(
+    """
+        query GetEmployee($cpr: [CPR!]!) {
+          employees(filter: { cpr_numbers: $cpr }) {
+            objects {
+              current {
+                name
+                given_name
+                surname
+                uuid
+              }
+            }
+          }
+        }
+    """
+)
 
 
 def test_get_employee(mock_graphql_client: MagicMock):
@@ -31,7 +50,7 @@ def test_get_employee(mock_graphql_client: MagicMock):
 
     # Assert
     mock_execute.assert_called_once_with(
-        QUERY_GET_EMPLOYEE, variable_values={"cpr": "1111111112"}
+        EXPECTED_QUERY_GET_EMPLOYEE, variable_values={"cpr": "1111111112"}
     )
     assert employee == MOBasePerson(
         cpr="1111111112",
@@ -52,6 +71,6 @@ def test_get_employee_none(mock_graphql_client: MagicMock):
 
     # Assert
     mock_execute.assert_called_once_with(
-        QUERY_GET_EMPLOYEE, variable_values={"cpr": "1111111112"}
+        EXPECTED_QUERY_GET_EMPLOYEE, variable_values={"cpr": "1111111112"}
     )
     assert employee is None

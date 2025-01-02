@@ -9,11 +9,11 @@ from sdlon.models import MOBasePerson
 QUERY_GET_EMPLOYEE = gql(
     """
         query GetEmployee($cpr: [CPR!]!) {
-            employees(cpr_numbers: $cpr) {
+            employees(filter: { cpr_numbers: $cpr }) {
                 objects {
                     current {
                         name
-                        givenname
+                        given_name
                         surname
                         uuid
                     }
