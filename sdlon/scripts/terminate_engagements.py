@@ -299,7 +299,7 @@ def get_last_day_of_work(
     "client_secret",
     type=click.STRING,
     required=True,
-    help="Keycloak client secret for the DIPEX client",
+    help="Keycloak client secret for the 'developer' client",
 )
 @click.option(
     "--mo-base-url",
