@@ -15,7 +15,7 @@ def test_get_employee(mock_graphql_client: MagicMock):
                     {
                         "current": {
                             "name": "Solveig Kuhlenhenke",
-                            "givenname": "Solveig",
+                            "given_name": "Solveig",
                             "surname": "Kuhlenhenke",
                             "uuid": "23d2dfc7-6ceb-47cf-97ed-db6beadcb09b",
                         }

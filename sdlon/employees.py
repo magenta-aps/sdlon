@@ -45,7 +45,7 @@ def get_employee(gql_client: GraphQLClient, cpr: str) -> MOBasePerson | None:
 
     return MOBasePerson(
         cpr=cpr,
-        givenname=employee["givenname"],
+        givenname=employee["given_name"],
         surname=employee["surname"],
         name=employee["name"],
         uuid=UUID(employee["uuid"]),
