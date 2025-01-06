@@ -22,7 +22,6 @@ logger = get_logger()
 
 def create_app(**kwargs) -> FastAPI:
     settings = get_settings(**kwargs)
-    settings.job_settings.start_logging_based_on_settings()
 
     app = FastAPI()
 
