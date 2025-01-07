@@ -62,6 +62,10 @@ def setup_logging(
                     "handlers": handlers,
                     "level": "CRITICAL",
                 },
+                "urllib3": {
+                    "handlers": handlers,
+                    "level": "CRITICAL",
+                },
             },
         }
     )
