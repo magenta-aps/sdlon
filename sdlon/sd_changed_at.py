@@ -215,6 +215,9 @@ class ChangeAtSD:
             )
         )
 
+    # SD vil oprette brugere i MO med et UUID, som svarer til ADGUID
+
+
     def _create_sd_to_ad_it_system_connection(
         self, employee_uuid: UUID, user_key: str
     ) -> None:
@@ -542,6 +545,13 @@ class ChangeAtSD:
         for sd_person, _ in new_pairs:
             given_name = sd_person.given_name or ""
             surname = sd_person.surname or ""
+
+            # sam_account_name er ikke vigtig længere og vi dropper oprettelsen
+            # af IT-systemet nedenfor
+            # Vi laver i stedet her et HTTP-kald til LDAP-integrationen for at få
+            # object_guid
+            # Feature flag til, om man skal kalde den gamle eller den nye
+            # AD-integration
 
             sam_account_name, object_guid = self._fetch_ad_information(sd_person.cpr)
 
