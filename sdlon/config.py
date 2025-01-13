@@ -57,10 +57,6 @@ class Settings(BaseSettings):  # type: ignore
     sd_phone_number_id_trigger: str = "14"
     sd_phone_number_id_for_ad_string: str = "AD-bruger fra SD"
 
-    cpr_uuid_map_path: str = (
-        "/opt/dipex/os2mo-data-import-and-export/settings/cpr_uuid_map.csv"
-    )
-
     # Logging
     log_level: LogLevel = LogLevel.DEBUG
     log_to_file: bool = False
@@ -87,8 +83,6 @@ class Settings(BaseSettings):  # type: ignore
     # If true, the sd_cprs will be excluded and if false, only the
     # CPRs in sd_cprs will be included in the run
     sd_exclude_cprs_mode: bool = True
-
-    sd_read_forced_uuids: bool = True
 
     sd_skip_leave_creation_if_no_engagement: bool = False
 

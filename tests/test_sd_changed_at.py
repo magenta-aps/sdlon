@@ -1660,11 +1660,6 @@ class Test_sd_changed_at(unittest.TestCase):
             self.assertEqual(params["DeactivationTime"], to_date.strftime("%H:%M"))
 
 
-def test_read_forced_uuid_use_empty_dict():
-    sd_updater = setup_sd_changed_at({"sd_read_forced_uuids": False})
-    assert sd_updater.employee_forced_uuids == dict()
-
-
 @pytest.mark.parametrize(
     "too_deep,expected_target_ou",
     [

@@ -16,7 +16,6 @@ from uuid import uuid4
 import click
 from anytree import Node
 from integrations import dawa_helper
-from integrations.ad_integration import ad_reader
 from os2mo_data_import import ImportHelper
 from os2mo_helpers.mora_helpers import MoraHelper
 from structlog.stdlib import get_logger
@@ -50,13 +49,9 @@ class SdImport:
         self,
         importer,
         settings: Settings,
-        ad_info=None,
         org_only=False,
         org_id_prefix=None,
-        employee_mapping=None,
     ):
-        employee_mapping = employee_mapping or {}
-
         self.settings = settings
 
         self.base_url = "https://service.sd.dk/sdws/"
@@ -87,15 +82,6 @@ class SdImport:
         self.create_email_addresses = self.settings.sd_importer_create_email_addresses
 
         self.historic_org_unit_uuid = str(uuid.uuid4())
-
-        # CPR indexed dictionary of AD users
-        self.ad_people: Dict[str, Dict] = {}
-        self.employee_forced_uuids = employee_mapping
-        self.ad_reader = None
-        if isinstance(ad_info, ad_reader.ADParameterReader):
-            self.ad_reader = ad_info
-            self.importer.new_itsystem(identifier="AD", system_name="Active Directory")
-            self.ad_reader.cache_all()
 
         if self.settings.sd_phone_number_id_for_ad_creation:
             self.importer.new_itsystem(
@@ -178,14 +164,6 @@ class SdImport:
                     klasse_id, klasse = klass
                     scope = "TEXT"
                 self._add_klasse(klasse_id, klasse, facet, scope)
-
-    def _update_ad_map(self, cpr):
-        logger.debug("_update_ad_map called")
-        self.ad_people[cpr] = {}
-        if self.ad_reader:
-            response = self.ad_reader.read_user(cpr=cpr, cache_only=True)
-            if response:
-                self.ad_people[cpr] = response
 
     def _read_department_info(self):
         """Load all department details and store for later user."""
@@ -511,37 +489,19 @@ class SdImport:
         # TODO: Almost identitcal code exists in sd_changed_at's update_changed_persons
         for person in people:
             cpr = person["PersonCivilRegistrationIdentifier"]
-            self._update_ad_map(cpr)
 
             given_name = person.get("PersonGivenName", "")
             sur_name = person.get("PersonSurnameName", "")
 
-            uuid = self.employee_forced_uuids.get(cpr)
-            logger.info(f"Employee in force list: {uuid}")
-            if uuid is None and "ObjectGuid" in self.ad_people[cpr]:
-                uuid = self.ad_people[cpr]["ObjectGuid"]
-
-            # Name is placeholder for initals, do not know which field to extract
-            if "Name" in self.ad_people[cpr]:
-                user_key = self.ad_people[cpr]["Name"]
-            else:
-                user_key = "{} {}".format(given_name, sur_name)
+            user_key = "{} {}".format(given_name, sur_name)
 
             self.importer.add_employee(
                 name=(given_name, sur_name),
                 identifier=cpr,
                 cpr_no=cpr,
                 user_key=user_key,
-                uuid=uuid,
+                uuid=None,
             )
-
-            if "SamAccountName" in self.ad_people[cpr]:
-                self.importer.join_itsystem(
-                    employee=cpr,
-                    user_key=self.ad_people[cpr]["SamAccountName"],
-                    itsystem_ref="AD",
-                    date_from="1930-01-01",
-                )
 
             # See https://redmine.magenta-aps.dk/issues/56089
             if self.settings.sd_phone_number_id_for_ad_creation:
@@ -887,7 +847,7 @@ def full_import(
         mora_base=settings.mora_base,
         seperate_names=True,
     )
-    sd = SdImport(importer, settings=settings, org_only=org_only, ad_info=None)
+    sd = SdImport(importer, settings=settings, org_only=org_only)
 
     sd.create_ou_tree(create_orphan_container=False, sub_tree=None, super_unit=None)
     if not org_only:

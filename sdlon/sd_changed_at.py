@@ -1,5 +1,4 @@
 import datetime
-import pathlib
 import sys
 import uuid
 from functools import lru_cache
@@ -24,7 +23,6 @@ import click
 import requests
 import sentry_sdk
 from fastapi.encoders import jsonable_encoder
-from integrations import cpr_mapper
 from integrations.ad_integration import ad_reader
 from more_itertools import last
 from more_itertools import one
@@ -113,9 +111,6 @@ class ChangeAtSD:
         elif job_function_type == JobFunction.employment_name:
             self.use_jpi = False
 
-        self.employee_forced_uuids = (
-            self._read_forced_uuids() if self.settings.sd_read_forced_uuids else dict()
-        )
         self.department_fixer = self._get_fix_departments()
         self.helper = self._get_mora_helper(self.settings.mora_base)
         self.job_sync = self._get_job_sync(self.settings)
@@ -189,17 +184,6 @@ class ChangeAtSD:
 
     def _get_job_sync(self, settings: Settings) -> JobIdSync:
         return JobIdSync(settings, self.current_inst_id)
-
-    def _read_forced_uuids(self):
-        cpr_map = pathlib.Path(self.settings.cpr_uuid_map_path)
-        if not cpr_map.is_file():
-            message = f"Did not find cpr mapping: {cpr_map}"
-            logger.error(message)
-            raise Exception(message)
-
-        logger.info("Found cpr mapping")
-        employee_forced_uuids = cpr_mapper.employee_mapper(str(cpr_map))
-        return employee_forced_uuids
 
     @lru_cache(maxsize=None)
     def _get_ad_reader(self):
@@ -559,15 +543,9 @@ class ChangeAtSD:
             given_name = sd_person.given_name or ""
             surname = sd_person.surname or ""
 
-            # Use previously created UUID (if such exists) for MO person
-            # to be created
-            forced_uuid = self.employee_forced_uuids.get(sd_person.cpr)
             sam_account_name, object_guid = self._fetch_ad_information(sd_person.cpr)
 
-            if forced_uuid:
-                uuid = forced_uuid
-                logger.info("Employee in force list", uuid=uuid)
-            elif object_guid:
+            if object_guid:
                 uuid = object_guid
                 logger.debug("Using ObjectGuid as MO UUID", uuid=uuid)
             else:
