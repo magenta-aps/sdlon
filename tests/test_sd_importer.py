@@ -73,7 +73,7 @@ def get_sd_importer(
     settings_dict.update(override_settings)
     settings = Settings.parse_obj(settings_dict)
 
-    sd = SdImportTest(importer, settings=settings, org_only=org_only, ad_info=None)
+    sd = SdImportTest(importer, settings=settings, org_only=org_only)
 
     # add_people should not be called when rg-only
     if org_only:
