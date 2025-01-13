@@ -84,8 +84,6 @@ class Settings(BaseSettings):  # type: ignore
     # CPRs in sd_cprs will be included in the run
     sd_exclude_cprs_mode: bool = True
 
-    sd_read_forced_uuids: bool = True
-
     sd_skip_leave_creation_if_no_engagement: bool = False
 
     # Prefix engagement user key with InstitutionIdentifier
