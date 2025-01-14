@@ -12,6 +12,7 @@ import hypothesis.strategies as st
 import pytest
 from freezegun import freeze_time
 from hypothesis import given
+from integrations.ad_integration.ad_reader import ADParameterReader
 from parameterized import parameterized
 from prometheus_client import Enum
 from prometheus_client import Gauge
@@ -2869,3 +2870,35 @@ def test_edit_engagement_department_uses_correct_user_key(
         {"from": "1999-01-01", "to": None},
         person_uuid,
     )
+
+
+def test__get_ad_reader_ad_integration_not_in_use():
+    # Arrange
+    sd_updater = setup_sd_changed_at(
+        updates={
+            "sd_use_ad_integration": False,
+        }
+    )
+
+    # Act
+    ad_reader = sd_updater._get_ad_reader()
+
+    # Assert
+    assert ad_reader is None
+
+
+@patch("sdlon.sd_changed_at.ad_reader")
+def test__get_ad_reader_legacy_ad_integration(mock_ad_reader: MagicMock):
+    # Arrange
+    sd_updater = setup_sd_changed_at(
+        updates={
+            "sd_use_ad_integration": True,
+        }
+    )
+    mock_ad_reader.ADParameterReader.return_value = MagicMock(spec=ADParameterReader)
+
+    # Act
+    ad_reader = sd_updater._get_ad_reader()
+
+    # Assert
+    assert isinstance(ad_reader, ADParameterReader)
