@@ -70,6 +70,7 @@ from .sync_job_id import JobIdSync
 from db.queries import get_run_db_from_date
 from db.queries import get_status
 from db.queries import persist_status
+from sdlon.ad import LdapADGUIDReader
 from sdlon.employees import get_employee
 from sdlon.exceptions import PreviousRunNotCompletedError
 from sdlon.graphql import get_mo_client
@@ -188,6 +189,10 @@ class ChangeAtSD:
     @lru_cache(maxsize=None)
     def _get_ad_reader(self):
         if self.use_ad:
+            if self.settings.sd_use_ldap_integration:
+                return LdapADGUIDReader(
+                    self.settings.sd_ldap_host, self.settings.sd_ldap_port
+                )
             logger.info("AD integration in use")
             return ad_reader.ADParameterReader()
         logger.info("AD integration not in use")

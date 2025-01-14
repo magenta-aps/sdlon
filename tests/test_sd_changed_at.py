@@ -23,6 +23,7 @@ from .fixtures import get_employment_fixture
 from .fixtures import get_read_employment_changed_fixture
 from .fixtures import get_sd_person_fixture
 from .fixtures import read_employment_fixture
+from sdlon.ad import LdapADGUIDReader
 from sdlon.config import Settings
 from sdlon.date_utils import format_date
 from sdlon.it_systems import MUTATION_ADD_IT_SYSTEM_TO_EMPLOYEE
@@ -2902,3 +2903,55 @@ def test__get_ad_reader_legacy_ad_integration(mock_ad_reader: MagicMock):
 
     # Assert
     assert isinstance(ad_reader, ADParameterReader)
+
+
+def test__get_ad_reader_ldap_ad_integration():
+    # Arrange
+    sd_updater = setup_sd_changed_at(
+        updates={
+            "sd_use_ad_integration": True,
+            "sd_use_ldap_integration": True,
+            "sd_ldap_host": "hostname",
+            "sd_ldap_port": 1234,
+        }
+    )
+
+    # Act
+    ad_reader = sd_updater._get_ad_reader()
+
+    # Assert
+    assert isinstance(ad_reader, LdapADGUIDReader)
+    assert ad_reader.host == "hostname"
+    assert ad_reader.port == 1234
+
+
+@patch("sdlon.ad.requests.get")
+def test__fetch_ad_information_for_ldap_case(mock_get: MagicMock):
+    # Arrange
+    sd_updater = setup_sd_changed_at(
+        updates={
+            "sd_use_ad_integration": True,
+            "sd_use_ldap_integration": True,
+            "sd_ldap_host": "hostname",
+            "sd_ldap_port": 1234,
+        }
+    )
+
+    mock_response = MagicMock()
+    mock_response.json.return_value = {
+        "dn": "uid=bruce,ou=os2mo,o=magenta,dc=magenta,dc=dk",
+        "uuid": "c04d7ec7-1364-4d98-9ad4-4dddabe703b4",
+        "username": "bruce",
+    }
+    mock_get.return_value = mock_response
+
+    # Act
+    sam_account_name, object_guid = sd_updater._fetch_ad_information("1212121234")
+
+    # Assert
+    mock_get.assert_called_once_with(
+        "http://hostname:1234/SD",
+        params={"cpr_number": "1212121234"},
+    )
+    assert sam_account_name is None
+    assert object_guid == "c04d7ec7-1364-4d98-9ad4-4dddabe703b4"

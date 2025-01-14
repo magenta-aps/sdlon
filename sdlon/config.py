@@ -72,7 +72,13 @@ class Settings(BaseSettings):  # type: ignore
     sd_importer_create_email_addresses: bool = True
 
     sd_no_salary_minimum_id: Optional[int] = None
+
     sd_use_ad_integration: bool = True
+    # If true, use the new LDAP integration for getting the person ADGUID to be used
+    # as the UUID for the MO person
+    sd_use_ldap_integration: bool = False
+    sd_ldap_host: str = "os2mo_ldap_import_export-adm-mo_ldap_import_export-1"
+    sd_ldap_port: PositiveInt = 8000
 
     sd_fix_departments_root: Optional[UUID4] = None
     sd_overwrite_existing_employment_name = True
