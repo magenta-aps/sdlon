@@ -16,6 +16,9 @@ from more_itertools import partition
 from os2mo_helpers.mora_helpers import MoraHelper
 from structlog.stdlib import get_logger
 
+from .date_utils import format_date
+from .date_utils import get_mo_validity
+from .date_utils import get_sd_validity
 from .date_utils import parse_datetime
 from .sd_common import ensure_list
 from .sd_common import mora_assert
@@ -249,3 +252,63 @@ def terminate_eng_from_uuid(
         response = mora_helper._mo_post("details/terminate", payload)
         logger.debug("Terminate response: {}".format(response.text))
         mora_assert(response)
+
+
+def re_terminate_engagement(
+    mora_helper: MoraHelper,
+    mo_eng: dict[str, Any],
+    eng_info_obj: dict[str, Any],
+    emp_status_list: list[dict[str, str]],
+    dry_run: bool,
+) -> None:
+    """
+    We re-terminate an engagement, if it was terminated before an edit
+    operation, since the edit operation re-opens any previously terminated
+    engagements (since we are no longer using "cut" dates when generating
+    the MO validity). See details here:
+    https://redmine.magenta.dk/issues/60402#note-16 and
+    https://redmine.magenta.dk/issues/61683
+
+    Args:
+        mora_helper: the MoRaHelper instance
+        mo_eng: the MO engagement
+        eng_info_obj: the engagement_info object
+        emp_status_list: the SD payload EmploymentStatus objects
+        dry_run: whether we are performing a dry run or not
+    """
+
+    def terminate_eng(eng_end: date) -> None:
+        # We need to add 1 day to the "last day of work" to get the "first day of
+        # non-work", i.e. the first day of the termination period.
+        term_start_date = eng_end + timedelta(days=1)
+        term_start: str = format_date(term_start_date)
+
+        logger.debug(
+            "Re-terminate engagement",
+            eng_uuid=mo_eng["uuid"],
+            term_start_date=term_start,
+        )
+
+        terminate_eng_from_uuid(mora_helper, mo_eng["uuid"], dry_run, term_start)
+
+    # The MO engagement validity of the (time line wise) latest engagement.
+    mo_validity = get_mo_validity(mo_eng)
+    # The SD payload validity
+    sd_validity = get_sd_validity(eng_info_obj)
+
+    last_day_of_sd_work = get_last_day_of_sd_work(emp_status_list)
+    if last_day_of_sd_work is not None:
+        # If we enter this if-block, the SD payload contains one or more
+        # EmploymentStatus objects and hence the validity of the engagement in MO
+        # could have changed.
+        eng_end_date = max(mo_validity["to"], last_day_of_sd_work)
+        logger.debug(
+            "EmploymentStatus changes - we may need to terminate",
+            eng_end_date=format_date(eng_end_date),
+        )
+        if sd_validity["to"] > eng_end_date:
+            terminate_eng(eng_end_date)
+        return
+
+    if sd_validity["to"] > mo_validity["to"]:
+        terminate_eng(mo_validity["to"])
