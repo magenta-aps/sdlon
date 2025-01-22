@@ -19,6 +19,7 @@ from .date_utils import format_date
 from .date_utils import MO_INFINITY
 from .date_utils import parse_datetime
 from .date_utils import SD_INFINITY
+from .date_utils import sd_to_mo_validity
 from .engagement import get_eng_user_key
 from .exceptions import NoCurrentValdityException
 from .log import setup_logging
@@ -438,6 +439,7 @@ class FixDepartments:
                 )
                 logger.info("Checking user_key", user_key=user_key)
                 sd_uuid = employment["EmploymentDepartment"]["DepartmentUUIDIdentifier"]
+                sd_validity = sd_to_mo_validity(employment["EmploymentDepartment"])
                 if not sd_uuid == unit_uuid:
                     # This employment is not from the current department,
                     # but is inherited from a lower level. Can happen if this
@@ -480,7 +482,7 @@ class FixDepartments:
                         "org_unit": {"uuid": destination_unit},
                         "validity": {
                             "from": from_date_str,
-                            "to": eng["validity"]["to"],
+                            "to": sd_validity["to"],
                         },
                     }
                     payload = sd_payloads.engagement(data, mo_engagement)

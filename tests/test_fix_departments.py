@@ -520,3 +520,113 @@ class TestFixDepartment(TestCase):
                 },
             },
         )
+
+    def test_fix_ny_logic_use_sd_department_end_date(self) -> None:
+        """
+        Test that:
+        We use the SD employment department end instead of the one on the MO
+        engagement when applying the NY-logic.
+        """
+
+        # Arrange
+        unit_uuid = str(uuid4())
+        parent_unit_uuid = str(uuid4())
+        eng_uuid = str(uuid4())
+        validity_date = date(2023, 8, 1)
+        cpr = "0101901111"
+
+        instance = _TestableFixDepartments.get_instance(
+            {"sd_import_too_deep": ["Afdelings-niveau"]}
+        )
+
+        instance.helper.read_ou = MagicMock(
+            return_value={
+                "uuid": unit_uuid,
+                "org_unit_level": {
+                    "user_key": "Afdelings-niveau",
+                },
+                "parent": {
+                    "uuid": parent_unit_uuid,
+                    "org_unit_level": {
+                        "user_key": "NY1-niveau",
+                    },
+                },
+            }
+        )
+        instance._read_department_engagements = MagicMock(
+            return_value={
+                cpr: OrderedDict(
+                    {
+                        "PersonCivilRegistrationIdentifier": cpr,
+                        "Employment": {
+                            "EmploymentIdentifier": "12345",
+                            "EmploymentDate": "2020-11-10",
+                            "AnniversaryDate": "2004-08-15",
+                            "EmploymentDepartment": {
+                                "ActivationDate": "2020-11-10",
+                                # Department change is valid to infinity
+                                "DeactivationDate": "9999-12-31",
+                                "DepartmentIdentifier": "department_id",
+                                "DepartmentUUIDIdentifier": unit_uuid,
+                            },
+                            "Profession": {
+                                "ActivationDate": "2020-11-10",
+                                "DeactivationDate": "9999-12-31",
+                                "JobPositionIdentifier": "2",
+                                "EmploymentName": "Title",
+                                "AppointmentCode": "0",
+                            },
+                            "EmploymentStatus": {
+                                "ActivationDate": "2020-11-10",
+                                # Employment ends *before* infinity
+                                "DeactivationDate": "2040-12-31",
+                                "EmploymentStatusCode": "1",
+                            },
+                        },
+                    }
+                )
+            }
+        )
+        instance.helper.read_user = MagicMock(
+            return_value={
+                "uuid": str(uuid4()),
+            }
+        )
+        instance.helper.read_user_engagement = MagicMock(
+            return_value=[
+                {
+                    "uuid": eng_uuid,
+                    "org_unit": {"uuid": str(uuid4())},
+                    "user_key": "12345",
+                    "validity": {
+                        "from": "2023-01-01",
+                        # The engagement ends *before* infinity
+                        "to": "2040-12-31",
+                    },
+                }
+            ]
+        )
+
+        r = Response()
+        r.status_code = 200
+
+        instance.helper._mo_post.return_value = r
+
+        # Act
+        instance.fix_NY_logic(unit_uuid, validity_date)
+
+        # Assert
+        instance.helper._mo_post.assert_called_once_with(
+            "details/edit",
+            {
+                "type": "engagement",
+                "uuid": eng_uuid,
+                "data": {
+                    "org_unit": {"uuid": parent_unit_uuid},
+                    "validity": {
+                        "from": validity_date.strftime("%Y-%m-%d"),
+                        "to": None,
+                    },
+                },
+            },
+        )
