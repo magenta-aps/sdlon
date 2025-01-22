@@ -13,13 +13,18 @@ from integrations.SD_Lon.sdlon.sd_common import EmploymentStatus as EmploymentSt
 from more_itertools import last
 from more_itertools import one
 from more_itertools import partition
+from os2mo_helpers.mora_helpers import MoraHelper
+from structlog.stdlib import get_logger
 
 from .date_utils import parse_datetime
 from .sd_common import ensure_list
+from .sd_common import mora_assert
 from .sd_common import read_employment_at
 from .skip import skip_job_position_id
 
 INTERNAL_EMPLOYEE_REGEX = re.compile("[0-9]+")
+
+logger = get_logger()
 
 
 def engagement_components(engagement_info) -> Tuple[str, Dict[str, List[Any]]]:
@@ -222,3 +227,25 @@ def get_eng_user_key(
     if not prefix_eng_user_key_with_inst_id:
         return user_key
     return f"{sd_inst_id.upper()}-{user_key}"
+
+
+def terminate_eng_from_uuid(
+    mora_helper: MoraHelper,
+    eng_uuid: str,
+    dry_run: bool,
+    from_date: str,
+    to_date: str | None = None,
+) -> None:
+    validity = {"from": from_date, "to": to_date}
+
+    payload = {
+        "type": "engagement",
+        "uuid": eng_uuid,
+        "validity": validity,
+    }
+
+    logger.debug("Terminate payload (details/terminate)", payload=payload)
+    if not dry_run:
+        response = mora_helper._mo_post("details/terminate", payload)
+        logger.debug("Terminate response: {}".format(response.text))
+        mora_assert(response)

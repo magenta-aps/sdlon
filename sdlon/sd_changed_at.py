@@ -54,6 +54,7 @@ from .engagement import get_last_day_of_sd_work
 from .engagement import (
     is_employment_id_and_no_salary_minimum_consistent,
 )
+from .engagement import terminate_eng_from_uuid
 from .engagement import update_existing_engagement
 from .fix_departments import FixDepartments
 from .models import JobFunction
@@ -890,26 +891,6 @@ class ChangeAtSD:
 
         return True
 
-    def _terminate_eng_from_uuid(
-        self,
-        eng_uuid: str,
-        from_date: str,
-        to_date: str | None = None,
-    ) -> None:
-        validity = {"from": from_date, "to": to_date}
-
-        payload = {
-            "type": "engagement",
-            "uuid": eng_uuid,
-            "validity": validity,
-        }
-
-        logger.debug("Terminate payload (details/terminate)", payload=payload)
-        if not self.dry_run:
-            response = self.helper._mo_post("details/terminate", payload)
-            logger.debug("Terminate response: {}".format(response.text))
-            mora_assert(response)
-
     def _terminate_engagement(
         self,
         user_key: str,
@@ -946,7 +927,9 @@ class ChangeAtSD:
             logger.warning("Terminating non-existing job!", user_key=user_key)
             return False
 
-        self._terminate_eng_from_uuid(mo_engagement["uuid"], from_date, to_date)
+        terminate_eng_from_uuid(
+            self.helper, mo_engagement["uuid"], self.dry_run, from_date, to_date
+        )
         self._refresh_mo_engagements(person_uuid)
 
         return True
@@ -1533,7 +1516,9 @@ class ChangeAtSD:
                 term_start_date=term_start,
             )
 
-            self._terminate_eng_from_uuid(mo_eng["uuid"], term_start)
+            terminate_eng_from_uuid(
+                self.helper, mo_eng["uuid"], self.dry_run, term_start
+            )
 
         # The MO engagement validity of the (time line wise) latest engagement.
         mo_validity = get_mo_validity(mo_eng)
