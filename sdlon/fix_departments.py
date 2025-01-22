@@ -471,15 +471,17 @@ class FixDepartments:
                         # This engagement is already in the correct unit
                         continue
 
-                    from_date: datetime.date = datetime.datetime.strptime(
-                        eng["validity"]["from"], "%Y-%m-%d"
-                    ).date()
+                    from_date_str = eng["validity"]["from"]
+                    from_date = parse_datetime(from_date_str).date()
                     if from_date < validity_date:
-                        eng["validity"]["from"] = validity_date.strftime("%Y-%m-%d")
+                        from_date_str = format_date(validity_date)
 
                     data = {
                         "org_unit": {"uuid": destination_unit},
-                        "validity": eng["validity"],
+                        "validity": {
+                            "from": from_date_str,
+                            "to": eng["validity"]["to"],
+                        },
                     }
                     payload = sd_payloads.engagement(data, mo_engagement)
                     logger.debug(
