@@ -608,7 +608,7 @@ class ChangeAtSD:
         self.mo_engagements_cache[person_uuid] = mo_engagements
         return mo_engagements
 
-    def _find_engagement(self, user_key, person_uuid):
+    def _find_last_engagement(self, user_key, person_uuid):
         logger.debug("Find engagement", from_date=self.from_date, user_key=user_key)
 
         mo_engagements = self._fetch_mo_engagements(person_uuid)
@@ -716,7 +716,7 @@ class ChangeAtSD:
         # forces an edit to the engagement that will extend it to span the
         # leave. If this ever turns out not to hold, add a dummy-edit to the
         # engagement here.
-        mo_eng = self._find_engagement(user_key, person_uuid)
+        mo_eng = self._find_last_engagement(user_key, person_uuid)
         payload = sd_payloads.create_leave(
             mo_eng,
             person_uuid,
@@ -919,7 +919,7 @@ class ChangeAtSD:
             from_date=from_date,
             to_date=to_date,
         )
-        mo_engagement = self._find_engagement(user_key, person_uuid)
+        mo_engagement = self._find_last_engagement(user_key, person_uuid)
 
         if not mo_engagement:
             logger.warning("Terminating non-existing job!", user_key=user_key)
@@ -1234,7 +1234,7 @@ class ChangeAtSD:
         )
 
         logger.debug("Edit engagement", user_key=user_key, person_uuid=person_uuid)
-        mo_eng = self._find_engagement(user_key, person_uuid)
+        mo_eng = self._find_last_engagement(user_key, person_uuid)
 
         employment_consistent = is_employment_id_and_no_salary_minimum_consistent(
             sd_employment, self.no_salary_minimum
@@ -1340,7 +1340,7 @@ class ChangeAtSD:
             code = EmploymentStatus(code)
 
             if code in [EmploymentStatus.AnsatUdenLoen, EmploymentStatus.AnsatMedLoen]:
-                mo_eng = self._find_engagement(user_key, person_uuid)
+                mo_eng = self._find_last_engagement(user_key, person_uuid)
                 if mo_eng:
                     logger.info("Found MO engagement", eng_uuid=mo_eng["uuid"])
                     self._refresh_mo_engagements(person_uuid)
@@ -1356,7 +1356,7 @@ class ChangeAtSD:
                         )
                 skip = True
             elif code == EmploymentStatus.Orlov:
-                mo_eng = self._find_engagement(user_key, person_uuid)
+                mo_eng = self._find_last_engagement(user_key, person_uuid)
                 if not mo_eng:
                     if self.settings.sd_skip_leave_creation_if_no_engagement:
                         logger.info("Not allowed to create leave with no engagement")
@@ -1371,7 +1371,7 @@ class ChangeAtSD:
                 logger.info("Create a leave")
                 self.create_leave(status, user_key, person_uuid)
             elif code in EmploymentStatus.let_go():
-                mo_eng = self._find_engagement(user_key, person_uuid)
+                mo_eng = self._find_last_engagement(user_key, person_uuid)
                 if not mo_eng:
                     logger.info(
                         "Could not find MO engagement for passive SD employment. "
