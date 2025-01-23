@@ -21,8 +21,10 @@ from .date_utils import parse_datetime
 from .date_utils import SD_INFINITY
 from .date_utils import sd_to_mo_validity
 from .engagement import get_eng_user_key
+from .engagement import re_terminate_engagement
 from .exceptions import NoCurrentValdityException
 from .log import setup_logging
+from .sd_common import ensure_list
 from .sd_common import mora_assert
 from .sd_common import sd_lookup
 
@@ -465,6 +467,13 @@ class FixDepartments:
                         mo_person_uuid=mo_person["uuid"],
                     )
                     continue
+
+                # We need to find the engagement with the latest validity, so we can
+                # re-terminate below if necessary. This variable is declared with a
+                # dummy validity with a low "to" date for the sake of the comparisons
+                # in the loop below
+                last_eng = {"validity": {"to": format_date(datetime.date.min)}}
+
                 for eng in mo_engagements:
                     if not eng["uuid"] == mo_engagement["uuid"]:
                         # This engagement is not relevant for this unit
@@ -474,7 +483,18 @@ class FixDepartments:
                         continue
 
                     from_date_str = eng["validity"]["from"]
+                    to_date_str = eng["validity"]["to"]
                     from_date = parse_datetime(from_date_str).date()
+                    to_date = (
+                        parse_datetime(to_date_str).date()
+                        if to_date_str is not None
+                        else datetime.date(9999, 12, 31)
+                    )
+
+                    last_eng_to_date = parse_datetime(last_eng["validity"]["to"]).date()
+                    if to_date >= last_eng_to_date:
+                        last_eng = eng
+
                     if from_date < validity_date:
                         from_date_str = format_date(validity_date)
 
@@ -492,6 +512,14 @@ class FixDepartments:
                     if not self.dry_run:
                         response = self.helper._mo_post("details/edit", payload)
                         mora_assert(response)
+
+                re_terminate_engagement(
+                    self.helper,
+                    last_eng,
+                    employment["EmploymentDepartment"],
+                    ensure_list(employment.get("EmploymentStatus", [])),
+                    self.dry_run,
+                )
 
     def get_parent(self, unit_uuid, validity_date) -> Optional[str]:
         """

@@ -521,11 +521,13 @@ class TestFixDepartment(TestCase):
             },
         )
 
-    def test_fix_ny_logic_use_sd_department_end_date(self) -> None:
+    def test_fix_ny_logic_use_sd_department_end_date_and_re_terminate(self) -> None:
         """
         Test that:
-        We use the SD employment department end instead of the one on the MO
-        engagement when applying the NY-logic.
+        1) We use the SD employment department end instead of the one on the MO
+           engagement when applying the NY-logic.
+        2) The above may result in the re-opening of an already terminated engagement in
+           MO, why we should call the re-terminate logic from "fix_NY_logic".
         """
 
         # Arrange
@@ -616,17 +618,28 @@ class TestFixDepartment(TestCase):
         instance.fix_NY_logic(unit_uuid, validity_date)
 
         # Assert
-        instance.helper._mo_post.assert_called_once_with(
-            "details/edit",
-            {
-                "type": "engagement",
-                "uuid": eng_uuid,
-                "data": {
-                    "org_unit": {"uuid": parent_unit_uuid},
-                    "validity": {
-                        "from": validity_date.strftime("%Y-%m-%d"),
-                        "to": None,
+        calls = instance.helper._mo_post.call_args_list
+        assert calls == [
+            call(
+                "details/edit",
+                {
+                    "type": "engagement",
+                    "uuid": eng_uuid,
+                    "data": {
+                        "org_unit": {"uuid": parent_unit_uuid},
+                        "validity": {
+                            "from": validity_date.strftime("%Y-%m-%d"),
+                            "to": None,
+                        },
                     },
                 },
-            },
-        )
+            ),
+            call(
+                "details/terminate",
+                {
+                    "type": "engagement",
+                    "uuid": eng_uuid,
+                    "validity": {"from": "2041-01-01", "to": None},
+                },
+            ),
+        ]
