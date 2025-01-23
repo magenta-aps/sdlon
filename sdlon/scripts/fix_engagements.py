@@ -77,9 +77,9 @@ REGEX_INT = re.compile("[0-9]{5}")
     help="Base URL for calling MO",
 )
 @click.option(
-    "--anonymize-cprs",
+    "--show-cpr",
     is_flag=True,
-    help="If set, the CPRs will be anonymized in the output",
+    help="If set, the full CPRs will be shown in the output",
 )
 @click.option(
     "--dry-run", is_flag=True, help="If set, do not perform any changes in MO"
@@ -98,7 +98,7 @@ def main(
     client_id: str,
     client_secret: str,
     mo_base_url: str,
-    anonymize_cprs: bool,
+    show_cpr: bool,
     dry_run: bool,
     readme: bool,
 ):
@@ -114,7 +114,7 @@ def main(
     now = datetime.now(tz=ZoneInfo("Europe/Copenhagen"))
     engagements = mo.get_engagements(now, None, include_org_unit=True)
 
-    anonymizer = anonymize_cpr if anonymize_cprs else lambda _cpr: _cpr
+    anonymizer = anonymize_cpr if not show_cpr else lambda _cpr: _cpr
 
     for count, eng in enumerate(engagements):
         # if count % 100 == 0:
