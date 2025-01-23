@@ -524,7 +524,7 @@ class TestFixDepartment(TestCase):
     def test_fix_ny_logic_use_sd_department_end_date_and_re_terminate(self) -> None:
         """
         Test that:
-        1) We use the SD employment department end instead of the one on the MO
+        1) We use the SD employment department end date instead of the one on the MO
            engagement when applying the NY-logic.
         2) The above may result in the re-opening of an already terminated engagement in
            MO, why we should call the re-terminate logic from "fix_NY_logic".
