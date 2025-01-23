@@ -49,14 +49,14 @@ REGEX_INT = re.compile("[0-9]{5}")
     "auth_server",
     type=click.STRING,
     envvar="AUTH_SERVER",
-    default="http://localhost:8090/auth",
+    default="http://keycloak:8080/auth",
     help="Keycloak auth server URL",
 )
 @click.option(
     "--client-id",
     "client_id",
     type=click.STRING,
-    default="dipex",
+    default="developer",
     envvar="CLIENT_ID",
     help="Keycloak client id",
 )
@@ -66,15 +66,23 @@ REGEX_INT = re.compile("[0-9]{5}")
     type=click.STRING,
     required=True,
     envvar="CLIENT_SECRET",
-    help="Keycloak client secret for the DIPEX client",
+    help="Keycloak client secret for the 'developer' client",
 )
 @click.option(
     "--mo-base-url",
     "mo_base_url",
     type=click.STRING,
-    default="http://localhost:5000",
+    default="http://mo:5000",
     envvar="MO_URL",
     help="Base URL for calling MO",
+)
+@click.option(
+    "--show-cpr",
+    is_flag=True,
+    help="If set, the full CPRs will be shown in the output",
+)
+@click.option(
+    "--dry-run", is_flag=True, help="If set, do not perform any changes in MO"
 )
 @click.option(
     "--i-have-read-the-readme",
@@ -90,6 +98,8 @@ def main(
     client_id: str,
     client_secret: str,
     mo_base_url: str,
+    show_cpr: bool,
+    dry_run: bool,
     readme: bool,
 ):
     if not readme:
@@ -103,6 +113,8 @@ def main(
 
     now = datetime.now(tz=ZoneInfo("Europe/Copenhagen"))
     engagements = mo.get_engagements(now, None, include_org_unit=True)
+
+    anonymizer = anonymize_cpr if not show_cpr else lambda _cpr: _cpr
 
     for count, eng in enumerate(engagements):
         # if count % 100 == 0:
@@ -146,9 +158,10 @@ def main(
                 employment = one(one(sd_emp_resp.Person).Employment)
             except (ValidationError, ValueError):
                 print(
-                    f"{str(mo_emp_uuid)} {anonymize_cpr(cpr)} {user_key} {mo_from_date.isoformat()} {mo_to_date} {mo_ou_uuid} Not found in SD! Terminating"  # noqa
+                    f"{str(mo_emp_uuid)} {anonymizer(cpr)} {user_key} {mo_from_date.isoformat()} {mo_to_date} {mo_ou_uuid} Not found in SD! Terminating"  # noqa
                 )
-                mo.terminate_engagement(eng_uuid, now)
+                if not dry_run:
+                    mo.terminate_engagement(eng_uuid, now)
                 print("Terminated")
                 continue
 
@@ -158,16 +171,17 @@ def main(
 
             if not mo_ou_uuid == str(sd_dep_uuid):
                 print(
-                    f"{str(mo_emp_uuid)} {anonymize_cpr(cpr)} {user_key} {mo_from_date.isoformat()} {mo_to_date} {mo_ou_uuid} {sd_from_date} {sd_to_date} {str(sd_dep_uuid)}"  # noqa
+                    f"{str(mo_emp_uuid)} {anonymizer(cpr)} {user_key} {mo_from_date.isoformat()} {mo_to_date} {mo_ou_uuid} {sd_from_date} {sd_to_date} {str(sd_dep_uuid)}"  # noqa
                 )
-                mo.update_engagement(
-                    eng_uuid,
-                    mo_from_date,
-                    datetime.fromisoformat(mo_to_date)
-                    if mo_to_date is not None
-                    else None,
-                    sd_dep_uuid,
-                )
+                if not dry_run:
+                    mo.update_engagement(
+                        eng_uuid,
+                        mo_from_date,
+                        datetime.fromisoformat(mo_to_date)
+                        if mo_to_date is not None
+                        else None,
+                        sd_dep_uuid,
+                    )
                 print("Updated")
 
 
