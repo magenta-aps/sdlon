@@ -77,6 +77,11 @@ REGEX_INT = re.compile("[0-9]{5}")
     help="Base URL for calling MO",
 )
 @click.option(
+    "--anonymize-cprs",
+    is_flag=True,
+    help="If set, the CPRs will be anonymized in the output",
+)
+@click.option(
     "--dry-run", is_flag=True, help="If set, do not perform any changes in MO"
 )
 @click.option(
@@ -93,6 +98,7 @@ def main(
     client_id: str,
     client_secret: str,
     mo_base_url: str,
+    anonymize_cprs: bool,
     dry_run: bool,
     readme: bool,
 ):
@@ -107,6 +113,8 @@ def main(
 
     now = datetime.now(tz=ZoneInfo("Europe/Copenhagen"))
     engagements = mo.get_engagements(now, None, include_org_unit=True)
+
+    anonymizer = anonymize_cpr if anonymize_cprs else lambda _cpr: _cpr
 
     for count, eng in enumerate(engagements):
         # if count % 100 == 0:
@@ -150,7 +158,7 @@ def main(
                 employment = one(one(sd_emp_resp.Person).Employment)
             except (ValidationError, ValueError):
                 print(
-                    f"{str(mo_emp_uuid)} {anonymize_cpr(cpr)} {user_key} {mo_from_date.isoformat()} {mo_to_date} {mo_ou_uuid} Not found in SD! Terminating"  # noqa
+                    f"{str(mo_emp_uuid)} {anonymizer(cpr)} {user_key} {mo_from_date.isoformat()} {mo_to_date} {mo_ou_uuid} Not found in SD! Terminating"  # noqa
                 )
                 if not dry_run:
                     mo.terminate_engagement(eng_uuid, now)
@@ -163,7 +171,7 @@ def main(
 
             if not mo_ou_uuid == str(sd_dep_uuid):
                 print(
-                    f"{str(mo_emp_uuid)} {anonymize_cpr(cpr)} {user_key} {mo_from_date.isoformat()} {mo_to_date} {mo_ou_uuid} {sd_from_date} {sd_to_date} {str(sd_dep_uuid)}"  # noqa
+                    f"{str(mo_emp_uuid)} {anonymizer(cpr)} {user_key} {mo_from_date.isoformat()} {mo_to_date} {mo_ou_uuid} {sd_from_date} {sd_to_date} {str(sd_dep_uuid)}"  # noqa
                 )
                 if not dry_run:
                     mo.update_engagement(
