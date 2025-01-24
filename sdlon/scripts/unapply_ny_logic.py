@@ -1,6 +1,8 @@
 # This script "un-applies" the NY-logic, i.e. it will move the engagements
 # from MO from their elevations in the NY-levels and back down to the
-# "afdelingsniveaer" (see Redmine case #61426)
+# "afdelingsniveaer" (see Redmine case #61426). More precisely, the script
+# moves the engagements to the exact units as specified for the corresponding
+# departments in SD.
 from collections import namedtuple
 from datetime import date
 from datetime import datetime
@@ -128,7 +130,9 @@ def update_eng_ou(
     update_to: datetime | None,
     dry_run: bool,
 ) -> None:
-    assert update_from.date() < update_to.date() if update_to is not None else date.max
+    assert (
+        update_from.date() <= update_to.date() if update_to is not None else date.max
+    ), (str(sd_ou), eng_data["eng_uuid"], update_from, update_to)
 
     mo_ou = UUID(eng_data["ou_uuid"])
     emp_id = eng_data["emp_id"]
