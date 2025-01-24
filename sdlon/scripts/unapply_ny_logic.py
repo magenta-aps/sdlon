@@ -130,7 +130,9 @@ def update_eng_ou(
     update_to: datetime | None,
     dry_run: bool,
 ) -> None:
-    assert update_from.date() < update_to.date() if update_to is not None else date.max
+    assert (
+        update_from.date() <= update_to.date() if update_to is not None else date.max
+    ), (str(sd_ou), eng_data["eng_uuid"], update_from, update_to)
 
     mo_ou = UUID(eng_data["ou_uuid"])
     emp_id = eng_data["emp_id"]
