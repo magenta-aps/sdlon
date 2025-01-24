@@ -1,6 +1,8 @@
 # This script "un-applies" the NY-logic, i.e. it will move the engagements
 # from MO from their elevations in the NY-levels and back down to the
-# "afdelingsniveaer" (see Redmine case #61426)
+# "afdelingsniveaer" (see Redmine case #61426). More precisely, the script
+# moves the engagements to the exact units as specified for the corresponding
+# departments in SD.
 from collections import namedtuple
 from datetime import date
 from datetime import datetime
