@@ -11,6 +11,7 @@ from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
+from freezegun import freeze_time
 from os2mo_helpers.mora_helpers import MoraHelper
 from requests import Response
 
@@ -521,6 +522,7 @@ class TestFixDepartment(TestCase):
             },
         )
 
+    @freeze_time("2025-01-25")
     def test_fix_ny_logic_use_sd_department_end_date_and_re_terminate(self) -> None:
         """
         Test that:
