@@ -145,6 +145,7 @@ def update_engs_ou(
             )
 
         if mo_eng_end.date() < date.max:
+            print("Terminate engagement", eng_data["eng_uuid"], mo_eng_end)
             if not dry_run:
                 mo.terminate_engagement(
                     UUID(eng_data["eng_uuid"]),
