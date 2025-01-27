@@ -11,6 +11,7 @@ from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
+from freezegun import freeze_time
 from os2mo_helpers.mora_helpers import MoraHelper
 from requests import Response
 
@@ -520,3 +521,127 @@ class TestFixDepartment(TestCase):
                 },
             },
         )
+
+    @freeze_time("2025-01-25")
+    def test_fix_ny_logic_use_sd_department_end_date_and_re_terminate(self) -> None:
+        """
+        Test that:
+        1) We use the SD employment department end date instead of the one on the MO
+           engagement when applying the NY-logic.
+        2) The above may result in the re-opening of an already terminated engagement in
+           MO, why we should call the re-terminate logic from "fix_NY_logic".
+        """
+
+        # Arrange
+        unit_uuid = str(uuid4())
+        parent_unit_uuid = str(uuid4())
+        eng_uuid = str(uuid4())
+        validity_date = date(2023, 8, 1)
+        cpr = "0101901111"
+
+        instance = _TestableFixDepartments.get_instance(
+            {"sd_import_too_deep": ["Afdelings-niveau"]}
+        )
+
+        instance.helper.read_ou = MagicMock(
+            return_value={
+                "uuid": unit_uuid,
+                "org_unit_level": {
+                    "user_key": "Afdelings-niveau",
+                },
+                "parent": {
+                    "uuid": parent_unit_uuid,
+                    "org_unit_level": {
+                        "user_key": "NY1-niveau",
+                    },
+                },
+            }
+        )
+        instance._read_department_engagements = MagicMock(
+            return_value={
+                cpr: OrderedDict(
+                    {
+                        "PersonCivilRegistrationIdentifier": cpr,
+                        "Employment": {
+                            "EmploymentIdentifier": "12345",
+                            "EmploymentDate": "2020-11-10",
+                            "AnniversaryDate": "2004-08-15",
+                            "EmploymentDepartment": {
+                                "ActivationDate": "2020-11-10",
+                                # Department change is valid to infinity
+                                "DeactivationDate": "9999-12-31",
+                                "DepartmentIdentifier": "department_id",
+                                "DepartmentUUIDIdentifier": unit_uuid,
+                            },
+                            "Profession": {
+                                "ActivationDate": "2020-11-10",
+                                "DeactivationDate": "9999-12-31",
+                                "JobPositionIdentifier": "2",
+                                "EmploymentName": "Title",
+                                "AppointmentCode": "0",
+                            },
+                            "EmploymentStatus": {
+                                "ActivationDate": "2020-11-10",
+                                # Employment ends *before* infinity
+                                "DeactivationDate": "2040-12-31",
+                                "EmploymentStatusCode": "1",
+                            },
+                        },
+                    }
+                )
+            }
+        )
+        instance.helper.read_user = MagicMock(
+            return_value={
+                "uuid": str(uuid4()),
+            }
+        )
+        instance.helper.read_user_engagement = MagicMock(
+            return_value=[
+                {
+                    "uuid": eng_uuid,
+                    "org_unit": {"uuid": str(uuid4())},
+                    "user_key": "12345",
+                    "validity": {
+                        "from": "2023-01-01",
+                        # The engagement ends *before* infinity
+                        "to": "2040-12-31",
+                    },
+                }
+            ]
+        )
+
+        r = Response()
+        r.status_code = 200
+
+        instance.helper._mo_post.return_value = r
+
+        # Act
+        instance.fix_NY_logic(unit_uuid, validity_date)
+
+        # Assert
+        calls = instance.helper._mo_post.call_args_list
+        assert calls == [
+            call(
+                "details/edit",
+                {
+                    "type": "engagement",
+                    "uuid": eng_uuid,
+                    "data": {
+                        "org_unit": {"uuid": parent_unit_uuid},
+                        "validity": {
+                            "from": validity_date.strftime("%Y-%m-%d"),
+                            "to": None,
+                        },
+                    },
+                },
+            ),
+            call(
+                "details/terminate",
+                {
+                    "type": "engagement",
+                    "uuid": eng_uuid,
+                    "validity": {"from": "2041-01-01", "to": None},
+                },
+            ),
+        ]

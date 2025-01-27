@@ -933,7 +933,7 @@ class Test_sd_changed_at(unittest.TestCase):
     def test_handle_status_change_do_not_term_non_existing_status8_sd_employment(self):
         # Arrange
         sd_updater = setup_sd_changed_at()
-        sd_updater._find_engagement = MagicMock(return_value=None)
+        sd_updater._find_last_engagement = MagicMock(return_value=None)
         sd_updater._terminate_engagement = MagicMock()
 
         # Act
@@ -1000,7 +1000,7 @@ class Test_sd_changed_at(unittest.TestCase):
         # Arrange
         sd_updater = setup_sd_changed_at()
 
-        sd_updater._find_engagement = MagicMock(
+        sd_updater._find_last_engagement = MagicMock(
             return_value={
                 "user_key": "12345",
                 "uuid": "83de05b3-e890-4975-bc49-88e9052454c2",
@@ -1051,7 +1051,7 @@ class Test_sd_changed_at(unittest.TestCase):
     def test_do_not_terminate_non_existing_status8_sd_employment(self):
         # Arrange
         sd_updater = setup_sd_changed_at()
-        sd_updater._find_engagement = MagicMock(return_value=None)
+        sd_updater._find_last_engagement = MagicMock(return_value=None)
         sd_updater.edit_engagement = MagicMock()
 
         # Act
@@ -1513,7 +1513,7 @@ class Test_sd_changed_at(unittest.TestCase):
 
         # Arrange
         sd_updater = setup_sd_changed_at()
-        sd_updater._find_engagement = lambda *args: ["mo-eng"]
+        sd_updater._find_last_engagement = lambda *args: ["mo-eng"]
         engagement = OrderedDict(
             [
                 ("EmploymentIdentifier", "DEERE"),
@@ -1536,7 +1536,7 @@ class Test_sd_changed_at(unittest.TestCase):
             }
         )
 
-        sd_updater._find_engagement = lambda *args: ["mo-eng"]
+        sd_updater._find_last_engagement = lambda *args: ["mo-eng"]
         engagement = OrderedDict(
             [
                 ("EmploymentIdentifier", "12345"),
@@ -1598,7 +1598,7 @@ class Test_sd_changed_at(unittest.TestCase):
         )
 
         mock__find_engagement = MagicMock(return_value=None)
-        sd_updater._find_engagement = mock__find_engagement
+        sd_updater._find_last_engagement = mock__find_engagement
 
         # Act
         sd_updater.edit_engagement(sd_employment, "person_uuid")
@@ -1854,7 +1854,9 @@ def test_only_create_leave_if_engagement_exists() -> None:
 
     sd_updater = setup_sd_changed_at({"sd_skip_leave_creation_if_no_engagement": True})
     sd_updater.create_leave = mock_create_leave
-    sd_updater._find_engagement = MagicMock(return_value=None)  # No engagement found
+    sd_updater._find_last_engagement = MagicMock(
+        return_value=None
+    )  # No engagement found
 
     # Act
     sd_updater._handle_employment_status_changes(
@@ -1975,7 +1977,7 @@ class TestEditEngagementX:
             },
         }
 
-        sd_updater._find_engagement = MagicMock(return_value=mo_eng)
+        sd_updater._find_last_engagement = MagicMock(return_value=mo_eng)
 
         # Act
         sd_updater.edit_engagement_department(
@@ -2700,7 +2702,7 @@ def test__find_engagement_uses_correct_user_key():
     )
 
     # Act
-    relevant_eng = sd_updater._find_engagement("12345", str(uuid.uuid4()))
+    relevant_eng = sd_updater._find_last_engagement("12345", str(uuid.uuid4()))
 
     # Assert
     assert relevant_eng == {"user_key": "12345"}
@@ -2727,7 +2729,7 @@ def test_handle_status_changes_uses_correct_user_key(
         }
     )
 
-    sd_updater._find_engagement = MagicMock(
+    sd_updater._find_last_engagement = MagicMock(
         return_value={
             "user_key": expected_user_key,
             "uuid": "83de05b3-e890-4975-bc49-88e9052454c2",
@@ -2797,7 +2799,7 @@ def test_edit_engagement_uses_correct_user_key(
         }
     )
 
-    sd_updater._find_engagement = MagicMock()
+    sd_updater._find_last_engagement = MagicMock()
 
     person_uuid = str(uuid.uuid4())
     # We only need the EmploymentIdentifier from the payload in this test
@@ -2807,7 +2809,9 @@ def test_edit_engagement_uses_correct_user_key(
     sd_updater.edit_engagement(sd_emp, person_uuid)
 
     # Assert
-    sd_updater._find_engagement.assert_called_once_with(expected_user_key, person_uuid)
+    sd_updater._find_last_engagement.assert_called_once_with(
+        expected_user_key, person_uuid
+    )
 
 
 @pytest.mark.parametrize(
