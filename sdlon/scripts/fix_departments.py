@@ -151,7 +151,7 @@ def update_engs_ou(
             )
             update_to = (
                 datetime(
-                    dep.DeativationDate.year,
+                    dep.DeactivationDate.year,
                     dep.DeactivationDate.month,
                     dep.DeactivationDate.day,
                     0,
@@ -171,7 +171,7 @@ def update_engs_ou(
             )
 
         if mo_eng_end.date() < date.max:
-            print("Terminate engagement", eng_data["eng_uuid"], mo_eng_end)
+            print("Terminate engagement", eng_data["eng_uuid"], format_date(mo_eng_end))
             if not dry_run:
                 mo.terminate_engagement(
                     UUID(eng_data["eng_uuid"]),
