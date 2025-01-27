@@ -66,6 +66,10 @@ def setup_logging(
                     "handlers": handlers,
                     "level": "CRITICAL",
                 },
+                "httpx": {
+                    "handlers": handlers,
+                    "level": "CRITICAL",
+                },
             },
         }
     )

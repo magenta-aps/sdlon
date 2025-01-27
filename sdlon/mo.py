@@ -144,6 +144,13 @@ class MO:
         eng_uuid: UUID,
         to_date: datetime,
     ) -> None:
+        """
+        Terminate engagement.
+
+        Args:
+            eng_uuid: UUID of engagement to terminate
+            to_date: last day of active work for the engagement
+        """
         mutation = gql(
             """
             mutation TerminateEngagement(
