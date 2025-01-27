@@ -19,6 +19,7 @@ from more_itertools import first
 from more_itertools import last
 from sdclient.responses import EmploymentWithLists
 
+from sdlon.date_utils import format_date
 from sdlon.log import anonymize_cpr
 from sdlon.log import LogLevel
 from sdlon.log import setup_logging
@@ -26,7 +27,6 @@ from sdlon.mo import MO
 from sdlon.scripts.fix_terminated_engagements import get_sd_employment_map
 from sdlon.scripts.unapply_ny_logic import get_missing_departments
 from sdlon.scripts.unapply_ny_logic import get_mo_eng_validity_map
-from sdlon.scripts.unapply_ny_logic import update_eng_ou
 from sdlon.scripts.unapply_ny_logic import Validity
 from sdlon.sd import SD
 
@@ -50,6 +50,32 @@ def get_mo_eng_holes(validities: list[Validity]) -> list[Validity]:
     ]
 
     return holes
+
+
+def update_eng_ou(
+    mo: MO,
+    sd_ou: UUID,
+    eng_data: dict[str, str],
+    update_from: datetime,
+    update_to: datetime | None,
+    dry_run: bool,
+) -> None:
+    emp_id = eng_data["emp_id"]
+    cpr = eng_data["cpr"]
+    person_uuid = eng_data["person_uuid"]
+
+    print(
+        f"{anonymize_cpr(cpr)}, {emp_id}, {person_uuid}, "
+        f"{str(sd_ou)}, {format_date(update_from)}, "
+        f"{format_date(update_to) if update_to is not None else 'None'}"
+    )
+    if not dry_run:
+        mo.update_engagement(
+            eng_uuid=UUID(eng_data["eng_uuid"]),
+            from_date=update_from,
+            to_date=update_to,
+            org_unit=sd_ou,
+        )
 
 
 def update_engs_ou(
@@ -145,6 +171,7 @@ def update_engs_ou(
             )
 
         if mo_eng_end.date() < date.max:
+            print("Terminate engagement", eng_data["eng_uuid"], mo_eng_end)
             if not dry_run:
                 mo.terminate_engagement(
                     UUID(eng_data["eng_uuid"]),
