@@ -100,7 +100,14 @@ def get_missing_departments(
             cpr_empID[0],  # CPR
             cpr_empID[1],  # EmploymentIdentifier
         )
-        department = one(one(emp.Person).Employment).EmploymentDepartment
+        try:
+            department = one(one(emp.Person).Employment).EmploymentDepartment
+        except ValueError:
+            print(
+                f"Could not look up employment for {anonymize_cpr(cpr_empID[0])} "
+                f"({cpr_empID[1]}) at {format_date(sd_start_date)}"
+            )
+            return
         assert department is not None
         sd_emp.EmploymentDepartment.insert(0, department)
         sd_start_date = department.DeactivationDate + timedelta(days=1)
