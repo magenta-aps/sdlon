@@ -16,6 +16,7 @@ from .config import get_settings
 from .config import Settings
 from .date_utils import datetime_to_sd_date
 from .date_utils import format_date
+from .date_utils import get_mo_validity
 from .date_utils import MO_INFINITY
 from .date_utils import parse_datetime
 from .date_utils import SD_INFINITY
@@ -482,14 +483,9 @@ class FixDepartments:
                         # This engagement is already in the correct unit
                         continue
 
-                    from_date_str = eng["validity"]["from"]
-                    to_date_str = eng["validity"]["to"]
-                    from_date = parse_datetime(from_date_str).date()
-                    to_date = (
-                        parse_datetime(to_date_str).date()
-                        if to_date_str is not None
-                        else datetime.date(9999, 12, 31)
-                    )
+                    eng_validity = get_mo_validity(eng)
+                    from_date, to_date = eng_validity["from"], eng_validity["to"]
+                    from_date_str = format_date(from_date)
 
                     last_eng_to_date = parse_datetime(last_eng["validity"]["to"]).date()
                     if to_date >= last_eng_to_date:
