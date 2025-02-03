@@ -16,6 +16,7 @@ from .config import get_settings
 from .config import Settings
 from .date_utils import datetime_to_sd_date
 from .date_utils import format_date
+from .date_utils import get_mo_validity
 from .date_utils import MO_INFINITY
 from .date_utils import parse_datetime
 from .date_utils import SD_INFINITY
@@ -472,7 +473,15 @@ class FixDepartments:
                 # re-terminate below if necessary. This variable is declared with a
                 # dummy validity with a low "to" date for the sake of the comparisons
                 # in the loop below
-                last_eng = {"validity": {"to": format_date(datetime.date.min)}}
+                last_eng = {
+                    "validity": {
+                        "from": format_date(datetime.date.min),  # Not used
+                        "to": format_date(datetime.date.min),
+                    }
+                }
+
+                # Engagement UUIDs to re-terminate
+                engs_to_re_terminate: set[str] = set()
 
                 for eng in mo_engagements:
                     if not eng["uuid"] == mo_engagement["uuid"]:
@@ -482,17 +491,12 @@ class FixDepartments:
                         # This engagement is already in the correct unit
                         continue
 
-                    from_date_str = eng["validity"]["from"]
-                    to_date_str = eng["validity"]["to"]
-                    from_date = parse_datetime(from_date_str).date()
-                    to_date = (
-                        parse_datetime(to_date_str).date()
-                        if to_date_str is not None
-                        else datetime.date(9999, 12, 31)
-                    )
+                    eng_validity = get_mo_validity(eng)
+                    from_date, to_date = eng_validity["from"], eng_validity["to"]
+                    from_date_str = format_date(from_date)
 
-                    last_eng_to_date = parse_datetime(last_eng["validity"]["to"]).date()
-                    if to_date >= last_eng_to_date:
+                    last_eng_validity = get_mo_validity(last_eng)
+                    if to_date >= last_eng_validity["to"]:
                         last_eng = eng
 
                     if from_date < validity_date:
@@ -513,13 +517,16 @@ class FixDepartments:
                         response = self.helper._mo_post("details/edit", payload)
                         mora_assert(response)
 
-                re_terminate_engagement(
-                    self.helper,
-                    last_eng,
-                    employment["EmploymentDepartment"],
-                    ensure_list(employment.get("EmploymentStatus", [])),
-                    self.dry_run,
-                )
+                    engs_to_re_terminate.add(eng["uuid"])
+
+                if last_eng.get("uuid") in engs_to_re_terminate:
+                    re_terminate_engagement(
+                        self.helper,
+                        last_eng,
+                        employment["EmploymentDepartment"],
+                        ensure_list(employment.get("EmploymentStatus", [])),
+                        self.dry_run,
+                    )
 
     def get_parent(self, unit_uuid, validity_date) -> Optional[str]:
         """
