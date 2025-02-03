@@ -473,7 +473,12 @@ class FixDepartments:
                 # re-terminate below if necessary. This variable is declared with a
                 # dummy validity with a low "to" date for the sake of the comparisons
                 # in the loop below
-                last_eng = {"validity": {"to": format_date(datetime.date.min)}}
+                last_eng = {
+                    "validity": {
+                        "from": format_date(datetime.date.min),  # Not used
+                        "to": format_date(datetime.date.min),
+                    }
+                }
 
                 for eng in mo_engagements:
                     if not eng["uuid"] == mo_engagement["uuid"]:
@@ -487,8 +492,8 @@ class FixDepartments:
                     from_date, to_date = eng_validity["from"], eng_validity["to"]
                     from_date_str = format_date(from_date)
 
-                    last_eng_to_date = parse_datetime(last_eng["validity"]["to"]).date()
-                    if to_date >= last_eng_to_date:
+                    last_eng_validity = get_mo_validity(last_eng)
+                    if to_date >= last_eng_validity["to"]:
                         last_eng = eng
 
                     if from_date < validity_date:
