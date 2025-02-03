@@ -480,6 +480,9 @@ class FixDepartments:
                     }
                 }
 
+                # Engagement UUIDs to re-terminate
+                engs_to_re_terminate: set[str] = set()
+
                 for eng in mo_engagements:
                     if not eng["uuid"] == mo_engagement["uuid"]:
                         # This engagement is not relevant for this unit
@@ -514,13 +517,16 @@ class FixDepartments:
                         response = self.helper._mo_post("details/edit", payload)
                         mora_assert(response)
 
-                re_terminate_engagement(
-                    self.helper,
-                    last_eng,
-                    employment["EmploymentDepartment"],
-                    ensure_list(employment.get("EmploymentStatus", [])),
-                    self.dry_run,
-                )
+                    engs_to_re_terminate.add(eng["uuid"])
+
+                if last_eng.get("uuid") in engs_to_re_terminate:
+                    re_terminate_engagement(
+                        self.helper,
+                        last_eng,
+                        employment["EmploymentDepartment"],
+                        ensure_list(employment.get("EmploymentStatus", [])),
+                        self.dry_run,
+                    )
 
     def get_parent(self, unit_uuid, validity_date) -> Optional[str]:
         """

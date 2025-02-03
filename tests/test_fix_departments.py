@@ -607,7 +607,18 @@ class TestFixDepartment(TestCase):
                         # The engagement ends *before* infinity
                         "to": "2040-12-31",
                     },
-                }
+                },
+                # Add random engagement placed in another unit
+                # (should not be re-terminated)
+                {
+                    "uuid": str(uuid4()),
+                    "org_unit": {"uuid": str(uuid4())},
+                    "user_key": "54321",
+                    "validity": {
+                        "from": "2022-01-01",
+                        "to": None,
+                    },
+                },
             ]
         )
 
