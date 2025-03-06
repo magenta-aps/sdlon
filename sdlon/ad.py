@@ -23,4 +23,4 @@ class LdapADGUIDReader:
             f"http://{self.host}:{self.port}/SD", params={"cpr_number": cpr}
         )
 
-        return {"ObjectGuid": r.json()["uuid"]}
+        return {"ObjectGuid": r.json().get("uuid")}
