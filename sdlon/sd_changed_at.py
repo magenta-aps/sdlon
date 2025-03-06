@@ -546,6 +546,12 @@ class ChangeAtSD:
         for sd_person, _ in new_pairs:
             given_name = sd_person.given_name or ""
             surname = sd_person.surname or ""
+            logger.info(
+                "Create new person",
+                given_name=given_name,
+                surname=surname,
+                cpr=anonymize_cpr(sd_person.cpr),
+            )
 
             sam_account_name, object_guid = self._fetch_ad_information(sd_person.cpr)
 
