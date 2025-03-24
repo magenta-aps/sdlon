@@ -1,4 +1,7 @@
 import requests
+from tenacity import retry
+from tenacity import stop_after_attempt
+from tenacity import wait_fixed
 
 
 class LdapADGUIDReader:
@@ -6,6 +9,7 @@ class LdapADGUIDReader:
         self.host = host
         self.port = port
 
+    @retry(wait=wait_fixed(120), stop=stop_after_attempt(3))
     def read_user(self, cpr: str) -> dict[str, str]:
         """
         Get the ADGUID via the LDAP integration. For now, we will return a dictionary
