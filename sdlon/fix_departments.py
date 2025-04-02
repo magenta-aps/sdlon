@@ -466,7 +466,7 @@ class FixDepartments:
             one(r_get_employment.Person).Employment
         ).EmploymentDepartment.DeactivationDate
 
-    def fix_NY_logic(self, unit_uuid, validity_date):
+    def fix_NY_logic(self, unit_uuid, validity_date, eng_user_key: str | None = None):
         """
         Read all engagements in a unit and ensure that the position in MO is correct
         according to the rules of the import (ie, move engagement up from
@@ -498,6 +498,10 @@ class FixDepartments:
                     self.current_inst_id,
                     self.settings.sd_prefix_eng_user_key_with_inst_id,
                 )
+
+                if eng_user_key is not None and not user_key == eng_user_key:
+                    continue
+
                 logger.info("Checking user_key", user_key=user_key)
                 sd_uuid = employment["EmploymentDepartment"]["DepartmentUUIDIdentifier"]
                 if not sd_uuid == unit_uuid:
