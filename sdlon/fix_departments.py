@@ -8,7 +8,11 @@ from uuid import UUID
 from uuid import uuid4
 
 import requests
+from more_itertools import one
 from os2mo_helpers.mora_helpers import MoraHelper
+from sdclient.client import SDClient
+from sdclient.requests import GetDepartmentParentRequest
+from sdclient.requests import GetDepartmentRequest
 from structlog.stdlib import get_logger
 
 from . import sd_payloads
@@ -68,6 +72,11 @@ class FixDepartments:
 
         if self.unit_type is None:
             raise Exception("Unit types not correctly configured")
+
+        self.sd_client = SDClient(
+            sd_username=settings.sd_user,
+            sd_password=settings.sd_password.get_secret_value(),
+        )
 
     def _get_mora_helper(self, settings):
         return MoraHelper(hostname=self.settings.mora_base, use_cache=False)
@@ -399,6 +408,42 @@ class FixDepartments:
                     all_people[cpr] = person
         logger.debug("Department engagements", all_people=all_people.keys())
         return all_people
+
+    def _get_sd_ny_logic_unit(self, unit: UUID, lookup_date: datetime.date) -> UUID:
+        """
+        Get the UUID of the correct NY-logic elevated unit at a given time.
+        """
+
+        def get_unit_level(unit_: UUID) -> str:
+            r_get_department = self.sd_client.get_department(
+                GetDepartmentRequest(
+                    InstitutionIdentifier=self.current_inst_id,
+                    DepartmentUUIDIdentifier=unit_,
+                    ActivationDate=lookup_date,
+                    DeactivationDate=lookup_date,
+                    UUIDIndicator=True,
+                )
+            )
+            department = one(r_get_department.Department)
+            return department.DepartmentLevelIdentifier
+
+        unit_level = get_unit_level(unit)
+
+        destination_unit = unit
+        while unit_level in self.settings.sd_import_too_deep:
+            r_get_department_parent = self.sd_client.get_department_parent(
+                GetDepartmentParentRequest(
+                    EffectiveDate=lookup_date,
+                    DepartmentUUIDIdentifier=destination_unit,
+                )
+            )
+            parent_uuid = (
+                r_get_department_parent.DepartmentParent.DepartmentUUIDIdentifier
+            )
+            unit_level = get_unit_level(parent_uuid)
+            destination_unit = parent_uuid
+
+        return destination_unit
 
     def fix_NY_logic(self, unit_uuid, validity_date):
         """
