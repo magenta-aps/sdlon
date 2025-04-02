@@ -8,6 +8,7 @@ from uuid import UUID
 from uuid import uuid4
 
 import requests
+from cachetools.func import ttl_cache  # type: ignore
 from more_itertools import one
 from os2mo_helpers.mora_helpers import MoraHelper
 from sdclient.client import SDClient
@@ -410,11 +411,14 @@ class FixDepartments:
         logger.debug("Department engagements", all_people=all_people.keys())
         return all_people
 
+    @ttl_cache(ttl=1800)
     def _get_sd_ny_logic_unit(self, unit: UUID, lookup_date: datetime.date) -> UUID:
         """
         Get the UUID of the correct NY-logic elevated unit at a given time.
         """
+        logger.debug("Get NY-logic unit", unit=str(unit), lookup_date=lookup_date)
 
+        @ttl_cache(ttl=1800)
         def get_unit_level(unit_: UUID) -> str:
             r_get_department = self.sd_client.get_department(
                 GetDepartmentRequest(
@@ -444,27 +448,44 @@ class FixDepartments:
             unit_level = get_unit_level(parent_uuid)
             destination_unit = parent_uuid
 
+        logger.debug(
+            "Got NY-logic unit",
+            unit_level=unit_level,
+            destination_unit=str(destination_unit),
+        )
+
         return destination_unit
 
-    def _get_sd_employment_department_end_date(
+    def _get_sd_employment_data(
         self, cpr: str, emp_id: str, lookup_date: datetime.date
-    ) -> datetime.date:
+    ) -> tuple[UUID, datetime.date]:
         """
-        Get the SD department end date for the given
+        Get the SD department unit and department end date for the given employment.
         """
+        logger.debug(
+            "Get SD employment", cpr=cpr, emp_id=emp_id, lookup_date=lookup_date
+        )
         r_get_employment = self.sd_client.get_employment(
             GetEmploymentRequest(
                 InstitutionIdentifier=self.current_inst_id,
                 EffectiveDate=lookup_date,
                 PersonCivilRegistrationIdentifier=cpr,
                 EmploymentIdentifier=emp_id,
+                EmploymentStatusIndicator=True,
+                ProfessionIndicator=True,
                 DepartmentIndicator=True,
                 UUIDIndicator=True,
             )
         )
-        return one(
+
+        employment_department = one(
             one(r_get_employment.Person).Employment
-        ).EmploymentDepartment.DeactivationDate
+        ).EmploymentDepartment
+
+        return (
+            employment_department.DepartmentUUIDIdentifier,
+            employment_department.DeactivationDate,
+        )
 
     def fix_NY_logic(self, unit_uuid, validity_date, eng_user_key: str | None = None):
         """
@@ -481,6 +502,12 @@ class FixDepartments:
         :validity_date: The validity_date of the operation, moved engagements will
         be moved as of this date.
         """
+        logger.info(
+            "fix_NY_logic",
+            unit_uuid=unit_uuid,
+            validity_date=validity_date,
+            eng_user_key=eng_user_key,
+        )
         all_people = self._read_department_engagements(unit_uuid, validity_date)
 
         # We now have a list of all current and future people in the unit,
@@ -502,7 +529,7 @@ class FixDepartments:
                 if eng_user_key is not None and not user_key == eng_user_key:
                     continue
 
-                logger.info("Checking user_key", user_key=user_key)
+                logger.info("Processing engagement", cpr=cpr, user_key=user_key)
                 sd_uuid = employment["EmploymentDepartment"]["DepartmentUUIDIdentifier"]
                 if not sd_uuid == unit_uuid:
                     # This employment is not from the current department,
@@ -549,8 +576,21 @@ class FixDepartments:
                     from_date, to_date = eng_validity["from"], eng_validity["to"]
                     from_date_str = format_date(from_date)
 
+                    logger.info(
+                        "Processing MO engagement",
+                        eng_uuid=eng["org_unit"]["uuid"],
+                        from_date=from_date,
+                        to_date=to_date,
+                    )
+
+                    sd_emp_dep_unit, sd_emp_dep_end_date = self._get_sd_employment_data(
+                        cpr=cpr,
+                        emp_id=employment["EmploymentIdentifier"],
+                        lookup_date=from_date,
+                    )
+
                     destination_unit = self._get_sd_ny_logic_unit(
-                        unit=UUID(unit_uuid), lookup_date=from_date
+                        unit=sd_emp_dep_unit, lookup_date=from_date
                     )
 
                     if not eng["uuid"] == mo_engagement["uuid"]:
@@ -558,6 +598,7 @@ class FixDepartments:
                         continue
                     if eng["org_unit"]["uuid"] == str(destination_unit):
                         # This engagement is already in the correct unit
+                        logger.info("Engagement already in the correct unit")
                         continue
 
                     last_eng_validity = get_mo_validity(last_eng)
@@ -566,12 +607,6 @@ class FixDepartments:
 
                     if from_date < validity_date:
                         from_date_str = format_date(validity_date)
-
-                    sd_emp_dep_end_date = self._get_sd_employment_department_end_date(
-                        cpr=cpr,
-                        emp_id=employment["EmploymentIdentifier"],
-                        lookup_date=from_date,
-                    )
 
                     data = {
                         "org_unit": {"uuid": str(destination_unit)},
