@@ -13,6 +13,7 @@ from os2mo_helpers.mora_helpers import MoraHelper
 from sdclient.client import SDClient
 from sdclient.requests import GetDepartmentParentRequest
 from sdclient.requests import GetDepartmentRequest
+from sdclient.requests import GetEmploymentRequest
 from structlog.stdlib import get_logger
 
 from . import sd_payloads
@@ -444,6 +445,26 @@ class FixDepartments:
             destination_unit = parent_uuid
 
         return destination_unit
+
+    def _get_sd_employment_department_end_date(
+        self, cpr: str, emp_id: str, lookup_date: datetime.date
+    ) -> datetime.date:
+        """
+        Get the SD department end date for the given
+        """
+        r_get_employment = self.sd_client.get_employment(
+            GetEmploymentRequest(
+                InstitutionIdentifier=self.current_inst_id,
+                EffectiveDate=lookup_date,
+                PersonCivilRegistrationIdentifier=cpr,
+                EmploymentIdentifier=emp_id,
+                DepartmentIndicator=True,
+                UUIDIndicator=True,
+            )
+        )
+        return one(
+            one(r_get_employment.Person).Employment
+        ).EmploymentDepartment.DeactivationDate
 
     def fix_NY_logic(self, unit_uuid, validity_date):
         """
