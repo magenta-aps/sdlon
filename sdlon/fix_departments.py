@@ -25,7 +25,7 @@ from .date_utils import get_mo_validity
 from .date_utils import MO_INFINITY
 from .date_utils import parse_datetime
 from .date_utils import SD_INFINITY
-from .date_utils import sd_to_mo_validity
+from .date_utils import sd_to_mo_date
 from .engagement import get_eng_user_key
 from .engagement import re_terminate_engagement
 from .exceptions import NoCurrentValdityException
@@ -481,14 +481,6 @@ class FixDepartments:
         :validity_date: The validity_date of the operation, moved engagements will
         be moved as of this date.
         """
-        too_deep = self.settings.sd_import_too_deep
-        mo_unit = self.helper.read_ou(unit_uuid)
-        while mo_unit["org_unit_level"]["user_key"] in too_deep:
-            mo_unit = mo_unit["parent"]
-            logger.debug("Parent unit", parent_uuid=mo_unit["uuid"])
-        destination_unit = mo_unit["uuid"]
-        logger.debug("Destination found", destination_unit=destination_unit)
-
         all_people = self._read_department_engagements(unit_uuid, validity_date)
 
         # We now have a list of all current and future people in the unit,
@@ -508,7 +500,6 @@ class FixDepartments:
                 )
                 logger.info("Checking user_key", user_key=user_key)
                 sd_uuid = employment["EmploymentDepartment"]["DepartmentUUIDIdentifier"]
-                sd_validity = sd_to_mo_validity(employment["EmploymentDepartment"])
                 if not sd_uuid == unit_uuid:
                     # This employment is not from the current department,
                     # but is inherited from a lower level. Can happen if this
@@ -554,10 +545,14 @@ class FixDepartments:
                     from_date, to_date = eng_validity["from"], eng_validity["to"]
                     from_date_str = format_date(from_date)
 
+                    destination_unit = self._get_sd_ny_logic_unit(
+                        unit=UUID(unit_uuid), lookup_date=from_date
+                    )
+
                     if not eng["uuid"] == mo_engagement["uuid"]:
                         # This engagement is not relevant for this unit
                         continue
-                    if eng["org_unit"]["uuid"] == destination_unit:
+                    if eng["org_unit"]["uuid"] == str(destination_unit):
                         # This engagement is already in the correct unit
                         continue
 
@@ -568,11 +563,17 @@ class FixDepartments:
                     if from_date < validity_date:
                         from_date_str = format_date(validity_date)
 
+                    sd_emp_dep_end_date = self._get_sd_employment_department_end_date(
+                        cpr=cpr,
+                        emp_id=employment["EmploymentIdentifier"],
+                        lookup_date=from_date,
+                    )
+
                     data = {
-                        "org_unit": {"uuid": destination_unit},
+                        "org_unit": {"uuid": str(destination_unit)},
                         "validity": {
                             "from": from_date_str,
-                            "to": sd_validity["to"],
+                            "to": sd_to_mo_date(format_date(sd_emp_dep_end_date)),
                         },
                     }
                     payload = sd_payloads.engagement(data, mo_engagement)
