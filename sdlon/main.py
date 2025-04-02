@@ -49,6 +49,7 @@ def create_app(**kwargs) -> FastAPI:
         ou: UUID,
         response: Response,
         institution_identifier: str | None = None,
+        dry_run: bool = False,
     ) -> dict[str, str]:
         logger.info("Triggered fix_department", ou=str(ou))
 
@@ -60,7 +61,9 @@ def create_app(**kwargs) -> FastAPI:
         else:
             inst_id = institution_identifier
 
-        fix_departments = FixDepartments(settings, inst_id)
+        fix_departments = FixDepartments(
+            settings=settings, current_inst_id=inst_id, dry_run=dry_run
+        )
 
         try:
             fix_departments.fix_NY_logic(str(ou), today)
