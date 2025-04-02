@@ -578,7 +578,7 @@ class FixDepartments:
 
                     logger.info(
                         "Processing MO engagement",
-                        eng_uuid=eng["org_unit"]["uuid"],
+                        eng_uuid=eng["uuid"],
                         from_date=from_date,
                         to_date=to_date,
                     )
