@@ -550,16 +550,16 @@ class FixDepartments:
                 engs_to_re_terminate: set[str] = set()
 
                 for eng in mo_engagements:
+                    eng_validity = get_mo_validity(eng)
+                    from_date, to_date = eng_validity["from"], eng_validity["to"]
+                    from_date_str = format_date(from_date)
+
                     if not eng["uuid"] == mo_engagement["uuid"]:
                         # This engagement is not relevant for this unit
                         continue
                     if eng["org_unit"]["uuid"] == destination_unit:
                         # This engagement is already in the correct unit
                         continue
-
-                    eng_validity = get_mo_validity(eng)
-                    from_date, to_date = eng_validity["from"], eng_validity["to"]
-                    from_date_str = format_date(from_date)
 
                     last_eng_validity = get_mo_validity(last_eng)
                     if to_date >= last_eng_validity["to"]:
