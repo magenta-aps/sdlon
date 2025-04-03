@@ -418,7 +418,6 @@ class FixDepartments:
         """
         logger.debug("Get NY-logic unit", unit=str(unit), lookup_date=lookup_date)
 
-        @ttl_cache(ttl=1800)
         def get_unit_level(unit_: UUID) -> str:
             r_get_department = self.sd_client.get_department(
                 GetDepartmentRequest(
@@ -572,6 +571,10 @@ class FixDepartments:
                 engs_to_re_terminate: set[str] = set()
 
                 for eng in mo_engagements:
+                    if not eng["uuid"] == mo_engagement["uuid"]:
+                        # This engagement is not relevant for this unit
+                        continue
+
                     eng_validity = get_mo_validity(eng)
                     from_date, to_date = eng_validity["from"], eng_validity["to"]
                     from_date_str = format_date(from_date)
@@ -593,9 +596,6 @@ class FixDepartments:
                         unit=sd_emp_dep_unit, lookup_date=from_date
                     )
 
-                    if not eng["uuid"] == mo_engagement["uuid"]:
-                        # This engagement is not relevant for this unit
-                        continue
                     if eng["org_unit"]["uuid"] == str(destination_unit):
                         # This engagement is already in the correct unit
                         logger.info("Engagement already in the correct unit")
