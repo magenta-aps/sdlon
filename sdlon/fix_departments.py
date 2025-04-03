@@ -461,13 +461,19 @@ class FixDepartments:
         """
         Get the SD department unit and department end date for the given employment.
         """
+        # This is necessary due to bad data in MO
+        effective_lookup_date = max(lookup_date, datetime.date.today())
         logger.debug(
-            "Get SD employment", cpr=cpr, emp_id=emp_id, lookup_date=lookup_date
+            "Get SD employment",
+            cpr=cpr,
+            emp_id=emp_id,
+            lookup_date=lookup_date,
+            effective_lookup_date=effective_lookup_date,
         )
         r_get_employment = self.sd_client.get_employment(
             GetEmploymentRequest(
                 InstitutionIdentifier=self.current_inst_id,
-                EffectiveDate=lookup_date,
+                EffectiveDate=effective_lookup_date,
                 PersonCivilRegistrationIdentifier=cpr,
                 EmploymentIdentifier=emp_id,
                 EmploymentStatusIndicator=True,
