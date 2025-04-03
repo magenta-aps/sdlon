@@ -65,7 +65,9 @@ def test_trigger_fix_departments(
     r = client.post(f"/trigger/apply-ny-logic/{ou}")
 
     # Assert
-    fix_departments.fix_NY_logic.assert_called_once_with(ou, today)
+    fix_departments.fix_NY_logic.assert_called_once_with(
+        unit_uuid=ou, validity_date=today, eng_user_key=None
+    )
 
     assert r.status_code == 200
     assert r.json() == {"msg": "success"}

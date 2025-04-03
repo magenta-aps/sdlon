@@ -8,7 +8,13 @@ from uuid import UUID
 from uuid import uuid4
 
 import requests
+from cachetools.func import ttl_cache  # type: ignore
+from more_itertools import one
 from os2mo_helpers.mora_helpers import MoraHelper
+from sdclient.client import SDClient
+from sdclient.requests import GetDepartmentParentRequest
+from sdclient.requests import GetDepartmentRequest
+from sdclient.requests import GetEmploymentRequest
 from structlog.stdlib import get_logger
 
 from . import sd_payloads
@@ -20,7 +26,7 @@ from .date_utils import get_mo_validity
 from .date_utils import MO_INFINITY
 from .date_utils import parse_datetime
 from .date_utils import SD_INFINITY
-from .date_utils import sd_to_mo_validity
+from .date_utils import sd_to_mo_date
 from .engagement import get_eng_user_key
 from .engagement import re_terminate_engagement
 from .exceptions import NoCurrentValdityException
@@ -68,6 +74,11 @@ class FixDepartments:
 
         if self.unit_type is None:
             raise Exception("Unit types not correctly configured")
+
+        self.sd_client = SDClient(
+            sd_username=settings.sd_user,
+            sd_password=settings.sd_password.get_secret_value(),
+        )
 
     def _get_mora_helper(self, settings):
         return MoraHelper(hostname=self.settings.mora_base, use_cache=False)
@@ -400,7 +411,88 @@ class FixDepartments:
         logger.debug("Department engagements", all_people=all_people.keys())
         return all_people
 
-    def fix_NY_logic(self, unit_uuid, validity_date):
+    @ttl_cache(ttl=1800)
+    def _get_sd_ny_logic_unit(self, unit: UUID, lookup_date: datetime.date) -> UUID:
+        """
+        Get the UUID of the correct NY-logic elevated unit at a given time.
+        """
+        logger.debug("Get NY-logic unit", unit=str(unit), lookup_date=lookup_date)
+
+        def get_unit_level(unit_: UUID) -> str:
+            r_get_department = self.sd_client.get_department(
+                GetDepartmentRequest(
+                    InstitutionIdentifier=self.current_inst_id,
+                    DepartmentUUIDIdentifier=unit_,
+                    ActivationDate=lookup_date,
+                    DeactivationDate=lookup_date,
+                    UUIDIndicator=True,
+                )
+            )
+            department = one(r_get_department.Department)
+            return department.DepartmentLevelIdentifier
+
+        unit_level = get_unit_level(unit)
+
+        destination_unit = unit
+        while unit_level in self.settings.sd_import_too_deep:
+            r_get_department_parent = self.sd_client.get_department_parent(
+                GetDepartmentParentRequest(
+                    EffectiveDate=lookup_date,
+                    DepartmentUUIDIdentifier=destination_unit,
+                )
+            )
+            parent_uuid = (
+                r_get_department_parent.DepartmentParent.DepartmentUUIDIdentifier
+            )
+            unit_level = get_unit_level(parent_uuid)
+            destination_unit = parent_uuid
+
+        logger.debug(
+            "Got NY-logic unit",
+            unit_level=unit_level,
+            destination_unit=str(destination_unit),
+        )
+
+        return destination_unit
+
+    def _get_sd_employment_data(
+        self, cpr: str, emp_id: str, lookup_date: datetime.date
+    ) -> tuple[UUID, datetime.date]:
+        """
+        Get the SD department unit and department end date for the given employment.
+        """
+        # This is necessary due to bad data in MO
+        effective_lookup_date = max(lookup_date, datetime.date.today())
+        logger.debug(
+            "Get SD employment",
+            cpr=cpr,
+            emp_id=emp_id,
+            lookup_date=lookup_date,
+            effective_lookup_date=effective_lookup_date,
+        )
+        r_get_employment = self.sd_client.get_employment(
+            GetEmploymentRequest(
+                InstitutionIdentifier=self.current_inst_id,
+                EffectiveDate=effective_lookup_date,
+                PersonCivilRegistrationIdentifier=cpr,
+                EmploymentIdentifier=emp_id,
+                EmploymentStatusIndicator=True,
+                ProfessionIndicator=True,
+                DepartmentIndicator=True,
+                UUIDIndicator=True,
+            )
+        )
+
+        employment_department = one(
+            one(r_get_employment.Person).Employment
+        ).EmploymentDepartment
+
+        return (
+            employment_department.DepartmentUUIDIdentifier,
+            employment_department.DeactivationDate,
+        )
+
+    def fix_NY_logic(self, unit_uuid, validity_date, eng_user_key: str | None = None):
         """
         Read all engagements in a unit and ensure that the position in MO is correct
         according to the rules of the import (ie, move engagement up from
@@ -415,14 +507,12 @@ class FixDepartments:
         :validity_date: The validity_date of the operation, moved engagements will
         be moved as of this date.
         """
-        too_deep = self.settings.sd_import_too_deep
-        mo_unit = self.helper.read_ou(unit_uuid)
-        while mo_unit["org_unit_level"]["user_key"] in too_deep:
-            mo_unit = mo_unit["parent"]
-            logger.debug("Parent unit", parent_uuid=mo_unit["uuid"])
-        destination_unit = mo_unit["uuid"]
-        logger.debug("Destination found", destination_unit=destination_unit)
-
+        logger.info(
+            "fix_NY_logic",
+            unit_uuid=unit_uuid,
+            validity_date=validity_date,
+            eng_user_key=eng_user_key,
+        )
         all_people = self._read_department_engagements(unit_uuid, validity_date)
 
         # We now have a list of all current and future people in the unit,
@@ -440,9 +530,12 @@ class FixDepartments:
                     self.current_inst_id,
                     self.settings.sd_prefix_eng_user_key_with_inst_id,
                 )
-                logger.info("Checking user_key", user_key=user_key)
+
+                if eng_user_key is not None and not user_key == eng_user_key:
+                    continue
+
+                logger.info("Processing engagement", cpr=cpr, user_key=user_key)
                 sd_uuid = employment["EmploymentDepartment"]["DepartmentUUIDIdentifier"]
-                sd_validity = sd_to_mo_validity(employment["EmploymentDepartment"])
                 if not sd_uuid == unit_uuid:
                     # This employment is not from the current department,
                     # but is inherited from a lower level. Can happen if this
@@ -487,13 +580,32 @@ class FixDepartments:
                     if not eng["uuid"] == mo_engagement["uuid"]:
                         # This engagement is not relevant for this unit
                         continue
-                    if eng["org_unit"]["uuid"] == destination_unit:
-                        # This engagement is already in the correct unit
-                        continue
 
                     eng_validity = get_mo_validity(eng)
                     from_date, to_date = eng_validity["from"], eng_validity["to"]
                     from_date_str = format_date(from_date)
+
+                    logger.info(
+                        "Processing MO engagement",
+                        eng_uuid=eng["uuid"],
+                        from_date=from_date,
+                        to_date=to_date,
+                    )
+
+                    sd_emp_dep_unit, sd_emp_dep_end_date = self._get_sd_employment_data(
+                        cpr=cpr,
+                        emp_id=employment["EmploymentIdentifier"],
+                        lookup_date=from_date,
+                    )
+
+                    destination_unit = self._get_sd_ny_logic_unit(
+                        unit=sd_emp_dep_unit, lookup_date=from_date
+                    )
+
+                    if eng["org_unit"]["uuid"] == str(destination_unit):
+                        # This engagement is already in the correct unit
+                        logger.info("Engagement already in the correct unit")
+                        continue
 
                     last_eng_validity = get_mo_validity(last_eng)
                     if to_date >= last_eng_validity["to"]:
@@ -503,10 +615,10 @@ class FixDepartments:
                         from_date_str = format_date(validity_date)
 
                     data = {
-                        "org_unit": {"uuid": destination_unit},
+                        "org_unit": {"uuid": str(destination_unit)},
                         "validity": {
                             "from": from_date_str,
-                            "to": sd_validity["to"],
+                            "to": sd_to_mo_date(format_date(sd_emp_dep_end_date)),
                         },
                     }
                     payload = sd_payloads.engagement(data, mo_engagement)
