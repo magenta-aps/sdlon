@@ -416,15 +416,21 @@ class FixDepartments:
         """
         Get the UUID of the correct NY-logic elevated unit at a given time.
         """
-        logger.debug("Get NY-logic unit", unit=str(unit), lookup_date=lookup_date)
+        effective_lookup_date = max(lookup_date, datetime.date.today())
+        logger.debug(
+            "Get NY-logic unit",
+            unit=str(unit),
+            lookup_date=lookup_date,
+            effective_lookup_date=effective_lookup_date,
+        )
 
         def get_unit_level(unit_: UUID) -> str:
             r_get_department = self.sd_client.get_department(
                 GetDepartmentRequest(
                     InstitutionIdentifier=self.current_inst_id,
                     DepartmentUUIDIdentifier=unit_,
-                    ActivationDate=lookup_date,
-                    DeactivationDate=lookup_date,
+                    ActivationDate=effective_lookup_date,
+                    DeactivationDate=effective_lookup_date,
                     UUIDIndicator=True,
                 )
             )
@@ -437,7 +443,7 @@ class FixDepartments:
         while unit_level in self.settings.sd_import_too_deep:
             r_get_department_parent = self.sd_client.get_department_parent(
                 GetDepartmentParentRequest(
-                    EffectiveDate=lookup_date,
+                    EffectiveDate=effective_lookup_date,
                     DepartmentUUIDIdentifier=destination_unit,
                 )
             )
