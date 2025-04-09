@@ -598,6 +598,10 @@ class FixDepartments:
                         to_date=to_date,
                     )
 
+                    last_eng_validity = get_mo_validity(last_eng)
+                    if to_date >= last_eng_validity["to"]:
+                        last_eng = eng
+
                     sd_emp_dep_unit, sd_emp_dep_end_date = self._get_sd_employment_data(
                         cpr=cpr,
                         emp_id=employment["EmploymentIdentifier"],
@@ -612,10 +616,6 @@ class FixDepartments:
                         # This engagement is already in the correct unit
                         logger.info("Engagement already in the correct unit")
                         continue
-
-                    last_eng_validity = get_mo_validity(last_eng)
-                    if to_date >= last_eng_validity["to"]:
-                        last_eng = eng
 
                     if from_date < validity_date:
                         from_date_str = format_date(validity_date)
