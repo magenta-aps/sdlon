@@ -9,12 +9,23 @@ from unittest import mock
 from unittest import TestCase
 from unittest.mock import call
 from unittest.mock import MagicMock
+from uuid import UUID
 from uuid import uuid4
 
 import pytest
 from freezegun import freeze_time
 from os2mo_helpers.mora_helpers import MoraHelper
 from requests import Response
+from sdclient.client import SDClient
+from sdclient.responses import Department
+from sdclient.responses import DepartmentParent
+from sdclient.responses import Employment
+from sdclient.responses import EmploymentDepartment
+from sdclient.responses import EmploymentStatus
+from sdclient.responses import GetDepartmentParentResponse
+from sdclient.responses import GetDepartmentResponse
+from sdclient.responses import GetEmploymentResponse
+from sdclient.responses import Person
 
 from .test_config import DEFAULT_CHANGED_AT_SETTINGS
 from sdlon.config import Settings
@@ -413,7 +424,6 @@ class TestFixDepartment(TestCase):
             call("22222222-2222-2222-2222-222222222222", date(2020, 1, 1)),
         ]
 
-    @unittest.skip("Skip for now due to critical issue")
     def test_fix_ny_logic_elevates_engagement_from_too_deep_levels(self) -> None:
         """
         Test that an engagement is elevated from the "too deep" OU levels to
@@ -481,6 +491,68 @@ class TestFixDepartment(TestCase):
                 )
             }
         )
+
+        mock_sd_client = MagicMock(spec=SDClient)
+        mock_sd_client.get_employment.return_value = GetEmploymentResponse(
+            Person=[
+                Person(
+                    PersonCivilRegistrationIdentifier=cpr,
+                    Employment=[
+                        Employment(
+                            EmploymentIdentifier="12345",
+                            EmploymentDate=date(2020, 11, 10),
+                            AnniversaryDate=date(2004, 8, 15),
+                            EmploymentStatus=EmploymentStatus(
+                                ActivationDate=date(2020, 11, 10),
+                                DeactivationDate=date(9999, 12, 31),
+                                EmploymentStatusCode="1",
+                            ),
+                            EmploymentDepartment=EmploymentDepartment(
+                                ActivationDate=date(2020, 11, 10),
+                                DeactivationDate=date(9999, 12, 31),
+                                DepartmentIdentifier="department_id",
+                                DepartmentUUIDIdentifier=UUID(unit_uuid),
+                            ),
+                        )
+                    ],
+                )
+            ]
+        )
+        mock_sd_client.get_department.side_effect = [
+            GetDepartmentResponse(
+                RegionIdentifier="RI",
+                InstitutionIdentifier="II",
+                Department=[
+                    Department(
+                        ActivationDate=date(2020, 11, 10),
+                        DeactivationDate=date(9999, 12, 31),
+                        DepartmentIdentifier="department_id",
+                        DepartmentLevelIdentifier="Afdelings-niveau",
+                        DepartmentUUIDIdentifier=UUID(unit_uuid),
+                    )
+                ],
+            ),
+            GetDepartmentResponse(
+                RegionIdentifier="RI",
+                InstitutionIdentifier="II",
+                Department=[
+                    Department(
+                        ActivationDate=date(2020, 11, 10),
+                        DeactivationDate=date(9999, 12, 31),
+                        DepartmentIdentifier="parent_department_id",
+                        DepartmentLevelIdentifier="NY1-niveau",
+                        DepartmentUUIDIdentifier=UUID(parent_unit_uuid),
+                    )
+                ],
+            ),
+        ]
+        mock_sd_client.get_department_parent.return_value = GetDepartmentParentResponse(
+            DepartmentParent=DepartmentParent(
+                DepartmentUUIDIdentifier=UUID(parent_unit_uuid)
+            )
+        )
+        instance.sd_client = mock_sd_client
+
         instance.helper.read_user = MagicMock(
             return_value={
                 "uuid": str(uuid4()),
