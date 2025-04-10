@@ -1,4 +1,3 @@
-import unittest
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import date
@@ -596,7 +595,6 @@ class TestFixDepartment(TestCase):
             },
         )
 
-    @unittest.skip("Skip for now due to critical issue")
     @freeze_time("2025-01-25")
     def test_fix_ny_logic_use_sd_department_end_date_and_re_terminate(self) -> None:
         """
@@ -666,6 +664,70 @@ class TestFixDepartment(TestCase):
                 )
             }
         )
+
+        mock_sd_client = MagicMock(spec=SDClient)
+        mock_sd_client.get_employment.return_value = GetEmploymentResponse(
+            Person=[
+                Person(
+                    PersonCivilRegistrationIdentifier=cpr,
+                    Employment=[
+                        Employment(
+                            EmploymentIdentifier="12345",
+                            EmploymentDate=date(2020, 11, 10),
+                            AnniversaryDate=date(2004, 8, 15),
+                            EmploymentStatus=EmploymentStatus(
+                                ActivationDate=date(2020, 11, 10),
+                                # Employment ends *before* infinity
+                                DeactivationDate=date(2040, 12, 31),
+                                EmploymentStatusCode="1",
+                            ),
+                            EmploymentDepartment=EmploymentDepartment(
+                                ActivationDate=date(2020, 11, 10),
+                                # Department change is valid to infinity
+                                DeactivationDate=date(9999, 12, 31),
+                                DepartmentIdentifier="department_id",
+                                DepartmentUUIDIdentifier=UUID(unit_uuid),
+                            ),
+                        )
+                    ],
+                )
+            ]
+        )
+        mock_sd_client.get_department.side_effect = [
+            GetDepartmentResponse(
+                RegionIdentifier="RI",
+                InstitutionIdentifier="II",
+                Department=[
+                    Department(
+                        ActivationDate=date(2020, 11, 10),
+                        DeactivationDate=date(9999, 12, 31),
+                        DepartmentIdentifier="department_id",
+                        DepartmentLevelIdentifier="Afdelings-niveau",
+                        DepartmentUUIDIdentifier=UUID(unit_uuid),
+                    )
+                ],
+            ),
+            GetDepartmentResponse(
+                RegionIdentifier="RI",
+                InstitutionIdentifier="II",
+                Department=[
+                    Department(
+                        ActivationDate=date(2020, 11, 10),
+                        DeactivationDate=date(9999, 12, 31),
+                        DepartmentIdentifier="parent_department_id",
+                        DepartmentLevelIdentifier="NY1-niveau",
+                        DepartmentUUIDIdentifier=UUID(parent_unit_uuid),
+                    )
+                ],
+            ),
+        ]
+        mock_sd_client.get_department_parent.return_value = GetDepartmentParentResponse(
+            DepartmentParent=DepartmentParent(
+                DepartmentUUIDIdentifier=UUID(parent_unit_uuid)
+            )
+        )
+        instance.sd_client = mock_sd_client
+
         instance.helper.read_user = MagicMock(
             return_value={
                 "uuid": str(uuid4()),
