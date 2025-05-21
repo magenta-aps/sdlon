@@ -1400,9 +1400,6 @@ class ChangeAtSD:
                 )
                 if not success:
                     logger.error("Problem terminating employment", user_key=user_key)
-                # Setting skip = True may cause problems further down the line for
-                # complex SD payloads, but there is currently no easy way to fix it.
-                skip = True
             elif code == EmploymentStatus.Slettet:
 
                 # TODO: rename user_key to something unique in MO when employee
@@ -1429,7 +1426,6 @@ class ChangeAtSD:
                             person_uuid=person_uuid,
                             from_date=sd_from_date,
                         )
-                skip = True
         return skip
 
     def _update_user_employments(

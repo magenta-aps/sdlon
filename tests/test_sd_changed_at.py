@@ -928,7 +928,7 @@ class Test_sd_changed_at(unittest.TestCase):
             },
         )
 
-        assert skip
+        assert not skip
 
     def test_handle_status_change_do_not_term_non_existing_status8_sd_employment(self):
         # Arrange
