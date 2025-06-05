@@ -14,6 +14,7 @@ import xmltodict
 from structlog.stdlib import get_logger
 
 from .config import Settings
+from .exceptions import SDEmploymentNotFound
 from db.queries import log_payload
 
 logger = get_logger()
@@ -69,6 +70,12 @@ def sd_lookup(
     else:
         msg = "SD api error, envelope: {}, response: {}"
         logger.error(msg.format(dict_response["Envelope"], response.text))
+        # Hack - don't worry about it. Will soon deploy the new SD integration :-)
+        if (
+            "The stated EmploymentIdentifier" in response.text
+            and "does not exist" in response.text
+        ):
+            raise SDEmploymentNotFound()
         raise Exception(msg.format(dict_response["Envelope"], response.text))
     logger.debug("Done with {}".format(url))
     return xml_response
@@ -209,12 +216,16 @@ def read_employment_at(
 
     request_uuid = uuid.uuid4()
     logger.info("read_employment_at", request_uuid=request_uuid)
-    response = sd_lookup(
-        url,
-        settings=settings,
-        institution_identifier=inst_id,
-        params=params,
-        request_uuid=request_uuid,
-        dry_run=dry_run,
-    )
+    try:
+        response = sd_lookup(
+            url,
+            settings=settings,
+            institution_identifier=inst_id,
+            params=params,
+            request_uuid=request_uuid,
+            dry_run=dry_run,
+        )
+    except SDEmploymentNotFound:
+        logger.debug("Could not find employment in SD")
+        return None
     return response.get("Person")
