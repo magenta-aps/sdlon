@@ -88,14 +88,17 @@ class TestCreateEngagement(unittest.TestCase):
         mock_sd_updater.dry_run = False
 
         # Act
-        create_engagement(mock_sd_updater, "12345", "person_uuid", date(2000, 1, 1))
+        create_engagement(
+            mock_sd_updater, "12345", "person_uuid", "0101011234", date(2000, 1, 1)
+        )
 
         # Assert
         mock_read_employment_at.assert_called_once_with(
-            date(2000, 1, 1),
+            effective_date=date(2000, 1, 1),
             settings={"some": "settings"},
             inst_id="II",
             employment_id="12345",
+            cpr="0101011234",
             status_passive_indicator=False,
             dry_run=False,
         )
@@ -110,13 +113,16 @@ class TestCreateEngagement(unittest.TestCase):
         mock_sd_updater.dry_run = False
 
         # Act
-        create_engagement(mock_sd_updater, "12345", "person_uuid", date(2000, 1, 1))
+        create_engagement(
+            mock_sd_updater, "12345", "person_uuid", "0101011234", date(2000, 1, 1)
+        )
 
         # Assert
         mock_read_employment_at.assert_called_once_with(
-            date(2000, 1, 1),
+            effective_date=date(2000, 1, 1),
             settings={"some": "settings"},
             inst_id="II",
+            cpr="0101011234",
             employment_id="12345",
             status_passive_indicator=False,
             dry_run=False,

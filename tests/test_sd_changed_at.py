@@ -1313,7 +1313,7 @@ class Test_sd_changed_at(unittest.TestCase):
             "new_class_2_uuid",
         ]
 
-        sd_updater.edit_engagement(engagement, "person_uuid")
+        sd_updater.edit_engagement(engagement, "person_uuid", "0101011234")
 
         # Check that the create functions are both called
         sd_updater._create_engagement_type.assert_called_with(
@@ -1431,7 +1431,7 @@ class Test_sd_changed_at(unittest.TestCase):
 
         # Act
 
-        sd_updater.edit_engagement(engagement, "person_uuid")
+        sd_updater.edit_engagement(engagement, "person_uuid", "0101011234")
 
         # Assert
 
@@ -1522,7 +1522,7 @@ class Test_sd_changed_at(unittest.TestCase):
         )
 
         # Act
-        sd_updater.edit_engagement(engagement, "person_uuid")
+        sd_updater.edit_engagement(engagement, "person_uuid", "0101011234")
 
         # Assert
         mock_update.assert_called_once()
@@ -1558,7 +1558,7 @@ class Test_sd_changed_at(unittest.TestCase):
         sd_updater.edit_engagement_type = MagicMock()
 
         # Act
-        sd_updater.edit_engagement(engagement, str(uuid.uuid4()))
+        sd_updater.edit_engagement(engagement, str(uuid.uuid4()), "0101011234")
 
         # Assert
         sd_updater.edit_engagement_profession.assert_not_called()
@@ -1601,11 +1601,11 @@ class Test_sd_changed_at(unittest.TestCase):
         sd_updater._find_last_engagement = mock__find_engagement
 
         # Act
-        sd_updater.edit_engagement(sd_employment, "person_uuid")
+        sd_updater.edit_engagement(sd_employment, "person_uuid", "0101011234")
 
         # Assert
         mock_create_engagement.assert_called_once_with(
-            sd_updater, "ABCDE", "person_uuid", date(2021, 12, 19)
+            sd_updater, "ABCDE", "person_uuid", "0101011234", date(2021, 12, 19)
         )
 
     @given(
@@ -2806,7 +2806,7 @@ def test_edit_engagement_uses_correct_user_key(
     sd_emp = {"EmploymentIdentifier": sd_emp_id}
 
     # Act
-    sd_updater.edit_engagement(sd_emp, person_uuid)
+    sd_updater.edit_engagement(sd_emp, person_uuid, "0101011234")
 
     # Assert
     sd_updater._find_last_engagement.assert_called_once_with(
