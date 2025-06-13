@@ -55,13 +55,15 @@ def create_engagement(
     sd_updater,
     employment_id,
     person_uuid,
+    cpr: str,
     sd_lookup_date: date,
 ) -> None:
     # Call SD to get SD employment
     sd_employment_payload = read_employment_at(
-        sd_lookup_date,
+        effective_date=sd_lookup_date,
         settings=sd_updater.settings,
         inst_id=sd_updater.current_inst_id,
+        cpr=cpr,
         employment_id=employment_id,
         status_passive_indicator=False,
         dry_run=sd_updater.dry_run,
@@ -71,7 +73,6 @@ def create_engagement(
 
     assert not isinstance(sd_employment_payload, list)
 
-    cpr = sd_employment_payload["PersonCivilRegistrationIdentifier"]
     sd_employment = sd_employment_payload.get("Employment")
     status = sd_employment.get("EmploymentStatus")  # type: ignore
 

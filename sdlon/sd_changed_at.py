@@ -891,7 +891,7 @@ class ChangeAtSD:
 
         if also_edit:
             # This will take of the extra entries
-            self.edit_engagement(sd_employment, person_uuid)
+            self.edit_engagement(sd_employment, person_uuid, cpr)
 
         return True
 
@@ -1228,7 +1228,7 @@ class ChangeAtSD:
                 response = self.helper._mo_post("details/edit", payload)
                 mora_assert(response)
 
-    def edit_engagement(self, sd_employment, person_uuid):
+    def edit_engagement(self, sd_employment, person_uuid, cpr: str):
         """
         Edit an engagement
         """
@@ -1256,7 +1256,7 @@ class ChangeAtSD:
 
                 sd_lookup_date = create_eng_lookup_date(eng_components)
 
-                create_engagement(self, employment_id, person_uuid, sd_lookup_date)
+                create_engagement(self, employment_id, person_uuid, cpr, sd_lookup_date)
             return
 
         update_existing_engagement(self, mo_eng, sd_employment, person_uuid)
@@ -1351,7 +1351,7 @@ class ChangeAtSD:
                     logger.info("Found MO engagement", eng_uuid=mo_eng["uuid"])
                     self._refresh_mo_engagements(person_uuid)
                     self.edit_engagement_status(eng["status_list"], mo_eng)
-                    self.edit_engagement(sd_employment, person_uuid)
+                    self.edit_engagement(sd_employment, person_uuid, cpr)
                 else:
                     logger.info("MO engagement not found. Create new engagement")
                     if is_employment_id_and_no_salary_minimum_consistent(
@@ -1444,7 +1444,7 @@ class ChangeAtSD:
                 cpr, sd_employment, person_uuid
             ):
                 continue
-            self.edit_engagement(sd_employment, person_uuid)
+            self.edit_engagement(sd_employment, person_uuid, cpr)
 
     def update_all_employments(self, in_cpr: Optional[str] = None) -> None:
         if in_cpr is not None:
