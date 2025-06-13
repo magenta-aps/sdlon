@@ -192,6 +192,7 @@ def read_employment_at(
     effective_date: datetime.date,
     settings: Settings,
     inst_id: str,
+    cpr: Optional[str] = None,
     employment_id: Optional[str] = None,
     status_active_indicator: bool = True,
     status_passive_indicator: bool = True,
@@ -211,6 +212,8 @@ def read_employment_at(
         "SalaryCodeGroupIndicator": "false",
     }
 
+    if cpr is not None:
+        params.update({"PersonCivilRegistrationIdentifier": cpr})
     if employment_id:
         params.update({"EmploymentIdentifier": employment_id})
 
