@@ -215,6 +215,21 @@ def test_filter_single_professions():
             ],
             date(2001, 12, 31),
         ),
+        (
+            [
+                {
+                    "ActivationDate": "2002-01-01",
+                    "DeactivationDate": "2002-08-29",
+                    "EmploymentStatusCode": "9",
+                },
+                {
+                    "ActivationDate": "2002-09-01",
+                    "DeactivationDate": "9999-12-31",
+                    "EmploymentStatusCode": "8",
+                },
+            ],
+            date(2001, 12, 31),
+        ),
     ],
 )
 def test_get_last_day_of_sd_work(

@@ -10,8 +10,8 @@ from typing import OrderedDict
 from typing import Tuple
 
 from integrations.SD_Lon.sdlon.sd_common import EmploymentStatus as EmploymentStatusEnum
+from more_itertools import first
 from more_itertools import last
-from more_itertools import one
 from more_itertools import partition
 from os2mo_helpers.mora_helpers import MoraHelper
 from structlog.stdlib import get_logger
@@ -193,7 +193,7 @@ def get_last_day_of_sd_work(emp_status_list: list[dict[str, str]]) -> date | Non
     if inactive_emp_statuses:
         # First day of non-work (e.g. retirement (status 8))
         activation_date = parse_datetime(
-            one(inactive_emp_statuses)["ActivationDate"]
+            first(inactive_emp_statuses)["ActivationDate"]
         ).date()
         # Last day of work
         return activation_date - timedelta(days=1)
