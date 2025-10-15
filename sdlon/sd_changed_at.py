@@ -700,6 +700,10 @@ class ChangeAtSD:
         Returns:
             uuid of the job function or None if it could not be created.
         """
+        # If hardcoding job title, override the job_function with "Medarbejder"
+        if self.settings.sd_job_function is JobFunction.always_medarbejder:
+            job_function = "Medarbejder"
+
         # Add new profssions to LoRa
         job_uuid = self.job_functions.get(job_function)
         if job_uuid:
