@@ -105,12 +105,6 @@ class ChangeAtSD:
         self.dry_run = dry_run
         self.current_inst_id = current_inst_id
 
-        job_function_type = self.settings.sd_job_function
-        if job_function_type == JobFunction.job_position_identifier:
-            self.use_jpi = True
-        elif job_function_type == JobFunction.employment_name:
-            self.use_jpi = False
-
         self.department_fixer = self._get_fix_departments()
         self.helper = self._get_mora_helper(self.settings.mora_base)
         self.job_sync = self._get_job_sync(self.settings)
@@ -141,7 +135,7 @@ class ChangeAtSD:
         job_function_mapper = cast(
             Callable[[Any], Tuple[str, str]], itemgetter("name", "uuid")
         )
-        if self.use_jpi:
+        if self.settings.sd_job_function is JobFunction.job_position_identifier:
             job_function_mapper = cast(
                 Callable[[Any], Tuple[str, str]], itemgetter("user_key", "uuid")
             )
@@ -695,8 +689,9 @@ class ChangeAtSD:
     def _fetch_professions(self, job_function, job_position):
         """Fetch an job function UUID, create if missing.
 
-        This function does not depend on self.use_jpi, as the argument is just a
-        string. If self.use_jpi is true, the string will be the SD
+        This function does not depend on self.settings.sd_job_function, as the
+        argument is just a string. If self.settings.sd_job_function is
+        JobFunction.job_position_identifier, the string will be the SD
         JobPositionIdentifier, otherwise it will be the actual job name.
 
         Args:
@@ -856,7 +851,7 @@ class ChangeAtSD:
             emp_name = "Ukendt"
 
         job_function = emp_name
-        if self.use_jpi:
+        if self.settings.sd_job_function is JobFunction.job_position_identifier:
             job_function = job_position
 
         engagement_type = self.determine_engagement_type(sd_employment, job_position)
@@ -1115,7 +1110,7 @@ class ChangeAtSD:
                 validity = sd_to_mo_validity(profession_info)
 
                 job_function = emp_name
-                if self.use_jpi:
+                if self.settings.sd_job_function is JobFunction.job_position_identifier:
                     job_function = job_position
                 logger.debug("Employment name", job_function=job_function)
 
