@@ -29,6 +29,7 @@ from sdlon.date_utils import format_date
 from sdlon.it_systems import MUTATION_ADD_IT_SYSTEM_TO_EMPLOYEE
 from sdlon.metrics import RunDBState
 from sdlon.models import ITUserSystem
+from sdlon.models import JobFunction
 from sdlon.models import MOBasePerson
 from sdlon.sd_changed_at import ChangeAtSD
 from sdlon.sd_changed_at import changed_at
@@ -2078,7 +2079,7 @@ class TestEditEngagementX:
         eng_uuid = str(uuid.uuid4())
 
         sd_updater = setup_sd_changed_at()
-        sd_updater.use_jpi = False
+        sd_updater.settings.sd_job_function = JobFunction.employment_name
         mock_mo_post = MagicMock(
             return_value=attrdict({"status_code": 200, "text": "response text"}),
         )

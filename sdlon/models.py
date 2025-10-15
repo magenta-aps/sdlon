@@ -8,6 +8,7 @@ from pydantic import BaseModel
 class JobFunction(str, Enum):
     job_position_identifier = "JobPositionIdentifier"
     employment_name = "EmploymentName"
+    always_medarbejder = "AlwaysMedarbejder"
 
 
 # TODO: replace these models with the one present in the new SD client
