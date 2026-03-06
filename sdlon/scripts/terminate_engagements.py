@@ -43,8 +43,7 @@ def get_sd_employment_changed(
     employment_identifier: str,
 ) -> GetEmploymentChangedResponse:
     """
-    Get all employments from SD (the query params are very
-    specific for what is needed here).
+    Get full employment timeline from SD for the given CPR and EmploymentIdentifier.
 
     Args:
         username: the username for the SD API
@@ -152,8 +151,8 @@ def get_mo_engagements(
         employee_uuid: UUID of the employee to get the engagements from
 
     Returns:
-        List of dicts where each dict contains user keys, "from date" and
-        UUID of the engagements
+        List of dicts where each dict contains user keys, "to date",
+        UUID and user_key of the engagements
     """
 
     query = gql(
