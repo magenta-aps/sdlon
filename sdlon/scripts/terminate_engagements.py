@@ -332,7 +332,7 @@ def main(
         engagements = get_mo_engagements(gql_client, employee_.uuid)
         for eng in engagements:
             try:
-                assert UUID(eng["user_key"])
+                UUID(eng["user_key"])
                 continue
             except ValueError:
                 pass
