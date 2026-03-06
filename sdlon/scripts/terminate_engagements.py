@@ -1,8 +1,5 @@
-# (this script is copied from fix_status8.py and modified)
-# Find all passive employments in SD and ensure that the corresponding
-# engagements in MO are terminated accordingly. The script will:
-# 1) Get all status 8 employments from SD
-# 2) Iterate over these and terminate the corresponding active engagements in MO
+# Find and terminate all MO engagements which are active in MO
+# for a longer period than in SD
 from datetime import date
 from datetime import datetime
 from typing import Any
