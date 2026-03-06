@@ -192,15 +192,17 @@ def get_mo_engagements(
             "to_date": None,
         },
     )
+
+    last_validities = [last(obj["validities"]) for obj in r["engagements"]["objects"]]
     engagements = [
         {
-            "uuid": last(obj["validities"])["uuid"],
-            "user_key": last(obj["validities"])["user_key"],
-            "to": datetime.fromisoformat(last(obj["validities"])["validity"]["to"])
-            if last(obj["validities"])["validity"]["to"] is not None
+            "uuid": last_validity["uuid"],
+            "user_key": last_validity["user_key"],
+            "to": datetime.fromisoformat(last_validity["validity"]["to"])
+            if last_validity["validity"]["to"] is not None
             else None,
         }
-        for obj in r["engagements"]["objects"]
+        for last_validity in last_validities
     ]
     return engagements
 
@@ -236,9 +238,8 @@ def get_last_day_of_work(
         for emp_status in employment.EmploymentStatus
         if emp_status.EmploymentStatusCode not in ("7", "8", "9", "S")
     ]
-    active_statuses.sort(key=lambda status: status.ActivationDate)
 
-    return last(active_statuses).DeactivationDate
+    return max(active_statuses, key=lambda status: status.ActivationDate)
 
 
 @click.command()
