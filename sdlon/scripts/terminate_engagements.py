@@ -27,6 +27,14 @@ from sdlon.log import LogLevel
 from sdlon.log import setup_logging
 
 
+def _is_uuid(user_key: str) -> bool:
+    try:
+        UUID(user_key)
+        return True
+    except ValueError:
+        return False
+
+
 def get_sd_employment_changed(
     username: str,
     password: str,
@@ -325,11 +333,8 @@ def main(
             print(f"Processed employees: {i}/{len(employees)}")
         engagements = get_mo_engagements(gql_client, employee_.uuid)
         for eng in engagements:
-            try:
-                UUID(eng["user_key"])
+            if _is_uuid(eng["user_key"]):
                 continue
-            except ValueError:
-                pass
             sd_employment_changed = get_sd_employment_changed(
                 username=username,
                 password=password,
