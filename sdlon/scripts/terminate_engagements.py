@@ -36,7 +36,7 @@ def get_sd_employment_changed(
     employment_identifier: str,
 ) -> GetEmploymentChangedResponse:
     """
-    Get all passive employments from SD (the query params are very
+    Get all employments from SD (the query params are very
     specific for what is needed here).
 
     Args:
