@@ -314,7 +314,7 @@ def main(
     dry_run: bool,
     readme: bool,
     show_cpr: bool,
-):
+) -> None:
     if not readme:
         print("Make sure you have read the README.md before running the script")
         exit(0)
