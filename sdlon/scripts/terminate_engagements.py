@@ -56,7 +56,7 @@ def get_sd_employment_changed(
             InstitutionIdentifier=institution_identifier,
             PersonCivilRegistrationIdentifier=cpr,
             EmploymentIdentifier=employment_identifier,
-            ActivationDate=date(1930, 1, 1),
+            ActivationDate=date(1900, 1, 1),
             DeactivationDate=date.max,
             EmploymentStatusIndicator=True,
         )
