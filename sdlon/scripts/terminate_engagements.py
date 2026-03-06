@@ -212,8 +212,6 @@ def get_last_day_of_work(
 
     Args:
         sd_employment_changed: the SD employments
-        cpr: CPR number of the employee
-        emp_id: the SD EmploymentIdentifier
 
     Returns:
         Last active day of work for the SD employment.
