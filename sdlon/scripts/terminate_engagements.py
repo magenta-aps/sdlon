@@ -317,7 +317,7 @@ def main(
 ) -> None:
     if not readme:
         print("Make sure you have read the README.md before running the script")
-        exit(0)
+        exit(1)
 
     # Shut up RAClients!
     setup_logging(LogLevel.DEBUG)
