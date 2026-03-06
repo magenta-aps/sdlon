@@ -289,7 +289,9 @@ def get_last_day_of_work(
     help="Base URL for calling MO",
 )
 @click.option(
-    "--dry-run", "dry_run", is_flag=True, help="Do not perform any changes in MO"
+    "--make-changes-in-mo",
+    is_flag=True,
+    help="If set, perform changes in MO (make sure you know, what you are doing)!",
 )
 @click.option(
     "--i-have-read-the-readme",
@@ -311,7 +313,7 @@ def main(
     client_id: str,
     client_secret: str,
     mo_base_url: str,
-    dry_run: bool,
+    make_changes_in_mo: bool,
     readme: bool,
     show_cpr: bool,
 ) -> None:
@@ -370,8 +372,9 @@ def main(
                 sd_last_day_of_work_str,
                 mo_last_day_of_work_str,
             )
-            if not dry_run:
-                terminate_engagement(gql_client, eng["uuid"], sd_last_day_of_work_str)
+            if not make_changes_in_mo:
+                continue
+            terminate_engagement(gql_client, eng["uuid"], sd_last_day_of_work_str)
 
 
 if __name__ == "__main__":
