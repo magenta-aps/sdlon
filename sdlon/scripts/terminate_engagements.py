@@ -1,64 +1,70 @@
-# (this script is copied from fix_status8.py and modified)
-# Find all passive employments in SD and ensure that the corresponding
-# engagements in MO are terminated accordingly. The script will:
-# 1) Get all status 8 employments from SD
-# 2) Iterate over these and terminate the corresponding active engagements in MO
-import pathlib
-import pickle
+# Find and terminate all MO engagements which are active in MO
+# for a longer period than in SD
 from datetime import date
 from datetime import datetime
-from datetime import timedelta
 from typing import Any
 from typing import List
 from uuid import UUID
 
 import click
 from gql import gql
-from more_itertools import exactly_n
 from more_itertools import last
 from more_itertools import one
+from more_itertools import only
 from raclients.graph.client import GraphQLClient
 from ramodels.mo import employee
 from ramodels.mo.employee import Employee
 from sdclient.client import SDClient
-from sdclient.requests import GetEmploymentRequest
-from sdclient.responses import GetEmploymentResponse
-from sdclient.responses import Person
+from sdclient.requests import GetEmploymentChangedRequest
+from sdclient.responses import GetEmploymentChangedResponse
 
 from sdlon.date_utils import format_date
 from sdlon.graphql import get_mo_client
-from sdlon.log import anonymize_cpr
 from sdlon.log import LogLevel
 from sdlon.log import setup_logging
 
 
-def get_sd_employments(
-    username: str, password: str, institution_identifier: str
-) -> GetEmploymentResponse:
+def _is_uuid(user_key: str) -> bool:
+    try:
+        UUID(user_key)
+        return True
+    except ValueError:
+        return False
+
+
+def get_sd_employment_changed(
+    username: str,
+    password: str,
+    institution_identifier: str,
+    cpr: str,
+    employment_identifier: str,
+) -> GetEmploymentChangedResponse:
     """
-    Get all passive employments from SD (the query params are very
-    specific for what is needed here).
+    Get full employment timeline from SD for the given CPR and EmploymentIdentifier.
 
     Args:
         username: the username for the SD API
         password: the password for the SD API
         institution_identifier: the SD institution identifier
+        cpr: the person CPR
+        employment_identifier: the SD employment identifier
 
     Returns:
-        The SD employments
+        The SD employment
     """
 
     sd_client = SDClient(username, password)
-    sd_employments = sd_client.get_employment(
-        GetEmploymentRequest(
+    sd_employment = sd_client.get_employment_changed(
+        GetEmploymentChangedRequest(
             InstitutionIdentifier=institution_identifier,
-            EffectiveDate=datetime.now().date(),
-            StatusActiveIndicator=False,
-            StatusPassiveIndicator=True,
+            PersonCivilRegistrationIdentifier=cpr,
+            EmploymentIdentifier=employment_identifier,
+            ActivationDate=date(1900, 1, 1),
+            DeactivationDate=date.max,
             EmploymentStatusIndicator=True,
         )
     )
-    return sd_employments
+    return sd_employment
 
 
 def get_mo_employees(gql_client: GraphQLClient) -> List[Employee]:
@@ -142,8 +148,8 @@ def get_mo_engagements(
         employee_uuid: UUID of the employee to get the engagements from
 
     Returns:
-        List of dicts where each dict contains user keys, "from date" and
-        UUID of the engagements
+        List of dicts where each dict contains user keys, "to date",
+        UUID and user_key of the engagements
     """
 
     query = gql(
@@ -183,76 +189,52 @@ def get_mo_engagements(
             "to_date": None,
         },
     )
+
+    last_validities = [last(obj["validities"]) for obj in r["engagements"]["objects"]]
     engagements = [
         {
-            "uuid": last(obj["validities"])["uuid"],
-            "user_key": last(obj["validities"])["user_key"],
-            "to": datetime.fromisoformat(last(obj["validities"])["validity"]["to"])
-            if last(obj["validities"])["validity"]["to"] is not None
+            "uuid": last_validity["uuid"],
+            "user_key": last_validity["user_key"],
+            "to": datetime.fromisoformat(last_validity["validity"]["to"])
+            if last_validity["validity"]["to"] is not None
             else None,
         }
-        for obj in r["engagements"]["objects"]
+        for last_validity in last_validities
     ]
     return engagements
 
 
-def has_sd_status8(
-    sd_employments: GetEmploymentResponse, cpr: str, employment_identifier: str
-) -> bool:
-    """
-    Return True if the MO employee with the given cpr number and
-    employment_identifier is in sd_employments
-
-    Args:
-        sd_employments: the passive SD employments
-        cpr: the CPR number of the employee
-        employment_identifier: the SD employment identifier
-
-    Returns:
-        True if the combination of CPR and employment identifier has status 8
-        in SD and False otherwise
-    """
-
-    def has_cpr_and_employment_identifier(person: Person) -> bool:
-        cpr_match = cpr == person.PersonCivilRegistrationIdentifier
-        employment_identifier_match = exactly_n(
-            person.Employment,
-            1,
-            lambda emp: emp.EmploymentIdentifier == employment_identifier,
-        )
-        return cpr_match and employment_identifier_match
-
-    return exactly_n(sd_employments.Person, 1, has_cpr_and_employment_identifier)
-
-
 def get_last_day_of_work(
-    sd_employments: GetEmploymentResponse, cpr: str, emp_id: str
+    sd_employment_changed: GetEmploymentChangedResponse,
 ) -> date:
     """
     Get the last day when the SD employment was active.
 
     Args:
-        sd_employments: the SD employments
-        cpr: CPR number of the employee
-        emp_id: the SD EmploymentIdentifier
+        sd_employment_changed: the SD employments
 
     Returns:
         Last active day of work for the SD employment.
     """
-    sd_person = one(
-        person
-        for person in sd_employments.Person
-        if person.PersonCivilRegistrationIdentifier == cpr
-    )
-    employment = one(
-        emp for emp in sd_person.Employment if emp.EmploymentIdentifier == emp_id
-    )
+    person = only(sd_employment_changed.Person)
 
-    # SD ActivationDate, i.e. the first day when the employment is no longer active
-    activation_date = employment.EmploymentStatus.ActivationDate
+    if person is None:
+        # Dang - this seems very dangerous, since we terminate the engagement
+        # in MO, if the person cannot be found in SD
+        return date.today()
 
-    # We need the day before the above date, i.e. the last day of active work
-    return activation_date - timedelta(days=1)
+    employment = only(person.Employment)
+    if employment is None:
+        # Dang dang - once again!
+        return date.today()
+
+    active_statuses = [
+        emp_status
+        for emp_status in employment.EmploymentStatus
+        if emp_status.EmploymentStatusCode not in ("7", "8", "9", "S")
+    ]
+
+    return max(active_statuses, key=lambda status: status.ActivationDate)
 
 
 @click.command()
@@ -309,27 +291,15 @@ def get_last_day_of_work(
     help="Base URL for calling MO",
 )
 @click.option(
-    "--use-pickle",
-    "use_pickle",
+    "--make-changes-in-mo",
     is_flag=True,
-    help="Store SD response locally with pickle and use pickled response "
-    "in later runs (useful to avoid unnecessary load on SD during "
-    "development)",
-)
-@click.option(
-    "--dry-run", "dry_run", is_flag=True, help="Do not perform any changes in MO"
+    help="If set, perform changes in MO (make sure you know, what you are doing)!",
 )
 @click.option(
     "--i-have-read-the-readme",
     "readme",
     is_flag=True,
     help="Set flag to ensure that you have read the readme",
-)
-@click.option(
-    "--show-cpr",
-    "show_cpr",
-    is_flag=True,
-    help="Show CPRs in output",
 )
 def main(
     username: str,
@@ -339,58 +309,64 @@ def main(
     client_id: str,
     client_secret: str,
     mo_base_url: str,
-    use_pickle: bool,
-    dry_run: bool,
+    make_changes_in_mo: bool,
     readme: bool,
-    show_cpr: bool,
-):
+) -> None:
     if not readme:
         print("Make sure you have read the README.md before running the script")
-        exit(0)
+        exit(1)
 
     # Shut up RAClients!
     setup_logging(LogLevel.DEBUG)
-
-    # Get the SD status employments
-    if use_pickle:
-        pickle_file = "/tmp/sd_employments.bin"
-        if not pathlib.Path(pickle_file).is_file():
-            sd_employments = get_sd_employments(
-                username, password, institution_identifier
-            )
-            with open(pickle_file, "bw") as fp:
-                pickle.dump(sd_employments, fp)
-        with open(pickle_file, "br") as fp:
-            sd_employments = pickle.load(fp)
-    else:
-        sd_employments = get_sd_employments(username, password, institution_identifier)
-
-    print("Number of SD employments:", len(sd_employments.Person))
 
     gql_client = get_mo_client(auth_server, client_id, client_secret, mo_base_url, 22)
     employees = get_mo_employees(gql_client)
 
     print("Terminate engagements")
-    for employee_ in employees:
+    for i, employee_ in enumerate(employees):
+        if i % 100 == 0:
+            print(f"Processed employees: {i}/{len(employees)}")
         engagements = get_mo_engagements(gql_client, employee_.uuid)
         for eng in engagements:
-            terminate = has_sd_status8(
-                sd_employments, employee_.cpr_no, eng["user_key"]
+            if _is_uuid(eng["user_key"]):
+                continue
+            sd_employment_changed = get_sd_employment_changed(
+                username=username,
+                password=password,
+                institution_identifier=institution_identifier,
+                cpr=employee_.cpr_no,
+                employment_identifier=eng["user_key"],
             )
-            if terminate:
-                last_day_of_work = get_last_day_of_work(
-                    sd_employments, employee_.cpr_no, eng["user_key"]
-                )
-                last_day_of_work_str = format_date(last_day_of_work)
+
+            sd_last_day_of_work = get_last_day_of_work(sd_employment_changed)
+            sd_last_day_of_work_str = format_date(sd_last_day_of_work)
+
+            mo_last_day_of_work = (
+                eng["to"].date() if eng["to"] is not None else date.max
+            )
+            mo_last_day_of_work_str = format_date(mo_last_day_of_work)
+
+            if sd_last_day_of_work == mo_last_day_of_work:
+                continue
+            elif sd_last_day_of_work > mo_last_day_of_work:
                 print(
-                    employee_.cpr_no if show_cpr else anonymize_cpr(employee_.cpr_no),
+                    employee_.cpr_no,
                     eng["user_key"],
-                    last_day_of_work_str,
-                    format_date(eng["to"].date()) if eng["to"] is not None else None,
-                    terminate,
+                    sd_last_day_of_work_str,
+                    mo_last_day_of_work_str,
+                    "SD validity exceeds MO validity",
                 )
-                if not dry_run:
-                    terminate_engagement(gql_client, eng["uuid"], last_day_of_work_str)
+                continue
+
+            print(
+                employee_.cpr_no,
+                eng["user_key"],
+                sd_last_day_of_work_str,
+                mo_last_day_of_work_str,
+            )
+            if not make_changes_in_mo:
+                continue
+            terminate_engagement(gql_client, eng["uuid"], sd_last_day_of_work_str)
 
 
 if __name__ == "__main__":
