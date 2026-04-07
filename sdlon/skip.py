@@ -33,15 +33,18 @@ def is_valid_cpr(entity) -> bool:
 
     # CPR check code stolen from the MO code (and modified a bit)
     if len(cpr) > 10:
+        logger.warn("Skipping fictional user", cpr=cpr)
         return False
 
     if cpr[-4:] == "0000":
+        logger.warn("Skipping fictional user", cpr=cpr)
         return False
 
     if isinstance(cpr, str):
         try:
             cpr = int(cpr)
         except ValueError:
+            logger.warn("Skipping fictional user", cpr=cpr)
             return False
 
     rest, code = divmod(cpr, 10000)
@@ -50,6 +53,7 @@ def is_valid_cpr(entity) -> bool:
     rest, day = divmod(rest, 100)
 
     if rest:
+        logger.warn("Skipping fictional user", cpr=cpr)
         return False
 
     # see https://da.wikipedia.org/wiki/CPR-nummer :(
@@ -66,6 +70,7 @@ def is_valid_cpr(entity) -> bool:
         datetime(century + year, month, day)
         return True
     except ValueError:
+        logger.warn("Skipping fictional user", cpr=cpr)
         return False
 
 
