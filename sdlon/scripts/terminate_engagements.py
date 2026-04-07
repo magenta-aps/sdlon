@@ -2,6 +2,7 @@
 # for a longer period than in SD
 from datetime import date
 from datetime import datetime
+from datetime import timedelta
 from typing import Any
 from typing import List
 from uuid import UUID
@@ -233,8 +234,22 @@ def get_last_day_of_work(
         for emp_status in employment.EmploymentStatus
         if emp_status.EmploymentStatusCode not in ("7", "8", "9", "S")
     ]
+    if not active_statuses:
+        inactive_statuses = [
+            emp_status
+            for emp_status in employment.EmploymentStatus
+            if emp_status.EmploymentStatusCode in ("7", "8", "9", "S")
+        ]
+        if not inactive_statuses:
+            return date.today()
+        first_inactive_status = min(
+            inactive_statuses, key=lambda status: status.ActivationDate
+        )
+        return first_inactive_status.ActivationDate - timedelta(days=1)
 
-    return max(active_statuses, key=lambda status: status.ActivationDate)
+    return max(
+        active_statuses, key=lambda status: status.ActivationDate
+    ).DeactivationDate
 
 
 @click.command()
@@ -326,17 +341,22 @@ def main(
     for i, employee_ in enumerate(employees):
         if i % 100 == 0:
             print(f"Processed employees: {i}/{len(employees)}")
+
         engagements = get_mo_engagements(gql_client, employee_.uuid)
         for eng in engagements:
             if _is_uuid(eng["user_key"]):
                 continue
-            sd_employment_changed = get_sd_employment_changed(
-                username=username,
-                password=password,
-                institution_identifier=institution_identifier,
-                cpr=employee_.cpr_no,
-                employment_identifier=eng["user_key"],
-            )
+            try:
+                sd_employment_changed = get_sd_employment_changed(
+                    username=username,
+                    password=password,
+                    institution_identifier=institution_identifier,
+                    cpr=employee_.cpr_no,
+                    employment_identifier=eng["user_key"],
+                )
+            except Exception:
+                print(f"Could not find employment for: {str(employee_.uuid)}")
+                continue
 
             sd_last_day_of_work = get_last_day_of_work(sd_employment_changed)
             sd_last_day_of_work_str = format_date(sd_last_day_of_work)
