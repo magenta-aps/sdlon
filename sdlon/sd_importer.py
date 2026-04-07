@@ -33,7 +33,7 @@ from .sd_common import ensure_list
 from .sd_common import generate_uuid
 from .sd_common import read_employment_at
 from .sd_common import sd_lookup
-from .skip import skip_fictional_users
+from .skip import is_valid_cpr
 from sdlon.log import setup_logging
 
 
@@ -484,7 +484,7 @@ class SdImport:
             if cpr not in cprs:
                 people.append(person)
 
-        people = filter(skip_fictional_users, people)
+        people = filter(is_valid_cpr, people)
 
         # TODO: Almost identitcal code exists in sd_changed_at's update_changed_persons
         for person in people:
@@ -598,7 +598,7 @@ class SdImport:
         self._create_employees(passive_people)
 
     def _create_employees(self, persons):
-        people = filter(skip_fictional_users, persons)
+        people = filter(is_valid_cpr, persons)
         for person in people:
             self.create_employee(person)
 

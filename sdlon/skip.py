@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any
 from typing import OrderedDict
 
@@ -27,12 +28,50 @@ def cpr_env_filter(settings: Settings, entity: OrderedDict[str, Any]) -> bool:
     return process_cpr
 
 
-def skip_fictional_users(entity) -> bool:
+def is_valid_cpr(entity) -> bool:
     cpr = entity["PersonCivilRegistrationIdentifier"]
-    if cpr[-4:] == "0000":
-        logger.warning("Skipping fictional user: {}".format(cpr))
+
+    # CPR check code stolen from the MO code (and modified a bit)
+    if len(cpr) > 10:
+        logger.warn("Skipping fictional user", cpr=cpr)
         return False
-    return True
+
+    if cpr[-4:] == "0000":
+        logger.warn("Skipping fictional user", cpr=cpr)
+        return False
+
+    if isinstance(cpr, str):
+        try:
+            cpr = int(cpr)
+        except ValueError:
+            logger.warn("Skipping fictional user", cpr=cpr)
+            return False
+
+    rest, code = divmod(cpr, 10000)
+    rest, year = divmod(rest, 100)
+    rest, month = divmod(rest, 100)
+    rest, day = divmod(rest, 100)
+
+    if rest:
+        logger.warn("Skipping fictional user", cpr=cpr)
+        return False
+
+    # see https://da.wikipedia.org/wiki/CPR-nummer :(
+    if code < 4000:
+        century = 1900
+    elif code < 5000:
+        century = 2000 if year <= 36 else 1900
+    elif code < 9000:
+        century = 2000 if year <= 57 else 1800
+    else:
+        century = 2000 if year <= 36 else 1900
+
+    try:
+        datetime(century + year, month, day)
+        return True
+    except ValueError:
+        logger.warn("Skipping fictional user", cpr=cpr)
+        return False
 
 
 def skip_job_position_id(
