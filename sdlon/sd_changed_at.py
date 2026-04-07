@@ -64,7 +64,7 @@ from .sd_common import ensure_list
 from .sd_common import mora_assert
 from .sd_common import sd_lookup
 from .skip import cpr_env_filter
-from .skip import skip_fictional_users
+from .skip import is_valid_cpr
 from .sync_job_id import JobIdSync
 from db.queries import get_run_db_from_date
 from db.queries import get_status
@@ -471,7 +471,7 @@ class ChangeAtSD:
             )
 
         logger.info("Number of changed persons", n=len(all_sd_persons_changed))
-        real_sd_persons_changed = filter(skip_fictional_users, all_sd_persons_changed)
+        real_sd_persons_changed = filter(is_valid_cpr, all_sd_persons_changed)
 
         # Filter employees based on the sd_cprs list
         sd_cpr_filtered_persons = filter(
@@ -1454,7 +1454,7 @@ class ChangeAtSD:
 
         logger.info("Number of employments to update", n=len(employments_changed))
 
-        employments_changed = filter(skip_fictional_users, employments_changed)
+        employments_changed = filter(is_valid_cpr, employments_changed)
 
         # Filter employees based on the sd_cprs list
         employments_changed = filter(

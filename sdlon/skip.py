@@ -28,12 +28,21 @@ def cpr_env_filter(settings: Settings, entity: OrderedDict[str, Any]) -> bool:
     return process_cpr
 
 
-def skip_fictional_users(entity) -> bool:
+def is_valid_cpr(entity) -> bool:
     cpr = entity["PersonCivilRegistrationIdentifier"]
 
-    # CPR check stolen from the MO code
+    # CPR check code stolen from the MO code (and modified a bit)
+    if len(cpr) > 10:
+        return False
+
+    if cpr[-4:] == "0000":
+        return False
+
     if isinstance(cpr, str):
-        cpr = int(cpr)
+        try:
+            cpr = int(cpr)
+        except ValueError:
+            return False
 
     rest, code = divmod(cpr, 10000)
     rest, year = divmod(rest, 100)
@@ -41,7 +50,7 @@ def skip_fictional_users(entity) -> bool:
     rest, day = divmod(rest, 100)
 
     if rest:
-        raise ValueError(f"invalid CPR number {cpr}")
+        return False
 
     # see https://da.wikipedia.org/wiki/CPR-nummer :(
     if code < 4000:
