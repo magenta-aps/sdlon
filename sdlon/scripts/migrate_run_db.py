@@ -17,9 +17,11 @@ def read_from_sqlite():
         statement = select(Runs.from_date, Runs.to_date, Runs.status).order_by(Runs.id)
         rows = session.execute(statement).fetchall()
         for from_date, to_date, status in rows:
-            yield from_date.replace(tzinfo=timezone.utc), to_date.replace(
-                tzinfo=timezone.utc
-            ), status
+            yield (
+                from_date.replace(tzinfo=timezone.utc),
+                to_date.replace(tzinfo=timezone.utc),
+                status,
+            )
 
 
 def write_to_postgres(from_date: datetime, to_date: datetime, status: str):

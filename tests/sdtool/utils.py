@@ -49,7 +49,7 @@ class EnvironmentVarGuard(MutableMapping):
         return self
 
     def __exit__(self, *ignore_exc):
-        for (k, v) in self._changed.items():
+        for k, v in self._changed.items():
             if v is None:
                 if k in self._environ:
                     del self._environ[k]

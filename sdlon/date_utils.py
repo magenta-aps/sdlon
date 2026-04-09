@@ -291,7 +291,7 @@ def gen_date_intervals(
 
 
 def create_eng_lookup_date(
-    engagement_components: dict[str, list[dict[str, Any]]]
+    engagement_components: dict[str, list[dict[str, Any]]],
 ) -> date:
     """
     This is only "best effort" to obtain the relevant SD lookup date for creating

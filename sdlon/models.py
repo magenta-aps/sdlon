@@ -13,6 +13,7 @@ class JobFunction(str, Enum):
 
 # TODO: replace these models with the one present in the new SD client
 
+
 # TODO: rename
 class EmploymentWithTelephoneNumberIdentifier(BaseModel):
     employment_identifier: str

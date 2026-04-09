@@ -9,14 +9,14 @@ from functools import lru_cache
 from typing import List
 from typing import Optional
 
+from pydantic import UUID4
 from pydantic import AnyHttpUrl
 from pydantic import BaseSettings
-from pydantic import conint
-from pydantic import constr
 from pydantic import Field
 from pydantic import PositiveInt
 from pydantic import SecretStr
-from pydantic import UUID4
+from pydantic import conint
+from pydantic import constr
 from ra_utils.job_settings import JobSettings
 
 from .log import LogLevel

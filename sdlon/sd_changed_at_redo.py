@@ -14,7 +14,6 @@ from .config import get_settings
 from .sd_changed_at import ChangeAtSD
 from .sd_common import sd_lookup
 
-
 logger = get_logger()
 
 

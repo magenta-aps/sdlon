@@ -3,12 +3,12 @@ from unittest.mock import MagicMock
 from unittest.mock import patch
 from uuid import UUID
 
-from sdlon.it_systems import add_it_system_to_employee
-from sdlon.it_systems import get_employee_it_systems
-from sdlon.it_systems import get_sd_to_ad_it_system_uuid
 from sdlon.it_systems import MUTATION_ADD_IT_SYSTEM_TO_EMPLOYEE
 from sdlon.it_systems import QUERY_GET_EMPLOYEE_IT_SYSTEMS
 from sdlon.it_systems import QUERY_GET_SD_TO_AD_IT_SYSTEM_UUID
+from sdlon.it_systems import add_it_system_to_employee
+from sdlon.it_systems import get_employee_it_systems
+from sdlon.it_systems import get_sd_to_ad_it_system_uuid
 from sdlon.models import ITUserSystem
 
 

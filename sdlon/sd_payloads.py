@@ -76,7 +76,7 @@ def create_engagement(
     user_key,
     engagement_info,
     validity,
-    **extensions
+    **extensions,
 ):
     try:
         working_time = float(engagement_info["working_time"][0]["OccupationRate"])

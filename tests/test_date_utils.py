@@ -10,6 +10,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 from more_itertools import pairwise
 
+from sdlon.date_utils import SD_INFINITY
 from sdlon.date_utils import _get_employment_from_date
 from sdlon.date_utils import create_eng_lookup_date
 from sdlon.date_utils import date_to_datetime
@@ -21,7 +22,6 @@ from sdlon.date_utils import get_employment_datetimes
 from sdlon.date_utils import get_mo_validity
 from sdlon.date_utils import get_sd_validity
 from sdlon.date_utils import is_midnight
-from sdlon.date_utils import SD_INFINITY
 from sdlon.date_utils import sd_to_mo_date
 from sdlon.date_utils import sd_to_mo_validity
 from sdlon.date_utils import to_midnight

@@ -16,10 +16,11 @@ from os2mo_data_import.mora_data_types import OrganisationUnitType
 from parameterized import parameterized
 from ra_utils.attrdict import attrdict
 
-from .fixtures import get_department_fixture
-from .fixtures import get_organisation_fixture
 from sdlon.config import Settings
 from sdlon.sd_importer import SdImport
+
+from .fixtures import get_department_fixture
+from .fixtures import get_organisation_fixture
 
 
 class SdImportTest(SdImport):
@@ -402,7 +403,6 @@ def test_create_ou_tree(dawa_lookup, requests_get, create_email_addresses: bool)
 
 @patch("sdlon.sd_importer.uuid.uuid4")
 def test_set_engagement_on_leave(mock_uuid4):
-
     # Arrange
 
     mock_uuid4.return_value = UUID("00000000-0000-0000-0000-000000000000")

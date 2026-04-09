@@ -7,7 +7,6 @@ from itertools import tee
 from operator import itemgetter
 from typing import Any
 from typing import Callable
-from typing import cast
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -15,6 +14,7 @@ from typing import OrderedDict
 from typing import Set
 from typing import Tuple
 from typing import Union
+from typing import cast
 from uuid import UUID
 from uuid import uuid4
 from zoneinfo import ZoneInfo
@@ -34,38 +34,6 @@ from ramodels.mo import Employee
 from ramodels.mo._shared import OrganisationRef
 from structlog.stdlib import get_logger
 
-from . import sd_payloads
-from .config import get_settings
-from .config import Settings
-from .date_utils import create_eng_lookup_date
-from .date_utils import date_to_datetime
-from .date_utils import format_date
-from .date_utils import gen_date_intervals
-from .date_utils import parse_datetime
-from .date_utils import sd_to_mo_date
-from .date_utils import sd_to_mo_validity
-from .engagement import create_engagement
-from .engagement import engagement_components
-from .engagement import filtered_professions
-from .engagement import get_eng_user_key
-from .engagement import (
-    is_employment_id_and_no_salary_minimum_consistent,
-)
-from .engagement import re_terminate_engagement
-from .engagement import terminate_eng_from_uuid
-from .engagement import update_existing_engagement
-from .fix_departments import FixDepartments
-from .models import JobFunction
-from .models import MOBasePerson
-from .models import SDBasePerson
-from .sd_common import calc_employment_id
-from .sd_common import EmploymentStatus
-from .sd_common import ensure_list
-from .sd_common import mora_assert
-from .sd_common import sd_lookup
-from .skip import cpr_env_filter
-from .skip import is_valid_cpr
-from .sync_job_id import JobIdSync
 from db.queries import get_run_db_from_date
 from db.queries import get_status
 from db.queries import persist_status
@@ -78,11 +46,41 @@ from sdlon.it_systems import get_employee_it_systems
 from sdlon.it_systems import get_sd_to_ad_it_system_uuid
 from sdlon.log import anonymize_cpr
 from sdlon.log import setup_logging
-from sdlon.metrics import dipex_last_success_timestamp
 from sdlon.metrics import RunDBState
+from sdlon.metrics import dipex_last_success_timestamp
 from sdlon.metrics import sd_changed_at_state
 from sdlon.sd_to_pydantic import convert_to_sd_base_person
 
+from . import sd_payloads
+from .config import Settings
+from .config import get_settings
+from .date_utils import create_eng_lookup_date
+from .date_utils import date_to_datetime
+from .date_utils import format_date
+from .date_utils import gen_date_intervals
+from .date_utils import parse_datetime
+from .date_utils import sd_to_mo_date
+from .date_utils import sd_to_mo_validity
+from .engagement import create_engagement
+from .engagement import engagement_components
+from .engagement import filtered_professions
+from .engagement import get_eng_user_key
+from .engagement import is_employment_id_and_no_salary_minimum_consistent
+from .engagement import re_terminate_engagement
+from .engagement import terminate_eng_from_uuid
+from .engagement import update_existing_engagement
+from .fix_departments import FixDepartments
+from .models import JobFunction
+from .models import MOBasePerson
+from .models import SDBasePerson
+from .sd_common import EmploymentStatus
+from .sd_common import calc_employment_id
+from .sd_common import ensure_list
+from .sd_common import mora_assert
+from .sd_common import sd_lookup
+from .skip import cpr_env_filter
+from .skip import is_valid_cpr
+from .sync_job_id import JobIdSync
 
 DUMMY_CPR = "0000000000"
 
@@ -337,7 +335,7 @@ class ChangeAtSD:
             "ContactInformationIndicator": str(
                 self.settings.sd_phone_number_id_for_ad_creation
             ).lower(),
-            "PostalAddressIndicator": "false"
+            "PostalAddressIndicator": "false",
             # TODO: Er der kunder, som vil udlæse adresse-information?
         }
         if cpr is not None:
@@ -414,9 +412,9 @@ class ChangeAtSD:
             handled by the update_employment method instead.
         """
 
-        assert not (
-            in_cpr is not None and changed_at_run_cpr is not None
-        ), "in_cpr and changed_at_run_cpr cannot be set simultaneously"
+        assert not (in_cpr is not None and changed_at_run_cpr is not None), (
+            "in_cpr and changed_at_run_cpr cannot be set simultaneously"
+        )
 
         def fetch_mo_person(person: SDBasePerson) -> MOBasePerson | None:
             employee = get_employee(self.mo_graphql_client, person.cpr)
@@ -1400,7 +1398,6 @@ class ChangeAtSD:
                 if not success:
                     logger.error("Problem terminating employment", user_key=user_key)
             elif code == EmploymentStatus.Slettet:
-
                 # TODO: rename user_key to something unique in MO when employee
                 # is terminated.
                 #
@@ -1595,9 +1592,7 @@ def changed_at(
                 to_date=to_date,
                 inst_id=inst_id,
             )
-            sd_updater = ChangeAtSD(
-                settings, inst_id, from_date, to_date
-            )  # type: ignore
+            sd_updater = ChangeAtSD(settings, inst_id, from_date, to_date)  # type: ignore
 
             logger.info("Update changed persons")
             sd_updater.update_changed_persons()
@@ -1698,9 +1693,7 @@ def date_interval_run(
     else:
         inst_id = institution_identifier
 
-    sd_updater = ChangeAtSD(
-        settings, inst_id, from_date, to_date, dry_run
-    )  # type: ignore
+    sd_updater = ChangeAtSD(settings, inst_id, from_date, to_date, dry_run)  # type: ignore
 
     logger.info("Update changed persons")
     sd_updater.update_changed_persons(changed_at_run_cpr=cpr)

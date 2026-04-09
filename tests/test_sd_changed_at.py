@@ -4,8 +4,8 @@ import uuid
 from collections import OrderedDict
 from datetime import date
 from datetime import timedelta
-from unittest.mock import call
 from unittest.mock import MagicMock
+from unittest.mock import call
 from unittest.mock import patch
 
 import hypothesis.strategies as st
@@ -19,10 +19,6 @@ from prometheus_client import Gauge
 from ra_utils.attrdict import attrdict
 from ra_utils.generate_uuid import uuid_generator
 
-from .fixtures import get_employment_fixture
-from .fixtures import get_read_employment_changed_fixture
-from .fixtures import get_sd_person_fixture
-from .fixtures import read_employment_fixture
 from sdlon.ad import LdapADGUIDReader
 from sdlon.config import Settings
 from sdlon.date_utils import format_date
@@ -33,6 +29,11 @@ from sdlon.models import JobFunction
 from sdlon.models import MOBasePerson
 from sdlon.sd_changed_at import ChangeAtSD
 from sdlon.sd_changed_at import changed_at
+
+from .fixtures import get_employment_fixture
+from .fixtures import get_read_employment_changed_fixture
+from .fixtures import get_sd_person_fixture
+from .fixtures import read_employment_fixture
 
 
 class ChangeAtSDTest(ChangeAtSD):
@@ -533,7 +534,6 @@ class Test_sd_changed_at(unittest.TestCase):
         requests_get,
         status,
     ):
-
         sd_reply, expected_read_employment_result = read_employment_fixture(
             cpr="0101709999",
             employment_id="01337",
@@ -589,9 +589,10 @@ class Test_sd_changed_at(unittest.TestCase):
                 "sd_no_salary_minimum_id": 9000,
             }
         )
-        sd_updater.read_employment_changed = (
-            lambda: get_read_employment_changed_fixture(
-                employment_id="ABCDE", job_pos_id=8000  # See doc-string above
+        sd_updater.read_employment_changed = lambda: (
+            get_read_employment_changed_fixture(
+                employment_id="ABCDE",
+                job_pos_id=8000,  # See doc-string above
             )
         )
 
@@ -608,7 +609,6 @@ class Test_sd_changed_at(unittest.TestCase):
 
     @given(status=st.sampled_from(["1", "S"]))
     def test_update_all_employments(self, status):
-
         cpr = "0101709999"
         employment_id = "01337"
 
@@ -660,7 +660,6 @@ class Test_sd_changed_at(unittest.TestCase):
         ]
     )
     def test_create_new_engagement(self, employment_id, engagement_type):
-
         cpr = "0101709999"
         job_id = "1234"
 
@@ -682,8 +681,8 @@ class Test_sd_changed_at(unittest.TestCase):
         morahelper = sd_updater.morahelper_mock
 
         # Load noop NY logic
-        sd_updater.apply_NY_logic = (
-            lambda org_unit, user_key, validity, person_uuid: org_unit
+        sd_updater.apply_NY_logic = lambda org_unit, user_key, validity, person_uuid: (
+            org_unit
         )
         # Set primary types
         sd_updater.primary_types = {
@@ -729,7 +728,6 @@ class Test_sd_changed_at(unittest.TestCase):
         sd_updater._create_professions.assert_called_once()
 
     def test_terminate_engagement(self):
-
         employment_id = "01337"
 
         sd_updater = setup_sd_changed_at()
@@ -1082,7 +1080,6 @@ class Test_sd_changed_at(unittest.TestCase):
         ]
     )
     def test_update_all_employments_editing(self, employment_id, engagement_type):
-
         cpr = "0101709999"
         job_id = "1234"
 
@@ -1102,8 +1099,8 @@ class Test_sd_changed_at(unittest.TestCase):
 
         sd_updater.read_employment_changed = lambda: read_employment_result
         # Load noop NY logic
-        sd_updater.apply_NY_logic = (
-            lambda org_unit, user_key, validity, person_uuid: org_unit
+        sd_updater.apply_NY_logic = lambda org_unit, user_key, validity, person_uuid: (
+            org_unit
         )
 
         morahelper = sd_updater.morahelper_mock
@@ -1197,8 +1194,8 @@ class Test_sd_changed_at(unittest.TestCase):
                 "sd_no_salary_minimum_id": no_salary_minimum,
             }
         )
-        sd_updater.apply_NY_logic = (
-            lambda org_unit, user_key, validity, person_uuid: org_unit
+        sd_updater.apply_NY_logic = lambda org_unit, user_key, validity, person_uuid: (
+            org_unit
         )
 
         morahelper = sd_updater.morahelper_mock
@@ -1244,9 +1241,9 @@ class Test_sd_changed_at(unittest.TestCase):
 
         self.assertEqual(len(sd_updater.engagement_types), 2)
         if engagement_exists:
-            sd_updater.engagement_types[
-                "engagement_type" + str(job_id)
-            ] = "old_engagement_type_uuid"
+            sd_updater.engagement_types["engagement_type" + str(job_id)] = (
+                "old_engagement_type_uuid"
+            )
             self.assertEqual(len(sd_updater.engagement_types), 3)
         else:
             self.assertEqual(len(sd_updater.engagement_types), 2)

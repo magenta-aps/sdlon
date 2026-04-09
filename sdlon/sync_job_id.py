@@ -5,14 +5,14 @@ import requests
 from os2mo_helpers.mora_helpers import MoraHelper
 from structlog.stdlib import get_logger
 
-from .config import get_settings
+from sdlon.log import setup_logging
+
 from .config import Settings
+from .config import get_settings
 from .models import JobFunction
 from .sd_common import mora_assert
 from .sd_common import sd_lookup
 from .sd_payloads import edit_klasse_title
-from sdlon.log import setup_logging
-
 
 logger = get_logger()
 
@@ -122,7 +122,6 @@ class JobIdSync:
         return job_pos
 
     def _sync_engagement_type_from_sd(self, job_pos_id, sd_job_pos_text):
-
         mo_eng_type = self._find_engagement_type(job_pos_id)
         if mo_eng_type is None:
             logger.info("Engagement type {} not found i MO".format(job_pos_id))
@@ -133,7 +132,6 @@ class JobIdSync:
         return True
 
     def _sync_job_function_from_sd(self, job_pos_id, sd_job_pos_text):
-
         mo_job_function_type = self._find_job_function_type(job_pos_id)
         if mo_job_function_type is None:
             logger.info("job function type {} not found i MO".format(job_pos_id))

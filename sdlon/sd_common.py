@@ -13,9 +13,10 @@ import requests
 import xmltodict
 from structlog.stdlib import get_logger
 
+from db.queries import log_payload
+
 from .config import Settings
 from .exceptions import SDEmploymentNotFound
-from db.queries import log_payload
 
 logger = get_logger()
 
@@ -97,9 +98,9 @@ def mora_assert(response):
     assert response.status_code in (200, 201, 400, 404), response.status_code
     if response.status_code == 400:
         # Check actual response
-        assert (
-            response.text.find("not give raise to a new registration") > 0
-        ), response.text
+        assert response.text.find("not give raise to a new registration") > 0, (
+            response.text
+        )
         logger.debug("Request had no effect")
     return None
 

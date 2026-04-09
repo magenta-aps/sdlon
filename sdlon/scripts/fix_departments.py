@@ -20,14 +20,14 @@ from more_itertools import last
 from sdclient.responses import EmploymentWithLists
 
 from sdlon.date_utils import format_date
-from sdlon.log import anonymize_cpr
 from sdlon.log import LogLevel
+from sdlon.log import anonymize_cpr
 from sdlon.log import setup_logging
 from sdlon.mo import MO
 from sdlon.scripts.fix_terminated_engagements import get_sd_employment_map
+from sdlon.scripts.unapply_ny_logic import Validity
 from sdlon.scripts.unapply_ny_logic import get_missing_departments
 from sdlon.scripts.unapply_ny_logic import get_mo_eng_validity_map
-from sdlon.scripts.unapply_ny_logic import Validity
 from sdlon.sd import SD
 
 

@@ -1,8 +1,8 @@
 from datetime import date
 from datetime import datetime
 from datetime import timedelta
-from unittest.mock import call
 from unittest.mock import MagicMock
+from unittest.mock import call
 from uuid import UUID
 
 import pytest
@@ -14,10 +14,10 @@ from sdclient.responses import GetEmploymentResponse
 from sdclient.responses import Person
 
 from sdlon.mo import MO
+from sdlon.scripts.unapply_ny_logic import Validity
 from sdlon.scripts.unapply_ny_logic import get_mo_eng_validity_map
 from sdlon.scripts.unapply_ny_logic import get_update_interval
 from sdlon.scripts.unapply_ny_logic import update_engs_ou
-from sdlon.scripts.unapply_ny_logic import Validity
 from sdlon.sd import SD
 
 MO_GET_ENGAGEMENT_RESPONSE = [
@@ -39,8 +39,7 @@ MO_GET_ENGAGEMENT_RESPONSE = [
                             {
                                 "employee": [
                                     {
-                                        "uuid": "539391a4-a12b-4f0b-8b79-"
-                                        "440118e1522e",
+                                        "uuid": "539391a4-a12b-4f0b-8b79-440118e1522e",
                                         "name": "Chr Christensen",
                                     }
                                 ]
@@ -70,8 +69,7 @@ MO_GET_ENGAGEMENT_RESPONSE = [
                             {
                                 "employee": [
                                     {
-                                        "uuid": "539391a4-a12b-4f0b-8b79-"
-                                        "440118e1522e",
+                                        "uuid": "539391a4-a12b-4f0b-8b79-440118e1522e",
                                         "name": "Chr Christensen",
                                     }
                                 ]
@@ -244,7 +242,10 @@ def test_update_engs_ou():
 
     mo_map = {
         ("0101011234", "12345"): {
-            Validity(from_=datetime(2024, 3, 1), to=datetime(2024, 8, 31),): {
+            Validity(
+                from_=datetime(2024, 3, 1),
+                to=datetime(2024, 8, 31),
+            ): {
                 "eng_uuid": "b1423aa5-5a3d-47bc-9e6e-971543132b22",
                 "ou_uuid": "a2816b16-5df8-42ff-99a5-b2fca14ae172",
                 "person_uuid": "20426da0-8066-4903-88c9-908347df697e",

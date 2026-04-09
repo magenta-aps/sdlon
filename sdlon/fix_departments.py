@@ -18,14 +18,14 @@ from sdclient.requests import GetEmploymentRequest
 from structlog.stdlib import get_logger
 
 from . import sd_payloads
-from .config import get_settings
 from .config import Settings
+from .config import get_settings
+from .date_utils import MO_INFINITY
+from .date_utils import SD_INFINITY
 from .date_utils import datetime_to_sd_date
 from .date_utils import format_date
 from .date_utils import get_mo_validity
-from .date_utils import MO_INFINITY
 from .date_utils import parse_datetime
-from .date_utils import SD_INFINITY
 from .date_utils import sd_to_mo_date
 from .engagement import get_eng_user_key
 from .engagement import re_terminate_engagement
@@ -34,7 +34,6 @@ from .log import setup_logging
 from .sd_common import ensure_list
 from .sd_common import mora_assert
 from .sd_common import sd_lookup
-
 
 logger = get_logger()
 
@@ -362,7 +361,7 @@ class FixDepartments:
             "to_date": fix_date.strftime("%d.%m.%Y"),
         }
         department = self.get_department(sd_validity, uuid=unit_uuid)[0]
-        if not department["DepartmentLevelIdentifier"] in too_deep:
+        if department["DepartmentLevelIdentifier"] not in too_deep:
             logger.info(
                 "Enhed regnes ikke som et SD afdelingsniveau", unit_uuid=unit_uuid
             )
