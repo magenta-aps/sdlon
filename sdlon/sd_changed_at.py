@@ -23,11 +23,11 @@ import click
 import requests
 import sentry_sdk
 from fastapi.encoders import jsonable_encoder
+from gql import gql
 from integrations.ad_integration import ad_reader
 from more_itertools import last
 from more_itertools import one
 from more_itertools import partition
-from mox_helpers.payloads import lora_klasse
 from os2mo_helpers.mora_helpers import MoraHelper
 from prometheus_client import Enum
 from prometheus_client import Gauge
@@ -631,20 +631,28 @@ class ChangeAtSD:
         Returns:
             uuid of the newly created class.
         """
-        payload = lora_klasse(
-            bvn=user_key,
-            title=name,
-            facet_uuid=facet_uuid,
-            org_uuid=self.org_uuid,
-            scope="TEXT",
-            dato="1930-01-01",
+        mutation = gql(
+            """
+            mutation CreateClass($input: ClassCreateInput!) {
+                class_create(input: $input) {
+                    uuid
+                }
+            }
+            """
         )
-        response = requests.post(
-            url=self.settings.mox_base + "/klassifikation/klasse", json=payload
+        response = self.mo_graphql_client.execute(
+            mutation,
+            variable_values={
+                "input": {
+                    "name": name,
+                    "user_key": user_key,
+                    "facet_uuid": facet_uuid,
+                    "validity": {"from": "1930-01-01"},
+                    "scope": "TEXT",
+                }
+            },
         )
-        assert response.status_code == 201
-        res: str = response.json()["uuid"]
-        return res
+        return response["class_create"]["uuid"]
 
     def _create_engagement_type(self, engagement_type_ref, job_position):
         # Could not fetch, attempt to create it
