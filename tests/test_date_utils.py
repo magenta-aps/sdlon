@@ -438,8 +438,8 @@ def test_date_tuples(datetimes):
     # We always expect intervals to be exactly one day long
     for from_datetime, to_datetime in pairwise(dates[1:-1]):
         num_days_apart = midnights_apart(from_datetime, to_datetime)
-        assert type(from_datetime) == datetime
-        assert type(to_datetime) == datetime
+        assert isinstance(from_datetime, datetime)
+        assert isinstance(to_datetime, datetime)
         assert num_days_apart == 1
         assert (to_datetime - from_datetime).total_seconds() == 86400
 
