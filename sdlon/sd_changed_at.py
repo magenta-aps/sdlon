@@ -27,6 +27,7 @@ from integrations.ad_integration import ad_reader
 from more_itertools import last
 from more_itertools import one
 from more_itertools import partition
+from mox_helpers.payloads import lora_klasse
 from os2mo_helpers.mora_helpers import MoraHelper
 from prometheus_client import Enum
 from prometheus_client import Gauge
@@ -624,20 +625,26 @@ class ChangeAtSD:
             )
         return relevant_engagement
 
-    def _create_class(self, payload):
-        """Create a new class using the provided class payload.
-
-        Args:
-            payload: A class created using sd_payloads.* via lora_klasse
+    def _create_class(self, user_key: str, name: str, facet_uuid: str) -> str:
+        """Create a new class
 
         Returns:
             uuid of the newly created class.
         """
+        payload = lora_klasse(
+            bvn=user_key,
+            title=name,
+            facet_uuid=facet_uuid,
+            org_uuid=self.org_uuid,
+            scope="TEXT",
+            dato="1930-01-01",
+        )
         response = requests.post(
             url=self.settings.mox_base + "/klassifikation/klasse", json=payload
         )
         assert response.status_code == 201
-        return response.json()["uuid"]
+        res: str = response.json()["uuid"]
+        return res
 
     def _create_engagement_type(self, engagement_type_ref, job_position):
         # Could not fetch, attempt to create it
@@ -645,10 +652,9 @@ class ChangeAtSD:
             "Missing engagement_type (now creating)",
             engagement_type_ref=engagement_type_ref,
         )
-        payload = sd_payloads.engagement_type(
-            engagement_type_ref, job_position, self.org_uuid, self.engagement_type_facet
+        engagement_type_uuid = self._create_class(
+            engagement_type_ref, job_position, self.engagement_type_facet
         )
-        engagement_type_uuid = self._create_class(payload)
         self.engagement_types[engagement_type_ref] = engagement_type_uuid
 
         self.job_sync.sync_from_sd(job_position, refresh=True)
@@ -658,10 +664,9 @@ class ChangeAtSD:
     def _create_professions(self, job_function, job_position):
         # Could not fetch, attempt to create it
         logger.warning("Missing profession (now creating)", job_function=job_function)
-        payload = sd_payloads.profession(
-            job_function, self.org_uuid, self.job_function_facet
+        job_uuid = self._create_class(
+            job_function, job_function, self.job_function_facet
         )
-        job_uuid = self._create_class(payload)
         self.job_functions[job_function] = job_uuid
 
         self.job_sync.sync_from_sd(job_position, refresh=True)
