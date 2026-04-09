@@ -10,8 +10,8 @@ from uuid import UUID
 from pydantic import AnyHttpUrl
 from pydantic import BaseSettings
 from pydantic import HttpUrl
-from pydantic import root_validator
 from pydantic import SecretStr
+from pydantic import root_validator
 from pydantic.tools import parse_obj_as
 
 

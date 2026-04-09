@@ -10,6 +10,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 from more_itertools import pairwise
 
+from sdlon.date_utils import SD_INFINITY
 from sdlon.date_utils import _get_employment_from_date
 from sdlon.date_utils import create_eng_lookup_date
 from sdlon.date_utils import date_to_datetime
@@ -21,7 +22,6 @@ from sdlon.date_utils import get_employment_datetimes
 from sdlon.date_utils import get_mo_validity
 from sdlon.date_utils import get_sd_validity
 from sdlon.date_utils import is_midnight
-from sdlon.date_utils import SD_INFINITY
 from sdlon.date_utils import sd_to_mo_date
 from sdlon.date_utils import sd_to_mo_validity
 from sdlon.date_utils import to_midnight
@@ -438,8 +438,8 @@ def test_date_tuples(datetimes):
     # We always expect intervals to be exactly one day long
     for from_datetime, to_datetime in pairwise(dates[1:-1]):
         num_days_apart = midnights_apart(from_datetime, to_datetime)
-        assert type(from_datetime) == datetime
-        assert type(to_datetime) == datetime
+        assert isinstance(from_datetime, datetime)
+        assert isinstance(to_datetime, datetime)
         assert num_days_apart == 1
         assert (to_datetime - from_datetime).total_seconds() == 86400
 

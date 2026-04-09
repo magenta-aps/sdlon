@@ -4,10 +4,10 @@ from datetime import date
 from datetime import datetime
 from typing import Dict
 from typing import Optional
-from unittest import mock
 from unittest import TestCase
-from unittest.mock import call
+from unittest import mock
 from unittest.mock import MagicMock
+from unittest.mock import call
 from uuid import UUID
 from uuid import uuid4
 
@@ -26,9 +26,10 @@ from sdclient.responses import GetDepartmentResponse
 from sdclient.responses import GetEmploymentResponse
 from sdclient.responses import Person
 
-from .test_config import DEFAULT_CHANGED_AT_SETTINGS
 from sdlon.config import Settings
 from sdlon.fix_departments import FixDepartments
+
+from .test_config import DEFAULT_CHANGED_AT_SETTINGS
 
 
 def mock_sd_lookup(service_name, expected_params, response):

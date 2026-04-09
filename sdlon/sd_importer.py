@@ -20,22 +20,22 @@ from os2mo_data_import import ImportHelper
 from os2mo_helpers.mora_helpers import MoraHelper
 from structlog.stdlib import get_logger
 
-from .config import get_settings
+from sdlon.log import setup_logging
+
 from .config import Settings
+from .config import get_settings
 from .date_utils import date_to_datetime
 from .date_utils import format_date
 from .date_utils import get_employment_datetimes
 from .date_utils import parse_datetime
 from .models import JobFunction
-from .sd_common import calc_employment_id
 from .sd_common import EmploymentStatus
+from .sd_common import calc_employment_id
 from .sd_common import ensure_list
 from .sd_common import generate_uuid
 from .sd_common import read_employment_at
 from .sd_common import sd_lookup
 from .skip import is_valid_cpr
-from sdlon.log import setup_logging
-
 
 HISTORIC = "historic"
 

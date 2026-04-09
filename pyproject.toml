@@ -53,5 +53,11 @@ build-backend = "poetry.core.masonry.api"
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
 
-[tool.flake8]
-max-line-length = 88
+[tool.ruff]
+exclude = ["alembic/versions"]
+
+[tool.ruff.lint]
+extend-select = ["I"]
+
+[tool.ruff.lint.isort]
+force-single-line = true

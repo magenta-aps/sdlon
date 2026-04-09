@@ -3,8 +3,8 @@
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 
-from sdlon.config import get_settings
 from sdlon.config import Settings
+from sdlon.config import get_settings
 
 
 def get_db_url(settings: Settings) -> str:

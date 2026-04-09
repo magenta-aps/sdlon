@@ -4,11 +4,12 @@ from copy import deepcopy
 import pytest
 from parameterized import parameterized
 
-from .test_config import DEFAULT_CHANGED_AT_SETTINGS
 from sdlon.config import Settings
 from sdlon.skip import cpr_env_filter
 from sdlon.skip import is_valid_cpr
 from sdlon.skip import skip_job_position_id
+
+from .test_config import DEFAULT_CHANGED_AT_SETTINGS
 
 
 class TestCprEnvFilter:

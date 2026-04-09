@@ -13,7 +13,6 @@ from .config import get_settings
 from .sd_common import EmploymentStatus
 from .sd_common import sd_lookup
 
-
 logger = get_logger()
 
 

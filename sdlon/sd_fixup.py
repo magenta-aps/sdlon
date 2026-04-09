@@ -26,14 +26,13 @@ from structlog.stdlib import get_logger
 from tqdm import tqdm
 
 from . import sd_payloads
-from .config import get_settings
 from .config import Settings
+from .config import get_settings
 from .date_utils import sd_to_mo_date
 from .sd_changed_at import ChangeAtSD
 from .sd_common import EmploymentStatus
 from .sd_common import mora_assert
 from .sd_common import sd_lookup
-
 
 logger = get_logger()
 
@@ -410,10 +409,12 @@ def fixup_leaves(ctx, mox_base):
         # filter leaves
         leaves = list(
             filter(
-                lambda employment: EmploymentStatus(
-                    employment["EmploymentStatus"]["EmploymentStatusCode"]
-                )
-                == EmploymentStatus.Orlov,
+                lambda employment: (
+                    EmploymentStatus(
+                        employment["EmploymentStatus"]["EmploymentStatusCode"]
+                    )
+                    == EmploymentStatus.Orlov
+                ),
                 employments,
             )
         )

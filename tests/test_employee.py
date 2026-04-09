@@ -1,8 +1,8 @@
 from unittest.mock import MagicMock
 from uuid import UUID
 
-from sdlon.employees import get_employee
 from sdlon.employees import QUERY_GET_EMPLOYEE
+from sdlon.employees import get_employee
 from sdlon.models import MOBasePerson
 
 

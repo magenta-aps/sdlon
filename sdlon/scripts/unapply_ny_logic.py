@@ -16,13 +16,12 @@ from more_itertools import one
 from sdclient.responses import EmploymentWithLists
 
 from sdlon.date_utils import format_date
-from sdlon.log import anonymize_cpr
 from sdlon.log import LogLevel
+from sdlon.log import anonymize_cpr
 from sdlon.log import setup_logging
 from sdlon.mo import MO
 from sdlon.scripts.fix_terminated_engagements import get_sd_employment_map
 from sdlon.sd import SD
-
 
 # We use a named tuple over a Pydantic model since the former is hashable
 # (to be used as a dictionary key)
@@ -118,9 +117,9 @@ def get_update_interval(
     sd_activation_date: date,
     sd_deactivation_date: date,
 ) -> tuple[datetime, datetime | None]:
-    assert (
-        sd_activation_date <= mo_validity.from_.date()
-    ), f"{format_date(sd_activation_date)} {format_date(mo_validity.from_.date())}"
+    assert sd_activation_date <= mo_validity.from_.date(), (
+        f"{format_date(sd_activation_date)} {format_date(mo_validity.from_.date())}"
+    )
 
     end_date: date = min(mo_validity.to.date(), sd_deactivation_date)
     end = datetime(end_date.year, end_date.month, end_date.day)

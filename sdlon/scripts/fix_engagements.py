@@ -9,12 +9,11 @@ from more_itertools import one
 from more_itertools import only
 from pydantic import ValidationError
 
-from sdlon.log import anonymize_cpr
 from sdlon.log import LogLevel
+from sdlon.log import anonymize_cpr
 from sdlon.log import setup_logging
 from sdlon.mo import MO
 from sdlon.sd import SD
-
 
 REGEX_INT = re.compile("[0-9]{5}")
 
