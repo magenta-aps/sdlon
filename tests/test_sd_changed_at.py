@@ -83,7 +83,6 @@ def setup_sd_changed_at(updates=None, hours=24, dry_run=False):
         "sd_use_ad_integration": False,
         "sd_monthly_hourly_divide": 8000,
         "mora_base": "http://dummy.url",
-        "mox_base": "http://dummy.url",
         "app_dbpassword": "secret",
     }
     if updates:

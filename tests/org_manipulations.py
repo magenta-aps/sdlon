@@ -21,7 +21,6 @@ sys.path.append("../../os2mo_data_import/long_tests")
 
 MUNICIPALTY_NAME = os.environ.get("MUNICIPALITY_NAME")
 MUNICIPALTY_CODE = os.environ.get("MUNICIPALITY_CODE")
-MOX_BASE = os.environ.get("MOX_BASE", "http://localhost:5000")
 MORA_BASE = os.environ.get("MORA_BASE", "http://localhost:80")
 GLOBAL_GET_DATE = datetime.datetime(2019, 6, 13, 0, 0)
 
@@ -51,7 +50,6 @@ class IntegrationDataTests(unittest.TestCase):
     def setUp(self):
         self.importer = ImportHelper(
             create_defaults=True,
-            mox_base=MOX_BASE,
             mora_base=MORA_BASE,
         )
 

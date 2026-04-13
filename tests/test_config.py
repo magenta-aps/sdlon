@@ -23,7 +23,6 @@ DEFAULT_MOCK_SETTINGS = {
 
 DEFAULT_EXPECTED_SETTINGS: Dict[str, Any] = {
     "mora_base": "http://mo-service:5000",
-    "mox_base": "http://mo-service:5000/lora",
     "municipality_code": 740,
     "municipality_name": "Kolding Kommune",
     "cpr_uuid_map_path": "/opt/dipex/os2mo-data-import-and-export/settings/cpr_uuid_map.csv",  # noqa
@@ -107,7 +106,6 @@ def test_forbid_extra_settings():
     "key,value",
     [
         ("mora_base", "Not a URL"),
-        ("mox_base", "Not a URL"),
         ("municipality_code", 98),
         ("municipality_code", 1000),
         ("sd_employment_field", "extension_"),
