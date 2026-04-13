@@ -20,13 +20,13 @@ variables:
 # Conditions
 #############
 .if-default-branch-refs: &if-default-branch-refs
-  if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+  if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
 
 .if-tag: &if-tag
-  if: '$CI_COMMIT_TAG'
+  if: "$CI_COMMIT_TAG"
 
 .if-merge-request: &if-merge-request
-  if: '$CI_MERGE_REQUEST_IID'
+  if: "$CI_MERGE_REQUEST_IID"
 
 # Workflow
 ###########
@@ -78,12 +78,10 @@ Test SDLoen Integration:
     - python -m sdlon.sd_changed_at_redo --help
     - python -m sdlon.sd_cli --help
     - python -m sdlon.sd_fixup --help
-    - python -m sdlon.sd_importer --help
     - python -m sdlon.sync_job_id --help
     - python -m sdlon.test_mo_against_sd --help
     # Run tests
     - pytest tests/
-
 
 # Release
 ##########
