@@ -1,6 +1,7 @@
 from unittest import TestCase
 
 from sdlon.config import Settings
+from sdlon.graphql import get_mo_client
 from sdlon.sync_job_id import JobIdSync
 
 
@@ -27,8 +28,17 @@ class Test_sync_job_id(TestCase):
             sd_global_from_date="2022-01-09",
             app_dbpassword="secret",
         )
+        mo_graphql_client = get_mo_client(
+            settings.job_settings.auth_realm,
+            settings.job_settings.client_id,
+            settings.job_settings.client_secret,  # type: ignore
+            settings.mora_base,
+            29,
+        )
         assert isinstance(settings.sd_institution_identifier, str)
-        self.job_id_sync = JobIdSyncTest(settings, settings.sd_institution_identifier)
+        self.job_id_sync = JobIdSyncTest(
+            settings, settings.sd_institution_identifier, mo_graphql_client
+        )
 
     def test_create(self):
         self.assertTrue(self.job_id_sync.update_job_functions)

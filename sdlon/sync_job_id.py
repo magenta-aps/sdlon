@@ -1,27 +1,31 @@
 import uuid
 
 import click
-import requests
+from gql.gql import gql
+from more_itertools import one
 from os2mo_helpers.mora_helpers import MoraHelper
+from raclients.graph.client import GraphQLClient
 from structlog.stdlib import get_logger
 
+from sdlon.graphql import get_mo_client
 from sdlon.log import setup_logging
 
 from .config import Settings
 from .config import get_settings
 from .models import JobFunction
-from .sd_common import mora_assert
 from .sd_common import sd_lookup
-from .sd_payloads import edit_klasse_title
 
 logger = get_logger()
 
 
 class JobIdSync:
-    def __init__(self, settings: Settings, current_inst_id: str):
+    def __init__(
+        self, settings: Settings, current_inst_id: str, mo_graphql_client: GraphQLClient
+    ):
         logger.info("Start sync")
         self.settings = settings
         self.current_inst_id = current_inst_id
+        self.mo_graphql_client = mo_graphql_client
 
         sd_job_function = self.settings.sd_job_function
         if sd_job_function == JobFunction.job_position_identifier:
@@ -78,19 +82,58 @@ class JobIdSync:
         logger.info("Found {}".format(found_type))
         return found_type
 
-    def _edit_klasse_title(self, uuid, title):
+    def _edit_klasse_title(self, uuid: str, title: str) -> None:
         """
-        Change the title of an existing LoRa engagement type.
+        Change the title of an existing MO class.
         """
+
         logger.info("Edit {} to {}".format(uuid, title))
-        payload = edit_klasse_title(title)
-        response = requests.patch(
-            url=self.settings.mox_base + "/klassifikation/klasse/" + uuid,
-            json=payload,
+
+        # since it's not currently possible to update individual fields on the
+        # graphql API, we first need to fetch all the fields the class needs
+        query = gql(
+            """
+            query GetClass($uuid: UUID!) {
+                classes(filter: {uuids: $uuid}) {
+                    objects {
+                        current {
+                            user_key
+                            facet_response {
+                                uuid
+                            }
+                        }
+                    }
+                }
+            }
+            """
         )
-        logger.info("Lora response: {}".format(response.status_code))
-        mora_assert(response)
-        return response
+        query_response = self.mo_graphql_client.execute(
+            query, variable_values={"uuid": uuid}
+        )
+        klass = one(query_response["classes"]["objects"])
+        mutation = gql(
+            """
+            mutation UpdateClass($input: UpdateClassInput!) {
+                class_update(input: $input) {
+                    uuid
+                }
+            }
+            """
+        )
+        mutation_response = self.mo_graphql_client.execute(
+            mutation,
+            variable_values={
+                "input": {
+                    "uuid": uuid,
+                    "name": title,
+                    "user_key": klass["current"]["user_key"],
+                    "facet_uuid": klass["current"]["facet_response"]["uuid"],
+                    "validity": {"from": "1930-01-01"},
+                    "scope": "TEXT",
+                }
+            },
+        )
+        assert mutation_response["class_update"]["uuid"] == uuid
 
     def _get_job_pos_id_from_sd(self, job_pos_id):
         """
@@ -242,8 +285,18 @@ def sync_jobid(job_pos_id, title, sync_all):
     if job_pos_id and sync_all:
         raise click.ClickException("job-pos-id and sync-all are mutually exclusive")
 
+    assert settings.job_settings.client_secret is not None
+    mo_graphql_client = get_mo_client(
+        settings.job_settings.auth_realm,
+        settings.job_settings.client_id,
+        settings.job_settings.client_secret,
+        settings.mora_base,
+        29,
+    )
     assert isinstance(settings.sd_institution_identifier, str)
-    sync_tool = JobIdSync(settings, settings.sd_institution_identifier)
+    sync_tool = JobIdSync(
+        settings, settings.sd_institution_identifier, mo_graphql_client
+    )
 
     if job_pos_id:
         print(job_pos_id)

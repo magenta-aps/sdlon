@@ -176,7 +176,7 @@ class ChangeAtSD:
         return MoraHelper(hostname=mora_base, use_cache=False)
 
     def _get_job_sync(self, settings: Settings) -> JobIdSync:
-        return JobIdSync(settings, self.current_inst_id)
+        return JobIdSync(settings, self.current_inst_id, self.mo_graphql_client)
 
     @lru_cache(maxsize=None)
     def _get_ad_reader(self):
