@@ -1,17 +1,12 @@
 import uuid
 
-import click
 from gql.gql import gql
 from more_itertools import one
 from os2mo_helpers.mora_helpers import MoraHelper
 from raclients.graph.client import GraphQLClient
 from structlog.stdlib import get_logger
 
-from sdlon.graphql import get_mo_client
-from sdlon.log import setup_logging
-
 from .config import Settings
-from .config import get_settings
 from .models import JobFunction
 from .sd_common import sd_lookup
 
@@ -256,59 +251,3 @@ class JobIdSync:
                 logger.info("Updated job function type type: {}".format(job_pos_id))
 
         return "Job position updated"
-
-
-@click.command()
-@click.option(
-    "--job-pos-id", type=click.STRING, help="Synchronize the provided job identifier."
-)
-@click.option(
-    "--title",
-    type=click.STRING,
-    help="Title override, only has effect if job-pos-id is given.",
-)
-@click.option(
-    "--sync-all", is_flag=True, type=click.BOOL, help="Synchronize all job identifiers."
-)
-def sync_jobid(job_pos_id, title, sync_all):
-    """Job Position Synchronize tool."""
-    settings = get_settings()
-    setup_logging(
-        settings.log_level,
-        settings.log_to_file,
-        settings.log_file,
-        settings.log_file_backup_count,
-    )
-
-    if job_pos_id is None and sync_all is None:
-        raise click.ClickException("Either job-pos-id or sync-all must be given")
-    if job_pos_id and sync_all:
-        raise click.ClickException("job-pos-id and sync-all are mutually exclusive")
-
-    assert settings.job_settings.client_secret is not None
-    mo_graphql_client = get_mo_client(
-        settings.job_settings.auth_realm,
-        settings.job_settings.client_id,
-        settings.job_settings.client_secret,
-        settings.mora_base,
-        29,
-    )
-    assert isinstance(settings.sd_institution_identifier, str)
-    sync_tool = JobIdSync(
-        settings, settings.sd_institution_identifier, mo_graphql_client
-    )
-
-    if job_pos_id:
-        print(job_pos_id)
-        if title:
-            print(sync_tool.sync_manually(job_pos_id, title))
-        else:
-            print(sync_tool.sync_from_sd(job_pos_id))
-
-    if sync_all:
-        sync_tool.sync_all_from_sd()
-    logger.info("*Sync ended*")
-
-
-if __name__ == "__main__":
-    sync_jobid()

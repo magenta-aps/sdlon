@@ -77,7 +77,6 @@ Test SDLoen Integration:
     - python -m sdlon.sd_changed_at --help
     - python -m sdlon.sd_changed_at_redo --help
     - python -m sdlon.sd_cli --help
-    - python -m sdlon.sync_job_id --help
     - python -m sdlon.test_mo_against_sd --help
     # Run tests
     - pytest tests/

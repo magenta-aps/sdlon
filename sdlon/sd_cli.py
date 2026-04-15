@@ -2,7 +2,6 @@ import click
 
 from .sd_changed_at import changed_at_cli
 from .sd_changed_at_redo import cli as changed_at_redo
-from .sync_job_id import sync_jobid
 from .test_mo_against_sd import cli as mo_against_sd
 
 
@@ -13,7 +12,6 @@ def SDTool():
 
 
 SDTool.add_command(mo_against_sd, "test_mo_against_sd")
-SDTool.add_command(sync_jobid)
 SDTool.add_command(changed_at_cli)
 SDTool.add_command(changed_at_redo)
 
