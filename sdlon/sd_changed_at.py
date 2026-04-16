@@ -104,6 +104,15 @@ class ChangeAtSD:
         self.dry_run = dry_run
         self.current_inst_id = current_inst_id
 
+        # No more service API... let's get started using GraphQL!
+        self.mo_graphql_client = get_mo_client(
+            settings.job_settings.auth_server,
+            settings.job_settings.client_id,
+            settings.job_settings.client_secret,
+            settings.mora_base,
+            22,
+        )
+
         self.department_fixer = self._get_fix_departments()
         self.helper = self._get_mora_helper(self.settings.mora_base)
         self.job_sync = self._get_job_sync(self.settings)
@@ -158,15 +167,6 @@ class ChangeAtSD:
         # SD supports only one type of association
         self.association_uuid = self.helper.ensure_class_in_facet(
             "association_type", "SD-Medarbejder"
-        )
-
-        # No more service API... let's get started using GraphQL!
-        self.mo_graphql_client = get_mo_client(
-            settings.job_settings.auth_server,
-            settings.job_settings.client_id,
-            settings.job_settings.client_secret,
-            settings.mora_base,
-            22,
         )
 
     def _get_fix_departments(self) -> FixDepartments:
