@@ -82,7 +82,7 @@ class JobIdSync:
         Change the title of an existing MO class.
         """
 
-        logger.info("Edit {} to {}".format(uuid, title))
+        logger.info("Edit {} title to {}".format(uuid, title), uuid=uuid, title=title)
 
         # since it's not currently possible to update individual fields on the
         # graphql API, we first need to fetch all the fields the class needs
@@ -105,6 +105,7 @@ class JobIdSync:
         query_response = self.mo_graphql_client.execute(
             query, variable_values={"uuid": uuid}
         )
+        logger.info("GetClass query responded", response=query_response)
         klass = one(query_response["classes"]["objects"])
         mutation = gql(
             """
@@ -128,6 +129,7 @@ class JobIdSync:
                 }
             },
         )
+        logger.info("UpdateClass mutation responded", response=mutation_response)
         assert mutation_response["class_update"]["uuid"] == uuid
 
     def _get_job_pos_id_from_sd(self, job_pos_id):

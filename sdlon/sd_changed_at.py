@@ -631,6 +631,9 @@ class ChangeAtSD:
         Returns:
             uuid of the newly created class.
         """
+        logger.info(
+            "_create_class", user_key=user_key, name=name, facet_uuid=facet_uuid
+        )
         mutation = gql(
             """
             mutation CreateClass($input: ClassCreateInput!) {
@@ -652,6 +655,7 @@ class ChangeAtSD:
                 }
             },
         )
+        logger.info("CreateClass mutation responded", response=response)
         return response["class_create"]["uuid"]
 
     def _create_engagement_type(self, engagement_type_ref, job_position):
