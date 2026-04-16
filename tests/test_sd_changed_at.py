@@ -4,6 +4,7 @@ import uuid
 from collections import OrderedDict
 from datetime import date
 from datetime import timedelta
+from unittest import mock
 from unittest.mock import MagicMock
 from unittest.mock import call
 from unittest.mock import patch
@@ -22,6 +23,7 @@ from ra_utils.generate_uuid import uuid_generator
 from sdlon.ad import LdapADGUIDReader
 from sdlon.config import Settings
 from sdlon.date_utils import format_date
+from sdlon.graphql import GraphQLClient
 from sdlon.it_systems import MUTATION_ADD_IT_SYSTEM_TO_EMPLOYEE
 from sdlon.metrics import RunDBState
 from sdlon.models import ITUserSystem
@@ -37,7 +39,7 @@ from .fixtures import read_employment_fixture
 
 
 class ChangeAtSDTest(ChangeAtSD):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, mock_create_class: bool = True, *args, **kwargs):
         self.morahelper_mock = MagicMock()
         self.morahelper_mock.read_organisation.return_value = (
             "00000000-0000-0000-0000-000000000000"
@@ -47,10 +49,11 @@ class ChangeAtSDTest(ChangeAtSD):
         self.fix_departments_mock = MagicMock()
         self.mo_graphql_client = MagicMock()
 
-        self._get_job_sync = MagicMock()
+        self._get_job_sync = MagicMock()  # type: ignore
 
-        self._create_class = MagicMock()
-        self._create_class.return_value = "new_class_uuid"
+        if mock_create_class:
+            self._create_class = MagicMock()  # type: ignore
+            self._create_class.return_value = "new_class_uuid"
 
         super().__init__(*args, **kwargs)
 
@@ -70,7 +73,7 @@ class ChangeAtSDTest(ChangeAtSD):
         return self.morahelper_mock
 
 
-def setup_sd_changed_at(updates=None, hours=24, dry_run=False):
+def setup_sd_changed_at(updates=None, hours=24, dry_run=False, mock_create_class=True):
     # TODO: remove integrations.SD_Lon.terminate_engagement_with_to_only
     settings_dict = {
         "municipality_name": "name",
@@ -83,7 +86,6 @@ def setup_sd_changed_at(updates=None, hours=24, dry_run=False):
         "sd_use_ad_integration": False,
         "sd_monthly_hourly_divide": 8000,
         "mora_base": "http://dummy.url",
-        "mox_base": "http://dummy.url",
         "app_dbpassword": "secret",
     }
     if updates:
@@ -95,6 +97,7 @@ def setup_sd_changed_at(updates=None, hours=24, dry_run=False):
     start_date = today
 
     sd_updater = ChangeAtSDTest(
+        mock_create_class,
         settings,
         settings.sd_institution_identifier,
         start_date,
@@ -2957,3 +2960,42 @@ def test__fetch_ad_information_for_ldap_case(mock_get: MagicMock):
     )
     assert sam_account_name is None
     assert object_guid == "c04d7ec7-1364-4d98-9ad4-4dddabe703b4"
+
+
+@patch("sdlon.sd_changed_at.get_mo_client")
+def test__create_class(mock_get_graphql_client: MagicMock):
+    # Arrange
+    class_uuid = str(uuid.uuid4())
+    facet_uuid = str(uuid.uuid4())
+
+    # we can't test _create_class if we mock it
+    sd_updater = setup_sd_changed_at(mock_create_class=False)
+
+    mock_gql_client = MagicMock(spec=GraphQLClient)
+    mock_get_graphql_client.return_value = mock_gql_client
+
+    mock_execute = MagicMock(return_value={"class_create": {"uuid": class_uuid}})
+    mock_gql_client.execute = mock_execute
+    sd_updater.mo_graphql_client = mock_gql_client
+
+    # Act
+    result = sd_updater._create_class("user_key", "name", facet_uuid)
+
+    # Assert
+    mock_execute.assert_called_once_with(
+        # HACK: graphql documents can't be compared for equality, only for identity
+        # so it is pointless to assert that the query document is the same object
+        # as itself and exposing the query as a global variable on sd_changed_at
+        mock.ANY,
+        variable_values={
+            "input": {
+                "name": "name",
+                "user_key": "user_key",
+                "facet_uuid": facet_uuid,
+                "validity": {"from": "1930-01-01"},
+                "scope": "TEXT",
+            }
+        },
+    )
+
+    assert result == class_uuid

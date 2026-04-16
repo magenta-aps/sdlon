@@ -1,27 +1,26 @@
 import uuid
 
-import click
-import requests
+from gql.gql import gql
+from more_itertools import one
 from os2mo_helpers.mora_helpers import MoraHelper
+from raclients.graph.client import GraphQLClient
 from structlog.stdlib import get_logger
 
-from sdlon.log import setup_logging
-
 from .config import Settings
-from .config import get_settings
 from .models import JobFunction
-from .sd_common import mora_assert
 from .sd_common import sd_lookup
-from .sd_payloads import edit_klasse_title
 
 logger = get_logger()
 
 
 class JobIdSync:
-    def __init__(self, settings: Settings, current_inst_id: str):
+    def __init__(
+        self, settings: Settings, current_inst_id: str, mo_graphql_client: GraphQLClient
+    ):
         logger.info("Start sync")
         self.settings = settings
         self.current_inst_id = current_inst_id
+        self.mo_graphql_client = mo_graphql_client
 
         sd_job_function = self.settings.sd_job_function
         if sd_job_function == JobFunction.job_position_identifier:
@@ -78,19 +77,60 @@ class JobIdSync:
         logger.info("Found {}".format(found_type))
         return found_type
 
-    def _edit_klasse_title(self, uuid, title):
+    def _edit_klasse_title(self, uuid: str, title: str) -> None:
         """
-        Change the title of an existing LoRa engagement type.
+        Change the title of an existing MO class.
         """
-        logger.info("Edit {} to {}".format(uuid, title))
-        payload = edit_klasse_title(title)
-        response = requests.patch(
-            url=self.settings.mox_base + "/klassifikation/klasse/" + uuid,
-            json=payload,
+
+        logger.info("Edit {} title to {}".format(uuid, title), uuid=uuid, title=title)
+
+        # since it's not currently possible to update individual fields on the
+        # graphql API, we first need to fetch all the fields the class needs
+        query = gql(
+            """
+            query GetClass($uuid: UUID!) {
+                classes(filter: {uuids: $uuid}) {
+                    objects {
+                        current {
+                            user_key
+                            facet_response {
+                                uuid
+                            }
+                        }
+                    }
+                }
+            }
+            """
         )
-        logger.info("Lora response: {}".format(response.status_code))
-        mora_assert(response)
-        return response
+        query_response = self.mo_graphql_client.execute(
+            query, variable_values={"uuid": uuid}
+        )
+        logger.info("GetClass query responded", response=query_response)
+        klass = one(query_response["classes"]["objects"])
+        mutation = gql(
+            """
+            mutation UpdateClass($input: UpdateClassInput!) {
+                class_update(input: $input) {
+                    uuid
+                }
+            }
+            """
+        )
+        mutation_response = self.mo_graphql_client.execute(
+            mutation,
+            variable_values={
+                "input": {
+                    "uuid": uuid,
+                    "name": title,
+                    "user_key": klass["current"]["user_key"],
+                    "facet_uuid": klass["current"]["facet_response"]["uuid"],
+                    "validity": {"from": "1930-01-01"},
+                    "scope": "TEXT",
+                }
+            },
+        )
+        logger.info("UpdateClass mutation responded", response=mutation_response)
+        assert mutation_response["class_update"]["uuid"] == uuid
 
     def _get_job_pos_id_from_sd(self, job_pos_id):
         """
@@ -213,49 +253,3 @@ class JobIdSync:
                 logger.info("Updated job function type type: {}".format(job_pos_id))
 
         return "Job position updated"
-
-
-@click.command()
-@click.option(
-    "--job-pos-id", type=click.STRING, help="Synchronize the provided job identifier."
-)
-@click.option(
-    "--title",
-    type=click.STRING,
-    help="Title override, only has effect if job-pos-id is given.",
-)
-@click.option(
-    "--sync-all", is_flag=True, type=click.BOOL, help="Synchronize all job identifiers."
-)
-def sync_jobid(job_pos_id, title, sync_all):
-    """Job Position Synchronize tool."""
-    settings = get_settings()
-    setup_logging(
-        settings.log_level,
-        settings.log_to_file,
-        settings.log_file,
-        settings.log_file_backup_count,
-    )
-
-    if job_pos_id is None and sync_all is None:
-        raise click.ClickException("Either job-pos-id or sync-all must be given")
-    if job_pos_id and sync_all:
-        raise click.ClickException("job-pos-id and sync-all are mutually exclusive")
-
-    assert isinstance(settings.sd_institution_identifier, str)
-    sync_tool = JobIdSync(settings, settings.sd_institution_identifier)
-
-    if job_pos_id:
-        print(job_pos_id)
-        if title:
-            print(sync_tool.sync_manually(job_pos_id, title))
-        else:
-            print(sync_tool.sync_from_sd(job_pos_id))
-
-    if sync_all:
-        sync_tool.sync_all_from_sd()
-    logger.info("*Sync ended*")
-
-
-if __name__ == "__main__":
-    sync_jobid()

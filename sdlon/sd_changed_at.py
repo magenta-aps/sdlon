@@ -23,6 +23,7 @@ import click
 import requests
 import sentry_sdk
 from fastapi.encoders import jsonable_encoder
+from gql import gql
 from integrations.ad_integration import ad_reader
 from more_itertools import last
 from more_itertools import one
@@ -175,7 +176,7 @@ class ChangeAtSD:
         return MoraHelper(hostname=mora_base, use_cache=False)
 
     def _get_job_sync(self, settings: Settings) -> JobIdSync:
-        return JobIdSync(settings, self.current_inst_id)
+        return JobIdSync(settings, self.current_inst_id, self.mo_graphql_client)
 
     @lru_cache(maxsize=None)
     def _get_ad_reader(self):
@@ -624,20 +625,38 @@ class ChangeAtSD:
             )
         return relevant_engagement
 
-    def _create_class(self, payload):
-        """Create a new class using the provided class payload.
-
-        Args:
-            payload: A class created using sd_payloads.* via lora_klasse
+    def _create_class(self, user_key: str, name: str, facet_uuid: str) -> str:
+        """Create a new class
 
         Returns:
             uuid of the newly created class.
         """
-        response = requests.post(
-            url=self.settings.mox_base + "/klassifikation/klasse", json=payload
+        logger.info(
+            "_create_class", user_key=user_key, name=name, facet_uuid=facet_uuid
         )
-        assert response.status_code == 201
-        return response.json()["uuid"]
+        mutation = gql(
+            """
+            mutation CreateClass($input: ClassCreateInput!) {
+                class_create(input: $input) {
+                    uuid
+                }
+            }
+            """
+        )
+        response = self.mo_graphql_client.execute(
+            mutation,
+            variable_values={
+                "input": {
+                    "name": name,
+                    "user_key": user_key,
+                    "facet_uuid": facet_uuid,
+                    "validity": {"from": "1930-01-01"},
+                    "scope": "TEXT",
+                }
+            },
+        )
+        logger.info("CreateClass mutation responded", response=response)
+        return response["class_create"]["uuid"]
 
     def _create_engagement_type(self, engagement_type_ref, job_position):
         # Could not fetch, attempt to create it
@@ -645,10 +664,9 @@ class ChangeAtSD:
             "Missing engagement_type (now creating)",
             engagement_type_ref=engagement_type_ref,
         )
-        payload = sd_payloads.engagement_type(
-            engagement_type_ref, job_position, self.org_uuid, self.engagement_type_facet
+        engagement_type_uuid = self._create_class(
+            engagement_type_ref, job_position, self.engagement_type_facet
         )
-        engagement_type_uuid = self._create_class(payload)
         self.engagement_types[engagement_type_ref] = engagement_type_uuid
 
         self.job_sync.sync_from_sd(job_position, refresh=True)
@@ -658,10 +676,9 @@ class ChangeAtSD:
     def _create_professions(self, job_function, job_position):
         # Could not fetch, attempt to create it
         logger.warning("Missing profession (now creating)", job_function=job_function)
-        payload = sd_payloads.profession(
-            job_function, self.org_uuid, self.job_function_facet
+        job_uuid = self._create_class(
+            job_function, job_function, self.job_function_facet
         )
-        job_uuid = self._create_class(payload)
         self.job_functions[job_function] = job_uuid
 
         self.job_sync.sync_from_sd(job_position, refresh=True)
