@@ -89,7 +89,7 @@ class JobIdSync:
         query = gql(
             """
             query GetClass($uuid: UUID!) {
-                classes(filter: {uuids: $uuid}) {
+                classes(filter: {uuids: [$uuid]}) {
                     objects {
                         current {
                             user_key
