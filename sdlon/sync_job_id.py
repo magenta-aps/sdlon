@@ -109,7 +109,7 @@ class JobIdSync:
         klass = one(query_response["classes"]["objects"])
         mutation = gql(
             """
-            mutation UpdateClass($input: UpdateClassInput!) {
+            mutation UpdateClass($input: ClassUpdateInput!) {
                 class_update(input: $input) {
                     uuid
                 }
